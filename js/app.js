@@ -202,7 +202,8 @@ var currentPage = "home";
 function navigate(page) {
   currentPage = page;
   document.querySelectorAll(".nav-item").forEach(el => {
-    el.classList.toggle("active", el.dataset.page === page);
+    var match = el.dataset.page === page || (page === "sceneChat" && el.dataset.page === "scene");
+    el.classList.toggle("active", match);
   });
   var main = document.getElementById("mainContent");
   main.innerHTML = renderPage(page);
@@ -258,7 +259,9 @@ function renderPage(page) {
     stems: renderStems,
     schedule: renderSchedule,
     reference: renderReference,
-    ai: renderAI
+    ai: renderAI,
+    scene: renderScene,
+    sceneChat: renderSceneChat
   };
   return (pages[page] || renderHome)();
 }
@@ -291,10 +294,15 @@ function renderHome() {
           <h3>两周日课表</h3>
           <p>每天 20 分钟，从零到能造简单句子</p>
         </div>
-        <div class="hero-card hero-card-wide" onclick="navigate('ai')">
+        <div class="hero-card" onclick="navigate('ai')">
           <div class="icon">🤖</div>
           <h3>AI 智能练句</h3>
-          <p>输入任意中文，AI 自动翻译、拆解词性、标注骨架规则，按你的学习体系生成教学内容</p>
+          <p>输入中文，AI 自动翻译并拆解词性、标注骨架规则</p>
+        </div>
+        <div class="hero-card" onclick="navigate('scene')">
+          <div class="icon">💬</div>
+          <h3>AI 情景对话</h3>
+          <p>选择场景，和 AI 角色用韩语对话练习，自动播放发音</p>
         </div>
       </div>
     </section>
@@ -860,6 +868,440 @@ function renderAIResult(data, container) {
       card.style.transform = "translateY(0)";
     }, 10);
   }
+}
+
+// ============================================
+// === AI SCENE PAGE (情景对话) ===
+// ============================================
+
+// 预设场景
+var SCENE_PRESETS = [
+  {
+    id: "preset-restaurant",
+    icon: "🍽️",
+    title: "餐厅点餐",
+    desc: "你在首尔一家餐厅，服务员过来帮你点餐",
+    prompt: "场景：你在首尔一家餐厅。你扮演服务员，用户是顾客。请先主动向用户打招呼并介绍菜单，然后引导用户点餐。对话要自然，包含推荐菜品、询问口味等。"
+  },
+  {
+    id: "preset-shopping",
+    icon: "🛍️",
+    title: "购物砍价",
+    desc: "你在明洞逛街，想买衣服但觉得有点贵",
+    prompt: "场景：用户在明洞逛街买衣服，你扮演服装店店员。用户可能觉得价格贵，你可以介绍商品优点、给折扣等。请先主动向用户打招呼。"
+  },
+  {
+    id: "preset-taxi",
+    icon: "🚕",
+    title: "打车出行",
+    desc: "你需要打车去一个地方，和司机沟通路线",
+    prompt: "场景：用户在韩国打车，你扮演出租车司机。用户会告诉你目的地，你问路线、聊天等。请先主动问用户要去哪里。"
+  },
+  {
+    id: "preset-intro",
+    icon: "👋",
+    title: "自我介绍",
+    desc: "你刚认识一个韩国朋友，互相做自我介绍",
+    prompt: "场景：用户刚认识一个韩国朋友（你扮演这个朋友）。你们互相做自我介绍——问名字、职业、兴趣等。请先主动向用户打招呼并自我介绍。"
+  },
+  {
+    id: "preset-directions",
+    icon: "🗺️",
+    title: "问路指引",
+    desc: "你迷路了，需要问路人怎么去某个地方",
+    prompt: "场景：用户在韩国迷路了，你扮演路人。用户会问你某个地方怎么走，你给方向指引（左转、右转、直走等）。请先主动问用户需要什么帮助。"
+  },
+  {
+    id: "preset-cafe",
+    icon: "☕",
+    title: "咖啡店闲聊",
+    desc: "在咖啡店和朋友轻松聊天",
+    prompt: "场景：用户和你是朋友，在咖啡店喝咖啡聊天。你扮演韩国朋友，聊聊最近的生活、工作、兴趣等轻松话题。请先主动问用户最近怎么样。"
+  }
+];
+
+// 当前对话状态
+var sceneChatState = {
+  active: false,
+  sceneTitle: "",
+  scenePrompt: "",
+  messages: [],     // {role: 'user'|'assistant', kr, zh, breakdown}
+  loading: false,
+  muted: false
+};
+
+function renderScene() {
+  // 加载自定义场景
+  var customScenes = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
+
+  var presetHtml = SCENE_PRESETS.map(function(s) {
+    return '<div class="scene-card" onclick="startSceneChat(\'' + s.id + '\', \'' + s.title.replace(/'/g, "\\'") + '\', \'' + s.prompt.replace(/'/g, "\\'") + '\')">' +
+      '<div class="scene-icon">' + s.icon + '</div>' +
+      '<div class="scene-info">' +
+        '<div class="scene-title">' + s.title + '</div>' +
+        '<div class="scene-desc">' + s.desc + '</div>' +
+      '</div>' +
+      '<div class="scene-go">▶</div>' +
+    '</div>';
+  }).join("");
+
+  var customHtml = "";
+  if (customScenes.length > 0) {
+    customHtml = customScenes.map(function(s, i) {
+      return '<div class="scene-card scene-card-custom" onclick="startSceneChat(\'custom-' + i + '\', \'' + s.title.replace(/'/g, "\\'") + '\', \'' + s.prompt.replace(/'/g, "\\'") + '\')">' +
+        '<div class="scene-icon">' + (s.icon || '🎯') + '</div>' +
+        '<div class="scene-info">' +
+          '<div class="scene-title">' + s.title + '</div>' +
+          '<div class="scene-desc">' + (s.desc || s.prompt.substring(0, 30)) + '</div>' +
+        '</div>' +
+        '<button class="scene-delete" onclick="event.stopPropagation(); deleteCustomScene(' + i + ')">✕</button>' +
+        '<div class="scene-go">▶</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  return '' +
+    '<div class="page-title">' +
+      '<h2>💬 AI 情景对话</h2>' +
+      '<p>选择一个场景，AI 会扮演韩国角色和你对话。支持中文回答——AI 会理解并继续韩语对话。</p>' +
+    '</div>' +
+    '<div class="scene-tips">' +
+      '<strong>💡 使用方法</strong><br>' +
+      '① 点击场景卡片开始对话 &nbsp; ② AI 先发消息并自动播放发音 &nbsp; ③ 你可以用中文或韩文回答 &nbsp; ④ 点击「拆解」查看词性标注 &nbsp; ⑤ 结束后可复习全部对话' +
+    '</div>' +
+    '<div class="scene-section">' +
+      '<h3>📋 预设场景</h3>' +
+      '<div class="scene-grid">' + presetHtml + '</div>' +
+    '</div>' +
+    '<div class="scene-section">' +
+      '<h3>🎯 我的场景</h3>' +
+      (customHtml ? '<div class="scene-grid">' + customHtml + '</div>' : '<p class="scene-empty">还没有自定义场景，在下方创建一个吧</p>') +
+    '</div>' +
+    '<div class="scene-create-card">' +
+      '<h3>➕ 创建新场景</h3>' +
+      '<input type="text" id="sceneTitleInput" class="ai-input" placeholder="场景名称，例如：医院就诊" style="margin-bottom:10px;" />' +
+      '<textarea id="scenePromptInput" class="ai-input scene-textarea" placeholder="场景描述，例如：你在韩国医院看病，需要向医生描述症状。医生会问你哪里不舒服、多久了等。"></textarea>' +
+      '<button class="ai-submit-btn" onclick="saveCustomScene()" style="margin-top:10px;">保存场景</button>' +
+    '</div>';
+}
+
+function saveCustomScene() {
+  var title = document.getElementById("sceneTitleInput").value.trim();
+  var prompt = document.getElementById("scenePromptInput").value.trim();
+  if (!title) { showToast("请输入场景名称"); return; }
+  if (!prompt) { showToast("请输入场景描述"); return; }
+
+  var custom = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
+  custom.push({ title: title, prompt: prompt, icon: "🎯", desc: prompt.substring(0, 40) + "..." });
+  localStorage.setItem("korean_custom_scenes", JSON.stringify(custom));
+  showToast("场景已保存！");
+  navigate("scene");
+}
+
+function deleteCustomScene(idx) {
+  var custom = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
+  custom.splice(idx, 1);
+  localStorage.setItem("korean_custom_scenes", JSON.stringify(custom));
+  showToast("已删除");
+  navigate("scene");
+}
+
+// === 对话界面 ===
+function startSceneChat(id, title, prompt) {
+  sceneChatState.active = true;
+  sceneChatState.sceneTitle = title;
+  sceneChatState.scenePrompt = prompt;
+  sceneChatState.messages = [];
+  sceneChatState.loading = false;
+  sceneChatState.muted = false;
+  navigate("sceneChat");
+}
+
+// AI 发起第一条消息
+function startFirstMessage() {
+  if (sceneChatState.loading) return;
+  sceneChatState.loading = true;
+  refreshChatUI();
+
+  // 发送一条空 user 消息触发 AI 开口
+  var apiMessages = [{ role: "user", content: "（请开始对话）" }];
+
+  fetch("http://127.0.0.1:1234/ai/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scene: sceneChatState.scenePrompt, messages: apiMessages })
+  })
+  .then(function(resp) { return resp.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error);
+    sceneChatState.loading = false;
+    sceneChatState.messages.push({
+      role: "assistant",
+      kr: data.kr,
+      zh: data.zh,
+      breakdown: data.breakdown || []
+    });
+    refreshChatUI();
+    scrollChatToBottom();
+    if (!sceneChatState.muted && data.kr) {
+      setTimeout(function() { speakKorean(data.kr); }, 300);
+    }
+  })
+  .catch(function(err) {
+    sceneChatState.loading = false;
+    sceneChatState.messages.push({
+      role: "assistant",
+      kr: "죄송해요, 오류가 났어요.",
+      zh: "抱歉，出错了：" + err.message,
+      breakdown: []
+    });
+    refreshChatUI();
+    scrollChatToBottom();
+  });
+}
+
+function renderSceneChat() {
+  if (!sceneChatState.active) {
+    return '<div class="page-title"><h2>💬 AI 情景对话</h2><p>请先选择一个场景</p></div>';
+  }
+
+  var msgsHtml = sceneChatState.messages.map(function(m, i) {
+    if (m.role === "user") {
+      return '<div class="chat-msg chat-msg-user">' +
+        '<div class="chat-bubble chat-bubble-user">' +
+          '<div class="chat-text">' + escapeHtml(m.content) + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    // assistant
+    var breakdownHtml = "";
+    if (m.breakdown && m.breakdown.length > 0) {
+      breakdownHtml = m.breakdown.map(function(b) {
+        var cls = getElemClass(b);
+        var ruleNum = getRuleTag(b);
+        return '<div class="breakdown-item">' +
+          '<strong>' + (b.part || '') + '</strong>' +
+          '<span class="elem-tag ' + cls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + (b.label || b.tag || '') + '</span>' +
+          ruleBadge(ruleNum) +
+          '<span class="mean">' + (b.meaning || '') + '</span>' +
+        '</div>';
+      }).join("");
+    }
+    return '<div class="chat-msg chat-msg-ai">' +
+      '<div class="chat-avatar">🤖</div>' +
+      '<div class="chat-content">' +
+        '<div class="chat-bubble chat-bubble-ai">' +
+          '<div class="chat-kr">' + escapeHtml(m.kr || '') + playBtn(m.kr || '', "small") + '</div>' +
+          '<div class="chat-zh">' + escapeHtml(m.zh || '') + '</div>' +
+          (breakdownHtml ? '<button class="chat-toggle-btn" onclick="toggleChatBreakdown(' + i + ')">📖 拆解</button>' : '') +
+        '</div>' +
+        (breakdownHtml ? '<div class="chat-breakdown" id="chatBd' + i + '" style="display:none;"><div class="breakdown-row">' + breakdownHtml + '</div></div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  var loadingHtml = sceneChatState.loading ?
+    '<div class="chat-msg chat-msg-ai">' +
+      '<div class="chat-avatar">🤖</div>' +
+      '<div class="chat-bubble chat-bubble-ai chat-loading">' +
+        '<div class="chat-typing"><span></span><span></span><span></span></div>' +
+      '</div>' +
+    '</div>' : '';
+
+  return '' +
+    '<div class="chat-header">' +
+      '<button class="chat-back-btn" onclick="exitSceneChat()">← 返回</button>' +
+      '<div class="chat-header-title">💬 ' + escapeHtml(sceneChatState.sceneTitle) + '</div>' +
+      '<button class="chat-end-btn" onclick="finishSceneChat()">结束</button>' +
+    '</div>' +
+    '<div class="chat-container" id="chatContainer">' +
+      (sceneChatState.messages.length === 0 && !sceneChatState.loading ?
+        '<div class="chat-start-overlay">' +
+          '<div class="chat-start-icon">💬</div>' +
+          '<p>准备好了吗？点击开始，AI 会先向你说话</p>' +
+          '<button class="ai-submit-btn chat-start-btn" onclick="startFirstMessage()">🚀 开始对话</button>' +
+        '</div>' : '') +
+      (sceneChatState.messages.length > 0 ? msgsHtml : '') +
+      loadingHtml +
+    '</div>' +
+    '<div class="chat-input-bar">' +
+      '<button class="chat-mute-btn" id="muteBtn" onclick="toggleSceneMute()" title="静音/取消静音">' + (sceneChatState.muted ? '🔇' : '🔊') + '</button>' +
+      '<input type="text" id="chatInput" class="ai-input" placeholder="输入中文或韩文回答…" onkeydown="if(event.key===\'Enter\') sendChatMessage()" />' +
+      '<button class="ai-submit-btn" onclick="sendChatMessage()" id="chatSendBtn">发送</button>' +
+    '</div>';
+}
+
+function toggleChatBreakdown(i) {
+  var el = document.getElementById("chatBd" + i);
+  if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function toggleSceneMute() {
+  sceneChatState.muted = !sceneChatState.muted;
+  var btn = document.getElementById("muteBtn");
+  if (btn) btn.textContent = sceneChatState.muted ? "🔇" : "🔊";
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// 发送用户消息 → 获取 AI 回复
+function sendChatMessage() {
+  if (sceneChatState.loading) return;
+
+  var input = document.getElementById("chatInput");
+  var text = input ? input.value.trim() : "";
+  if (!text) return;
+
+  // 添加用户消息
+  sceneChatState.messages.push({ role: "user", content: text });
+  input.value = "";
+
+  // 渲染
+  sceneChatState.loading = true;
+  refreshChatUI();
+  scrollChatToBottom();
+
+  // 构建 API 消息（只发 content 给 AI，不发送 kr/zh/breakdown）
+  var apiMessages = sceneChatState.messages.map(function(m) {
+    if (m.role === "user") return { role: "user", content: m.content };
+    return { role: "assistant", content: m.kr };
+  });
+
+  fetch("http://127.0.0.1:1234/ai/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scene: sceneChatState.scenePrompt, messages: apiMessages })
+  })
+  .then(function(resp) { return resp.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error);
+    sceneChatState.loading = false;
+    sceneChatState.messages.push({
+      role: "assistant",
+      kr: data.kr,
+      zh: data.zh,
+      breakdown: data.breakdown || []
+    });
+    refreshChatUI();
+    scrollChatToBottom();
+    // 自动播放 TTS
+    if (!sceneChatState.muted && data.kr) {
+      setTimeout(function() { speakKorean(data.kr); }, 300);
+    }
+  })
+  .catch(function(err) {
+    sceneChatState.loading = false;
+    sceneChatState.messages.push({
+      role: "assistant",
+      kr: "죄송해요, 오류가 났어요.",
+      zh: "抱歉，出错了：" + err.message,
+      breakdown: []
+    });
+    refreshChatUI();
+    scrollChatToBottom();
+  });
+}
+
+function refreshChatUI() {
+  var main = document.getElementById("mainContent");
+  main.innerHTML = renderSceneChat();
+  main.classList.remove("page-enter");
+  void main.offsetWidth;
+  main.classList.add("page-enter");
+}
+
+function scrollChatToBottom() {
+  var container = document.getElementById("chatContainer");
+  if (container) container.scrollTop = container.scrollHeight;
+}
+
+function exitSceneChat() {
+  sceneChatState.active = false;
+  sceneChatState.messages = [];
+  navigate("scene");
+}
+
+// 结束对话 → 复习模式
+function finishSceneChat() {
+  if (sceneChatState.messages.length === 0) {
+    exitSceneChat();
+    return;
+  }
+
+  // 保存对话记录
+  var history = JSON.parse(localStorage.getItem("korean_scene_history") || "[]");
+  history.push({
+    title: sceneChatState.sceneTitle,
+    time: Date.now(),
+    messages: sceneChatState.messages
+  });
+  if (history.length > 20) history.shift();
+  localStorage.setItem("korean_scene_history", JSON.stringify(history));
+
+  // 渲染复习界面
+  renderSceneReview();
+}
+
+function renderSceneReview() {
+  var msgsHtml = sceneChatState.messages.map(function(m) {
+    if (m.role === "user") {
+      return '<div class="review-msg review-msg-user">' +
+        '<div class="review-role">🧑 我</div>' +
+        '<div class="review-text">' + escapeHtml(m.content) + '</div>' +
+      '</div>';
+    }
+    return '<div class="review-msg review-msg-ai">' +
+      '<div class="review-role">🤖 AI</div>' +
+      '<div class="review-kr">' + escapeHtml(m.kr || '') + playBtn(m.kr || '', "small") + '</div>' +
+      '<div class="review-zh">' + escapeHtml(m.zh || '') + '</div>' +
+    '</div>';
+  }).join("");
+
+  var main = document.getElementById("mainContent");
+  main.innerHTML = '' +
+    '<div class="page-title">' +
+      '<h2>📖 对话复习</h2>' +
+      '<p>场景：' + escapeHtml(sceneChatState.sceneTitle) + ' &nbsp;|&nbsp; 共 ' + sceneChatState.messages.length + ' 条消息</p>' +
+    '</div>' +
+    '<div class="review-container">' + msgsHtml + '</div>' +
+    '<div class="review-actions">' +
+      '<button class="ai-submit-btn" onclick="exitSceneChat()">返回场景列表</button>' +
+      '<button class="ai-suggest-btn" onclick="replayAllSceneAudio()" style="padding:14px 28px;">🔊 顺序播放全部</button>' +
+    '</div>';
+
+  main.classList.remove("page-enter");
+  void main.offsetWidth;
+  main.classList.add("page-enter");
+}
+
+var replayQueue = [];
+var replayIndex = 0;
+function replayAllSceneAudio() {
+  replayQueue = sceneChatState.messages.filter(function(m) { return m.role === "assistant" && m.kr; });
+  replayIndex = 0;
+  playNextReplay();
+}
+
+function playNextReplay() {
+  if (replayIndex >= replayQueue.length) {
+    showToast("播放完毕");
+    return;
+  }
+  var msg = replayQueue[replayIndex];
+  // 滚动到当前消息
+  var reviewMsgs = document.querySelectorAll(".review-msg-ai .review-kr");
+  if (reviewMsgs[replayIndex]) {
+    reviewMsgs[replayIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+    reviewMsgs[replayIndex].style.background = "var(--primary-lighter)";
+    setTimeout(function() { reviewMsgs[replayIndex].style.background = ""; }, 2000);
+  }
+  speakKorean(msg.kr);
+  replayIndex++;
+  // 估算播放时长后播下一条
+  var duration = Math.max(2000, msg.kr.length * 300);
+  setTimeout(playNextReplay, duration);
 }
 
 // Initialize
