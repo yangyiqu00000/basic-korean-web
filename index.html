@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Korean 🇰🇷 - 韩语最小可行系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="logo" onclick="navigate('home')">
+                    <span class="logo-icon">🇰🇷</span>
+                    <span class="logo-text">Basic Korean</span>
+                    <span class="logo-badge">V1.0</span>
+                </div>
+                <nav class="nav" id="mainNav">
+                    <button class="nav-item active" data-page="home" onclick="navigate('home')">🏠 首页</button>
+                    <button class="nav-item" data-page="skeleton" onclick="navigate('skeleton')">🏗️ 骨架</button>
+                    <button class="nav-item" data-page="training" onclick="navigate('training')">🃏 断句</button>
+                    <button class="nav-item" data-page="stems" onclick="navigate('stems')">📝 词干</button>
+                    <button class="nav-item" data-page="schedule" onclick="navigate('schedule')">🗓️ 日课</button>
+                    <button class="nav-item" data-page="reference" onclick="navigate('reference')">🏷️ 速查</button>
+                    <button class="nav-item" data-page="ai" onclick="navigate('ai')">🤖 AI练句</button>
+                </nav>
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            </div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main" id="mainContent">
+            <!-- 由 JS 动态渲染 -->
+            <div style="text-align:center;padding:60px 20px;">
+                <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+                <p style="color:var(--text-light);">加载中...</p>
+            </div>
+        </main>
+
+        <!-- 底部 -->
+        <footer class="footer">
+            <p>Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言</p>
+        </footer>
+    </div>
+
+    <!-- 数据层 - 按顺序加载 -->
+    <script src="js/data.js"></script>
+    <script src="js/rules_data.js"></script>
+    <script src="js/stems_data.js"></script>
+    <script src="js/sentences_data.js"></script>
+    <script src="js/reference_data.js"></script>
+    <!-- 应用层 -->
+    <script src="js/app.js"></script>
+</body>
+</html>

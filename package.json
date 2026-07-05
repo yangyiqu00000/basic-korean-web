@@ -1,0 +1,14 @@
+{
+  "name": "basic-korean-web",
+  "version": "1.0.0",
+  "description": "韩语最小可行学习系统 - 7大骨架规则 + 断句训练 + AI智能拆句 + Edge TTS语音",
+  "scripts": {
+    "start": "bash start.sh",
+    "web": "node web_server.js",
+    "tts": "node tts_server.js",
+    "dev": "node web_server.js & node tts_server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
