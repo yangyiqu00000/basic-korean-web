@@ -2,12 +2,12 @@
 const SENTENCES = [
   {
     id: 1, group: "自我介绍",
-    kr: "저는 학생입니다.",
+    kr: "저는 학생이에요.",
     breakdown: [
       { part: "저", tag: "词干", meaning: "我" },
       { part: "는", tag: "助词", meaning: "主题标记", label: "主题" },
       { part: "학생", tag: "词干", meaning: "学生" },
-      { part: "입니다", tag: "词尾", meaning: "是(正式敬语)", label: "终结" }
+      { part: "이에요", tag: "词尾", meaning: "是(敬语)", label: "终结" }
     ],
     full: "我是学生。"
   },
@@ -25,14 +25,15 @@ const SENTENCES = [
   },
   {
     id: 3, group: "自我介绍",
-    kr: "만나서 반갑습니다.",
+    kr: "만나서 반가워요.",
     breakdown: [
       { part: "만나", tag: "词干", meaning: "见" },
       { part: "서", tag: "词尾", meaning: "所以(连接)", label: "连接" },
       { part: "반갑", tag: "词干", meaning: "高兴" },
-      { part: "습니다", tag: "词尾", meaning: "正式敬语", label: "终结" }
+      { part: "어요", tag: "词尾", meaning: "敬语", label: "终结" }
     ],
-    full: "见到你很高兴。"
+    full: "见到你很高兴。",
+    tip: "반갑다(高兴)的 ㅂ 遇到 어요 变成 워요：반갑+어요→반가워요"
   },
   {
     id: 4, group: "日常动作",
@@ -372,11 +373,11 @@ const SENTENCES = [
   },
   {
     id: 33, group: "请求感谢",
-    kr: "도와주셔서 감사합니다.",
+    kr: "도와주셔서 감사해요.",
     breakdown: [
       { part: "도와주", tag: "词干", meaning: "帮助" },
       { part: "셔서", tag: "词尾", meaning: "因为(敬语连接)", label: "连接" },
-      { part: "감사합니다", tag: "词尾", meaning: "感谢(正式敬语)", label: "终结" }
+      { part: "감사해요", tag: "词尾", meaning: "感谢(敬语)", label: "终结" }
     ],
     full: "感谢您的帮助。",
     tip: "셔서 = 시(敬语) + 어서(因为)，表敬语+原因"

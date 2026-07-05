@@ -197,6 +197,7 @@ function playBtn(text, size) {
   return '<button class="korean-speak-btn" data-text="' + encoded + '" onclick="event.stopPropagation(); speakKorean(decodeURIComponent(this.getAttribute(\'data-text\')))" style="' + sizeStyle + 'background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;margin-left:8px;vertical-align:middle;line-height:1.4;font-family:inherit;" title="点击播放韩语发音">🔊</button>';
 }
 var revealObserver = null;
+var currentPage = "home";
 
 function navigate(page) {
   currentPage = page;
@@ -214,7 +215,7 @@ function navigate(page) {
   items.forEach(function(item, i) {
     item.style.animationDelay = Math.min(i * 0.04, 0.6) + "s";
   });
-  // 启动滚动 reveal 观察器
+  // 启动滚动入场动效
   initRevealObserver();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -229,9 +230,7 @@ function initRevealObserver() {
       }
     });
   }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
-  document.querySelectorAll(".reveal").forEach(function(el) {
-    revealObserver.observe(el);
-  });
+  // 滚动入场观察器（预留，当前未使用 .reveal 类）
 }
 
 // 卡片 hover 光晕跟随鼠标
@@ -292,7 +291,7 @@ function renderHome() {
           <h3>两周日课表</h3>
           <p>每天 20 分钟，从零到能造简单句子</p>
         </div>
-        <div class="hero-card" onclick="navigate('ai')" style="grid-column: span 2;">
+        <div class="hero-card hero-card-wide" onclick="navigate('ai')">
           <div class="icon">🤖</div>
           <h3>AI 智能练句</h3>
           <p>输入任意中文，AI 自动翻译、拆解词性、标注骨架规则，按你的学习体系生成教学内容</p>
@@ -305,7 +304,7 @@ function renderHome() {
   `;
 }
 
-// === HOME PAGE ===
+// === SKELETON PAGE ===
 function renderSkeleton() {
   let rulesHtml = RULES.map((rule, idx) => {
     let examplesHtml = rule.examples.map(ex => {
@@ -398,7 +397,7 @@ function renderTraining() {
     }).join("");
 
     let ruleSummary = [...ruleSet].sort().map(n => ruleBadge(n)).join(" ");
-    let tipHtml = s.tip ? `<div style="margin-top:8px;font-size:13px;color:var(--accent);background:var(--accent-light);padding:8px 12px;border-radius:6px;">🔑 ${s.tip}</div>` : "";
+    let tipHtml = s.tip ? `<div class="ai-tip">🔑 ${s.tip}</div>` : "";
 
     return `
       <div class="sentence-card" onclick="toggleBreakdown(this)">
@@ -423,7 +422,7 @@ function renderTraining() {
     </div>
     <div style="margin-bottom:20px;padding:16px;background:var(--accent-light);border-radius:var(--radius-sm);font-size:14px;">
       <strong>💡 训练方法：</strong>先自己尝试断句，再点击展开看拆解。
-      每天 3-5 句，两周内完成全部 40 句。
+      每天 3-5 句，两周内完成全部 43 句。
     </div>
     ${renderColorLegend()}
     <div class="filter-bar">${filterBtns}</div>
@@ -454,8 +453,6 @@ function toggleBreakdown(el) {
 }
 
 // === STEMS PAGE ===
-let stemFilter = "all";
-
 function renderStems() {
   const categories = [
     { id: "verbs", title: "动词词干 (52个)", data: STEMS.verbs },
@@ -464,13 +461,15 @@ function renderStems() {
 
   let catsHtml = categories.map(cat => {
     let filtered = cat.data;
-    let itemsHtml = filtered.map(s => `
+    let itemsHtml = filtered.map(s => {
+      let irregBadge = s.irreg ? '<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:#f5edf7;color:#7b3a9e;margin-left:4px;font-weight:600;">' + s.irreg + '</span>' : '';
+      return `
       <div class="stem-item">
-        <div class="stem">${s.stem}${playBtn(s.stem, "small")}</div>
+        <div class="stem">${s.stem}${playBtn(s.stem, "small")}${irregBadge}</div>
         <div class="mean">${s.meaning} <span style="color:var(--border);">|</span> <span style="color:var(--text-light);font-size:12px;">${s.proto}</span></div>
         <div class="example">${s.example}${playBtn(s.example, "small")}</div>
-      </div>
-    `).join("");
+      </div>`;
+    }).join("");
     return `
       <div class="stem-category">
         <h3>${cat.title} <span style="font-size:14px;font-weight:400;color:var(--text-light);">(${cat.data.length}个)</span></h3>
@@ -495,27 +494,28 @@ function renderStems() {
 }
 
 // === SCHEDULE PAGE ===
+var SCHEDULE = [
+  { day: 1, title: "通读骨架地图", tasks: ["读 7 大骨架规则", "读标签速查表", "找一段韩语歌词，试着找出 은/는/을/를/에/요"] },
+  { day: 2, title: "助词识别训练", tasks: ["复习助词表", "做断句训练 #1-5 自我介绍（三遍法）", "学动词词干 1-10 号"] },
+  { day: 3, title: "时态识别训练", tasks: ["复习时态词尾", "做断句训练 #6-10 日常动作+描述", "学动词词干 11-20 号"] },
+  { day: 4, title: "描述与否定", tasks: ["复习规则 ①②③⑥", "做断句训练 #11-15 否定句+疑问命令", "学形容词词干 1-10 号"] },
+  { day: 5, title: "连接词尾", tasks: ["复习规则 ⑤", "做断句训练 #16-20 连接词尾", "学动词词干 21-35 号"] },
+  { day: 6, title: "购物点餐场景", tasks: ["做断句训练 #21-24 购物点餐", "练习点餐对话：이거 얼마예요? / 주세요", "学动词词干 36-52 号"] },
+  { day: 7, title: "第一周总复习", tasks: ["不看标注尝试断句 #1-20", "遮住速查表说含义", "自造 3 个简单句子"] },
+  { day: 8, title: "问路交通场景", tasks: ["做断句训练 #25-28 问路交通", "练习问路对话：어디에 있어요? / 오른쪽으로", "复习形容词词干 1-20 号"] },
+  { day: 9, title: "时间计划场景", tasks: ["做断句训练 #29-32 时间计划", "练习约会对话：몇 시에 만날까요?", "学形容词词干 21-32 号"] },
+  { day: 10, title: "请求感谢场景", tasks: ["做断句训练 #33-36 请求感谢", "练习请求对话：주세요 / 좀 부탁해요", "复习全部动词词干"] },
+  { day: 11, title: "情感感受场景", tasks: ["做断句训练 #37-43 情感感受+新词尾", "练习表达心情：기분이 좋아요 / 피곤해요", "复习全部形容词词干"] },
+  { day: 12, title: "连接词尾实战", tasks: ["复习 -고/-서/-지만/-면", "造 5 个复合句", "用 -고 싶어요 造 3 个愿望句"] },
+  { day: 13, title: "自由输出", tasks: ["写 100 字韩语日记", "朗读 3 遍，注意语调", "用学过的句型造 10 个新句子"] },
+  { day: 14, title: "两周总验收", tasks: ["断句 43 句正确率 70% 以上", "用 -요 体做自我介绍+问答", "掌握 84 个词干 + 43 个核心句型"] }
+];
+
 function renderSchedule() {
-  const schedule = [
-    { day: 1, title: "通读骨架地图", tasks: ["读 7 大骨架规则", "读标签速查表", "找一段韩语歌词，试着找出 은/는/을/를/에/요"] },
-    { day: 2, title: "助词识别训练", tasks: ["复习助词表", "做断句训练 #1-5 自我介绍（三遍法）", "学动词词干 1-10 号"] },
-    { day: 3, title: "时态识别训练", tasks: ["复习时态词尾", "做断句训练 #6-10 日常动作+描述", "学动词词干 11-20 号"] },
-    { day: 4, title: "描述与否定", tasks: ["复习规则 ①②③⑥", "做断句训练 #11-15 否定句+疑问命令", "学形容词词干 1-10 号"] },
-    { day: 5, title: "连接词尾", tasks: ["复习规则 ⑤", "做断句训练 #16-20 连接词尾", "学动词词干 21-35 号"] },
-    { day: 6, title: "购物点餐场景", tasks: ["做断句训练 #21-24 购物点餐", "练习点餐对话：이거 얼마예요? / 주세요", "学动词词干 36-52 号"] },
-    { day: 7, title: "第一周总复习", tasks: ["不看标注尝试断句 #1-20", "遮住速查表说含义", "自造 3 个简单句子"] },
-    { day: 8, title: "问路交通场景", tasks: ["做断句训练 #25-28 问路交通", "练习问路对话：어디에 있어요? / 오른쪽으로", "复习形容词词干 1-20 号"] },
-    { day: 9, title: "时间计划场景", tasks: ["做断句训练 #29-32 时间计划", "练习约会对话：몇 시에 만날까요?", "学形容词词干 21-32 号"] },
-    { day: 10, title: "请求感谢场景", tasks: ["做断句训练 #33-36 请求感谢", "练习请求对话：주세요 / 좀 부탁해요", "复习全部动词词干"] },
-    { day: 11, title: "情感感受场景", tasks: ["做断句训练 #37-40 情感感受", "练习表达心情：기분이 좋아요 / 피곤해요", "复习全部形容词词干"] },
-    { day: 12, title: "连接词尾实战", tasks: ["复习 -고/-서/-지만/-면", "造 5 个复合句", "用 -고 싶어요 造 3 个愿望句"] },
-    { day: 13, title: "自由输出", tasks: ["写 100 字韩语日记", "朗读 3 遍，注意语调", "用学过的句型造 10 个新句子"] },
-    { day: 14, title: "两周总验收", tasks: ["断句 40 句正确率 70% 以上", "用 -요 体做自我介绍+问答", "掌握 84 个词干 + 40 个核心句型"] }
-  ];
 
   let progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
 
-  let cardsHtml = schedule.map(d => `
+  let cardsHtml = SCHEDULE.map(d => `
     <div class="day-card">
       <div class="day-num">Day ${d.day}</div>
       <div class="day-title">${d.title}</div>
@@ -528,7 +528,7 @@ function renderSchedule() {
   `).join("");
 
   let doneCount = Object.values(progress).filter(v => v).length;
-  let totalCount = schedule.reduce((sum, d) => sum + d.tasks.length, 0);
+  let totalCount = SCHEDULE.reduce((sum, d) => sum + d.tasks.length, 0);
 
   return `
     <div class="page-title">
@@ -562,7 +562,7 @@ function toggleCheck(el) {
   let schedulePage = document.getElementById("mainContent");
   if (schedulePage.querySelector(".schedule-grid")) {
     let doneCount = Object.values(progress).filter(v => v).length;
-    let totalCount = 42;
+    let totalCount = SCHEDULE.reduce((sum, d) => sum + d.tasks.length, 0);
     let progressBar = schedulePage.querySelector("div[style*='height:100%']");
     if (progressBar) progressBar.style.width = (doneCount / totalCount * 100) + "%";
     let progressText = schedulePage.querySelector("strong");
@@ -580,8 +580,8 @@ function renderReference() {
     return "elem-ending-terminal";
   }
   function levelBadge(lv) {
-    var op = lv === "核心" ? "1" : lv === "常用" ? "0.7" : "0.5";
-    return '<span style="font-size:11px;padding:1px 8px;border-radius:99px;background:#F5F5F5;color:#616161;opacity:' + op + ';font-weight:' + (lv === "核心" ? "700" : "500") + ';">' + lv + '</span>';
+    var cls = lv === "核心" ? "level-badge-core" : lv === "常用" ? "level-badge-common" : "level-badge-optional";
+    return '<span class="' + cls + '">' + lv + '</span>';
   }
 
   let particlesHtml = REFERENCE.particles.map(p => `
@@ -620,7 +620,7 @@ function renderReference() {
     ${renderColorLegend()}
 
     <div class="card">
-      <div class="card-title">🔵 助词 <span class="badge badge-blue">核心 ${REFERENCE.particles.length} 个</span></div>
+      <div class="card-title">🔴 助词 <span class="badge badge-red">${REFERENCE.particles.length} 个</span></div>
       <table class="ref-table">
         <thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th></tr></thead>
         <tbody>${particlesHtml}</tbody>
@@ -628,7 +628,7 @@ function renderReference() {
     </div>
 
     <div class="card">
-      <div class="card-title">🟣 词尾 <span class="badge badge-purple">常用 ${REFERENCE.endings.length} 个</span></div>
+      <div class="card-title">🟠 词尾 <span class="badge badge-orange">${REFERENCE.endings.length} 个</span></div>
       <table class="ref-table">
         <thead><tr><th>词尾</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th></tr></thead>
         <tbody>${endingsHtml}</tbody>
@@ -801,13 +801,13 @@ function renderAIResult(data, container) {
   }).join("");
 
   var ruleSummary = Array.from(ruleSet).sort().map(function(n) { return ruleBadge(n); }).join(" ");
-  var tipHtml = data.tip ? '<div style="margin-top:8px;font-size:13px;color:var(--accent);background:var(--accent-light);padding:8px 12px;border-radius:6px;">🔑 ' + data.tip + '</div>' : "";
+  var tipHtml = data.tip ? '<div class="ai-tip">🔑 ' + data.tip + '</div>' : "";
 
   // 拓展例句
   var examplesHtml = "";
   if (data.examples && data.examples.length > 0) {
     examplesHtml = '<div class="ai-examples">' +
-      '<div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--primary);">📚 拓展例句</div>' +
+      '<div class="ai-examples-title">📚 拓展例句</div>' +
       data.examples.map(function(ex, i) {
         var exBreakdown = ex.breakdown.map(function(b) {
           var cls = getElemClass(b);
@@ -820,9 +820,9 @@ function renderAIResult(data, container) {
           '</div>';
         }).join("");
         return '<div class="ai-example-card">' +
-          '<div class="kr" style="font-size:18px;font-weight:500;margin-bottom:6px;font-family:\'Noto Sans KR\',sans-serif;">' + ex.kr + playBtn(ex.kr, "small") + '</div>' +
-          '<div class="breakdown-row" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">' + exBreakdown + '</div>' +
-          '<div style="font-size:13px;color:var(--text-light);">→ ' + ex.full + '</div>' +
+          '<div class="ai-example-kr">' + ex.kr + playBtn(ex.kr, "small") + '</div>' +
+          '<div class="breakdown-row">' + exBreakdown + '</div>' +
+          '<div class="ai-example-full">→ ' + ex.full + '</div>' +
         '</div>';
       }).join("") +
     '</div>';
@@ -831,17 +831,17 @@ function renderAIResult(data, container) {
   container.innerHTML = `
     <div class="ai-result-card">
       <div class="ai-result-header">
-        <span style="font-size:12px;color:var(--text-light);">🤖 AI 拆解结果</span>
+        <span class="ai-result-label">🤖 AI 拆解结果</span>
       </div>
-      <div class="sentence-card" style="cursor:default;margin-bottom:16px;">
-        <div class="kr" style="font-size:24px;font-weight:500;margin-bottom:8px;font-family:'Noto Sans KR',sans-serif;">
+      <div class="sentence-card ai-result-sentence">
+        <div class="ai-result-kr">
           ${data.kr}${playBtn(data.kr, "small")}
         </div>
-        <div class="breakdown show" style="max-height:none;opacity:1;margin-top:12px;">
-          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">🔍 逐词拆解</div>
+        <div class="breakdown show ai-result-breakdown">
+          <div class="breakdown-label">🔍 逐词拆解</div>
           <div class="breakdown-row">${breakdownHtml}</div>
-          <div style="margin-top:8px;font-size:14px;color:var(--text-light);">→ ${data.full}</div>
-          <div style="margin-top:8px;font-size:12px;color:var(--text-light);">📐 涉及骨架规则：${ruleSummary}</div>
+          <div class="ai-result-full">→ ${data.full}</div>
+          <div class="ai-result-rules">📐 涉及骨架规则：${ruleSummary}</div>
           ${tipHtml}
         </div>
       </div>

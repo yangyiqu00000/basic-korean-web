@@ -164,6 +164,7 @@ body {
 .hero-card .icon { font-size: 32px; margin-bottom: 8px; }
 .hero-card h3 { font-size: 18px; margin-bottom: 4px; font-weight: 700; }
 .hero-card p { font-size: 13px; color: var(--text-light); }
+.hero-card-wide { grid-column: span 2; }
 
 /* ---- Page Title ---- */
 .page-title { margin-bottom: 28px; }
@@ -197,6 +198,12 @@ body {
 .badge-green { background: #edf7ed; color: #2e7d32; }
 .badge-orange { background: #fff4e0; color: #d4731a; }
 .badge-purple { background: var(--primary-lighter); color: var(--primary); }
+.badge-red { background: #fef0ec; color: #c0392b; }
+.badge-cyan { background: #e8f6f8; color: #007587; }
+
+.level-badge-core { font-size:11px;padding:1px 8px;border-radius:99px;background:#fef0ec;color:#c0392b;font-weight:700; }
+.level-badge-common { font-size:11px;padding:1px 8px;border-radius:99px;background:#fff4e0;color:#d4731a;font-weight:500; }
+.level-badge-optional { font-size:11px;padding:1px 8px;border-radius:99px;background:#f5f5f5;color:#9e9e9e;font-weight:500; }
 
 /* ---- Rule Accordion ---- */
 .rule-item {
@@ -241,27 +248,6 @@ body {
 /* rule-body 展开动效在动效系统区块定义 */
 .rule-body p { margin-bottom: 12px; }
 .rule-body .highlight { color: var(--primary); font-weight: 600; }
-
-/* ---- Breakdown Table ---- */
-.breakdown-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
-  font-size: 14px;
-}
-.breakdown-table th, .breakdown-table td {
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  text-align: center;
-}
-.breakdown-table th { background: var(--primary-lighter); font-weight: 600; color: var(--primary); }
-.breakdown-table .tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
 
 /* ---- Training Sentence ---- */
 .sentence-card {
@@ -359,31 +345,8 @@ body {
 .filter-btn:hover { border-color: rgba(226,140,81,0.4); color: var(--primary); }
 .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-/* ---- Search ---- */
-.search-box {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 15px;
-  font-family: inherit;
-  outline: none;
-  transition: border 0.2s var(--ease);
-  margin-bottom: 20px;
-  background: var(--card-bg);
-  color: var(--text);
-}
-.search-box:focus { border-color: var(--primary); }
-
 /* ---- Tag Badge ---- */
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.tag-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 500;
-}
 
 /* ---- 统一色彩系统（暖色化）---- */
 /* 词干/词根 → 暖棕蓝 */
@@ -516,6 +479,10 @@ body {
 .sentence-card .breakdown.show .breakdown-item:nth-child(4) { transition-delay: 0.20s; }
 .sentence-card .breakdown.show .breakdown-item:nth-child(5) { transition-delay: 0.25s; }
 .sentence-card .breakdown.show .breakdown-item:nth-child(6) { transition-delay: 0.30s; }
+.sentence-card .breakdown.show .breakdown-item:nth-child(7) { transition-delay: 0.35s; }
+.sentence-card .breakdown.show .breakdown-item:nth-child(8) { transition-delay: 0.40s; }
+.sentence-card .breakdown.show .breakdown-item:nth-child(9) { transition-delay: 0.45s; }
+.sentence-card .breakdown.show .breakdown-item:nth-child(10) { transition-delay: 0.50s; }
 
 /* ---- 5. 骨架规则手风琴平滑展开 ---- */
 .rule-body {
@@ -532,18 +499,7 @@ body {
   padding: 0 20px 20px;
 }
 
-/* ---- 6. 滚动触发 reveal ---- */
-.reveal {
-  opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
-}
-.reveal.revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ---- 7. 卡片 hover 光晕 ---- */
+/* ---- 6. 卡片 hover 光晕 ---- */
 .hero-card, .card, .sentence-card, .day-card, .stem-item {
   position: relative;
   overflow: hidden;
@@ -766,6 +722,19 @@ body {
 .ai-history-input { font-size: 14px; color: var(--text); font-weight: 500; }
 .ai-history-kr { font-size: 13px; color: var(--primary); font-family: 'Noto Sans KR', sans-serif; margin-left: auto; }
 
+/* ---- AI Result Card ---- */
+.ai-result-label { font-size: 12px; color: var(--text-light); }
+.ai-result-sentence { cursor: default; margin-bottom: 16px; }
+.ai-result-kr { font-size: 24px; font-weight: 500; margin-bottom: 8px; font-family: 'Noto Sans KR', sans-serif; }
+.ai-result-breakdown { max-height: none; opacity: 1; margin-top: 12px; }
+.breakdown-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.ai-result-full { margin-top: 8px; font-size: 14px; color: var(--text-light); }
+.ai-result-rules { margin-top: 8px; font-size: 12px; color: var(--text-light); }
+.ai-tip { margin-top: 8px; font-size: 13px; color: var(--accent); background: var(--accent-light); padding: 8px 12px; border-radius: 6px; }
+.ai-examples-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+.ai-example-kr { font-size: 18px; font-weight: 500; margin-bottom: 6px; font-family: 'Noto Sans KR', sans-serif; }
+.ai-example-full { font-size: 13px; color: var(--text-light); }
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .nav { display: none; }
@@ -774,7 +743,8 @@ body {
   .header-inner { padding: 0 16px; }
   .hero h1 { font-size: 28px; }
   .hero-cards { grid-template-columns: 1fr; }
-  .hero-cards .hero-card[style*="span 2"] { grid-column: span 1 !important; }
+  .hero-cards .hero-card[style*="span 2"],
+  .hero-card-wide { grid-column: span 1 !important; }
   .stem-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .schedule-grid { grid-template-columns: 1fr; }
   .ai-input-row { flex-direction: column; }
