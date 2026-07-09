@@ -71,6 +71,11 @@ function renderStatsContent() {
       '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value">' + aiHistory.length + ' 次</span></div>' +
       '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value">' + sceneHistory.length + ' 场</span></div>' +
       '<div class="stats-row"><span>🎨 主题</span><span class="stat-value">' + theme + '</span></div>' +
+      '<div class="stats-row"><span>🔊 TTS 语音</span><span class="stat-value"><select onchange="setVoice(this.value)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;">' +
+        '<option value="ko-KR-SunHiNeural" ' + (getVoice() === "ko-KR-SunHiNeural" ? "selected" : "") + '>SunHi (女声)</option>' +
+        '<option value="ko-KR-InJoonNeural" ' + (getVoice() === "ko-KR-InJoonNeural" ? "selected" : "") + '>InJoon (男声)</option>' +
+        '<option value="ko-KR-HyunsuMultilingualNeural" ' + (getVoice() === "ko-KR-HyunsuMultilingualNeural" ? "selected" : "") + '>Hyunsu (多语言)</option>' +
+      '</select></span></div>' +
       '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-light);">' +
         '<strong>⚙️ 数据管理</strong>' +
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">' +
@@ -245,6 +250,15 @@ function ruleBadge(ruleNum) {
 var audioCache = {};
 var ttsAvailable = null; // null=未检测, true=可用, false=不可用
 
+// 获取用户选择的 TTS 语音
+function getVoice() {
+  return localStorage.getItem("korean_voice") || "ko-KR-SunHiNeural";
+}
+function setVoice(voice) {
+  localStorage.setItem("korean_voice", voice);
+  showToast("已切换语音，下次播放时生效");
+}
+
 function speakKorean(text) {
   // 如果缓存里有，直接播
   if (audioCache[text]) {
@@ -252,8 +266,9 @@ function speakKorean(text) {
     return;
   }
 
-  // 尝试从本地 TTS 服务器获取
-  var audio = new Audio(TTS_BASE + "/tts?text=" + encodeURIComponent(text));
+  // 尝试从本地 TTS 服务器获取（携带语音偏好）
+  var voice = getVoice();
+  var audio = new Audio(TTS_BASE + "/tts?text=" + encodeURIComponent(text) + "&voice=" + encodeURIComponent(voice));
 
   audio.addEventListener("canplaythrough", function() {
     ttsAvailable = true;

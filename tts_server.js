@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const AUDIO_DIR = path.join(__dirname, 'audio');
-const VOICE = 'ko-KR-SunHiNeural';
+const DEFAULT_VOICE = 'ko-KR-SunHiNeural';
 const PORT = 1234;
 
 // 加载 AI 配置
@@ -214,10 +214,10 @@ function callAIChat(scenePrompt, messages) {
 }
 
 // 生成音频（异步，不阻塞事件循环）
-function generateAudio(text, filepath) {
+function generateAudio(text, filepath, voice) {
   return new Promise((resolve, reject) => {
     execFile('edge-tts', [
-      '--voice', VOICE,
+      '--voice', voice || DEFAULT_VOICE,
       '--text', text,
       '--write-media', filepath
     ], { timeout: 30000 }, (err) => {
@@ -289,6 +289,7 @@ const server = http.createServer(async (req, res) => {
     const qIndex = req.url.indexOf('?');
     const qs = new URLSearchParams(qIndex >= 0 ? req.url.substring(qIndex + 1) : '');
     const text = qs.get('text');
+    const voice = qs.get('voice') || DEFAULT_VOICE;
 
     if (!text) {
       res.writeHead(400);
@@ -302,7 +303,7 @@ const server = http.createServer(async (req, res) => {
     if (!fs.existsSync(filepath)) {
       console.log('  🔊 生成:', text.substring(0, 40));
       try {
-        await enqueueTTS(hash, function() { return generateAudio(text, filepath); });
+        await enqueueTTS(hash, function() { return generateAudio(text, filepath, voice); });
       } catch (e) {
         console.log('  ❌ 失败:', e.message.substring(0, 80));
         res.writeHead(500);
@@ -396,7 +397,7 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/health') {
     const mp3s = fs.readdirSync(AUDIO_DIR).filter(f => f.endsWith('.mp3'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', voice: VOICE, cached: mp3s.length }));
+    res.end(JSON.stringify({ status: 'ok', voice: DEFAULT_VOICE, cached: mp3s.length }));
     return;
   }
 
@@ -406,7 +407,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log('🇰🇷 TTS + AI Server running on http://localhost:' + PORT);
-  console.log('🎤 Voice: ' + VOICE);
+  console.log('🎤 Voice: ' + DEFAULT_VOICE);
   if (AI_CONFIG && AI_CONFIG.api_key && !AI_CONFIG.api_key.includes('YOUR-API-KEY')) {
     console.log('🤖 AI Model: ' + (AI_CONFIG.model || 'gpt-4o-mini'));
   } else {
