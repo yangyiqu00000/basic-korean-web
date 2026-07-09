@@ -578,7 +578,13 @@ function startRandomPractice() {
 
 function toggleBreakdown(el) {
   const bd = el.querySelector(".breakdown");
+  var wasHidden = !bd.classList.contains("show");
   bd.classList.toggle("show");
+  // 展开时自动朗读整句（学习闭环：声音很重要）
+  if (wasHidden) {
+    var krEl = el.querySelector(".kr");
+    if (krEl) { try { speakKorean(krEl.textContent.replace(/🔊/g, "").trim()); } catch (e) {} }
+  }
 }
 
 // === STEMS PAGE ===
@@ -1078,7 +1084,7 @@ function renderAIResult(data, container) {
       </div>
       <div class="sentence-card ai-result-sentence">
         <div class="ai-result-kr">
-          ${escapeHtml(data.kr)}${playBtn(data.kr, "small")}
+          ${escapeHtml(data.kr)}${playBtn(data.kr, "small")}<button class="korean-copy-btn" onclick="event.stopPropagation(); navigator.clipboard.writeText('${data.kr.replace(/'/g, "\\'")}').then(function(){showToast('已复制韩语句子')}).catch(function(){showToast('复制失败，请手动选中')})" title="复制韩语句子">📋</button>
         </div>
         <div class="breakdown show ai-result-breakdown">
           <div class="breakdown-label">🔍 逐词拆解</div>
