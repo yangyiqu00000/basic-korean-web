@@ -573,6 +573,10 @@ function renderSkeleton() {
       <p>韩语语法的承重墙。先建立地图感，细节在练习中自然补齐。</p>
     </div>
     <div class="tip-banner"><strong>🎯 目标：</strong>不是精通，而是知道"有这 7 个东西存在"。每个规则看一遍例句拆解，你就知道韩语的语法地图长什么样了。<br><strong>🔗 联动：</strong>断句训练页的每个词都标注了对应的骨架规则编号，可与本页对照学习。</div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="ai-suggest-btn" onclick="toggleAllRules(true)">📖 展开全部</button>
+      <button class="ai-suggest-btn" onclick="toggleAllRules(false)">📕 收起全部</button>
+    </div>
     ${renderColorLegend()}
     ${rulesHtml}
   `;
@@ -583,6 +587,17 @@ function toggleRule(idx) {
   const header = body.previousElementSibling;
   body.classList.toggle("open");
   header.classList.toggle("open");
+}
+
+// 展开或收起所有骨架规则
+function toggleAllRules(expand) {
+  for (var i = 0; i < RULES.length; i++) {
+    var body = document.getElementById("ruleBody" + i);
+    if (body) {
+      body.classList.toggle("open", expand);
+      if (body.previousElementSibling) body.previousElementSibling.classList.toggle("open", expand);
+    }
+  }
 }
 
 // === TRAINING PAGE ===
