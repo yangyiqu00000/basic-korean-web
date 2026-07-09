@@ -279,6 +279,10 @@ body {
 .master-btn:hover { border-color: var(--primary); color: var(--primary); }
 .master-btn.mastered { background: var(--primary); color: #fff; border-color: var(--primary); }
 .sentence-card.mastered { opacity: 0.55; }
+.practice-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.practice-card { background: var(--primary-lighter); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 16px; border: 1px solid var(--border); }
+.practice-card .kr { font-size: 24px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; margin: 8px 0; }
+.practice-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
 /* ---- Stems Grid ---- */
 .stem-grid {

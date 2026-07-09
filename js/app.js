@@ -460,6 +460,11 @@ function renderTraining() {
     </div>
     ${renderColorLegend()}
     <div class="filter-bar">${filterBtns}</div>
+    <div class="practice-bar">
+      <button class="ai-submit-btn" onclick="startRandomPractice()">🎲 随机练一句</button>
+      <span style="font-size:12px;color:var(--text-light);margin-left:8px;">每天抽几条，先自己断句再点“看拆解”</span>
+    </div>
+    <div id="randomPractice"></div>
     ${sentencesHtml}
   `;
 }
@@ -498,6 +503,52 @@ function updateTrainingProgress() {
   var el = document.getElementById("trainingProgress");
   if (!el) return;
   el.textContent = Object.values(trainingDone).filter(v => v).length + " / " + SENTENCES.length;
+}
+
+// 随机练习卡：韩文 + 可折叠拆解 + 看拆解/换一条/标记掌握
+function practiceCardHtml(s) {
+  let ruleSet = new Set();
+  let breakdownHtml = s.breakdown.map(b => {
+    let elemCls = getElemClass(b);
+    let ruleNum = getRuleTag(b);
+    ruleSet.add(ruleNum);
+    return `<div class="breakdown-item">
+      <strong>${b.part}</strong>
+      <span class="elem-tag ${elemCls}" style="font-size:10px;padding:1px 6px;margin-left:4px;">${b.label || b.tag}</span>
+      ${ruleBadge(ruleNum)}
+      <span class="mean">${b.meaning}</span>
+    </div>`;
+  }).join("");
+  let ruleSummary = [...ruleSet].sort().map(n => ruleBadge(n)).join(" ");
+  let done = trainingDone[s.id];
+  return `
+    <div class="practice-card">
+      <div class="sentence-top">
+        <div class="sentence-num">#${s.id} · ${s.group}</div>
+        <button class="master-btn ${done ? "mastered" : ""}" onclick="event.stopPropagation(); toggleMastered(${s.id}, this)">${done ? "✓ 已掌握" : "○ 标记掌握"}</button>
+      </div>
+      <div class="kr">${s.kr}${playBtn(s.kr, "small")}</div>
+      <div class="breakdown">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">🔍 逐词拆解</div>
+        <div class="breakdown-row">${breakdownHtml}</div>
+        <div style="margin-top:8px;font-size:14px;color:var(--text-light);">→ ${s.full}</div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-light);">📐 涉及骨架规则：${ruleSummary}</div>
+        ${s.tip ? `<div class="ai-tip">🔑 ${s.tip}</div>` : ""}
+      </div>
+      <div class="practice-actions">
+        <button class="ai-suggest-btn" onclick="this.closest('.practice-card').querySelector('.breakdown').classList.toggle('show')">👀 看拆解</button>
+        <button class="ai-submit-btn" onclick="startRandomPractice()">🎲 换一条</button>
+      </div>
+    </div>`;
+}
+
+// 随机抽一句：优先从未掌握里抽，全掌握后从全部抽
+function startRandomPractice() {
+  var candidates = SENTENCES.filter(s => !trainingDone[s.id]);
+  if (candidates.length === 0) candidates = SENTENCES;
+  var s = candidates[Math.floor(Math.random() * candidates.length)];
+  var box = document.getElementById("randomPractice");
+  if (box) box.innerHTML = practiceCardHtml(s);
 }
 
 function toggleBreakdown(el) {
