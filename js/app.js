@@ -542,8 +542,24 @@ function renderStems() {
       • 不要孤立背——每个词干配 1 个常用搭配一起记<br>
       • 优先掌握动词——前 50 个动词词干覆盖 80% 日常表达
     </div>
+    <div style="margin-bottom:16px;">
+      <input id="stemSearch" class="ai-input" style="width:100%;box-sizing:border-box;" placeholder="🔍 搜索词干 / 含义 / 例句（如：吃、공부、먹다）" oninput="filterStems(this.value)" />
+    </div>
     ${catsHtml}
   `;
+}
+
+// 词干页实时搜索：按文本过滤词干项，并隐藏无命中分类
+function filterStems(q) {
+  q = (q || "").trim().toLowerCase();
+  document.querySelectorAll("#mainContent .stem-item").forEach(function(el) {
+    var hit = !q || el.textContent.toLowerCase().includes(q);
+    el.classList.toggle("ref-hidden", !hit);
+  });
+  document.querySelectorAll("#mainContent .stem-category").forEach(function(cat) {
+    var any = cat.querySelector(".stem-item:not(.ref-hidden)");
+    cat.style.display = any ? "" : "none";
+  });
 }
 
 // === SCHEDULE PAGE ===
