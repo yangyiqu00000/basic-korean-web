@@ -668,7 +668,12 @@ function toggleMastered(id, btn) {
 function updateTrainingProgress() {
   var el = document.getElementById("trainingProgress");
   if (!el) return;
-  el.textContent = Object.values(trainingDone).filter(v => v).length + " / " + SENTENCES.length;
+  var doneCount = Object.values(trainingDone).filter(v => v).length;
+  el.textContent = doneCount + " / " + SENTENCES.length;
+  // 全部掌握时庆祝
+  if (doneCount === SENTENCES.length && doneCount > 0) {
+    showToast("🎉🎉🎉 全部掌握！你已经完成了 43 句断句训练，太棒了！");
+  }
 }
 
 // 随机练习卡：韩文 + 可折叠拆解 + 看拆解/换一条/标记掌握
