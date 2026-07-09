@@ -39,6 +39,41 @@ function dismissTip(btn, id) {
   if (banner) banner.style.display = "none";
 }
 
+// 学习统计弹窗
+function openStats() {
+  var overlay = document.createElement("div");
+  overlay.className = "stats-overlay";
+  overlay.id = "statsOverlay";
+  overlay.onclick = function(e) { if (e.target === overlay) closeStats(); };
+  overlay.innerHTML = renderStatsContent();
+  document.body.appendChild(overlay);
+}
+function closeStats() {
+  var el = document.getElementById("statsOverlay");
+  if (el) el.remove();
+}
+function renderStatsContent() {
+  var progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
+  var trainingDone = JSON.parse(localStorage.getItem("korean_training_done") || "{}");
+  var aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
+  var sceneHistory = JSON.parse(localStorage.getItem("korean_scene_history") || "[]");
+  var scheduleTotal = SCHEDULE.reduce(function(s, d) { return s + d.tasks.length; }, 0);
+  var scheduleDone = Object.values(progress).filter(function(v) { return v; }).length;
+  var trainingDoneCount = Object.values(trainingDone).filter(function(v) { return v; }).length;
+  var totalSentences = SENTENCES.length;
+  var theme = document.documentElement.getAttribute("data-theme") === "dark" ? "暗色" : "亮色";
+  return '' +
+    '<div class="stats-modal">' +
+      '<button class="stats-close" onclick="closeStats()">✕</button>' +
+      '<h2>📊 学习统计</h2>' +
+      '<div class="stats-row"><span>📝 断句训练</span><span class="stat-value">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
+      '<div class="stats-row"><span>🗓️ 日课表</span><span class="stat-value">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
+      '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value">' + aiHistory.length + ' 次</span></div>' +
+      '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value">' + sceneHistory.length + ' 场</span></div>' +
+      '<div class="stats-row"><span>🎨 主题</span><span class="stat-value">' + theme + '</span></div>' +
+    '</div>';
+}
+
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
 var aiServiceAvailable = true;
 
