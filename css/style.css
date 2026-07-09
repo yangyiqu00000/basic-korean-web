@@ -331,6 +331,9 @@ body {
 .key-btn { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.35; margin-left: 6px; padding: 0; transition: opacity 0.2s var(--ease); }
 .key-btn.on { opacity: 1; }
 .review-msg-ai.keyed { border-left: 3px solid var(--primary); }
+.tip-banner { margin-bottom: 20px; padding: 16px; background: var(--primary-lighter); border-radius: var(--radius-sm); font-size: 14px; position: relative; }
+.tip-banner.accent { background: var(--accent-light); }
+.tip-close { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-light); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; }
 
 /* ---- Stems Grid ---- */
 .stem-grid {

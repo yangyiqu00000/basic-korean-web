@@ -29,6 +29,16 @@ function toggleTheme() {
   localStorage.setItem(THEME_KEY, next);
 }
 
+// 提示条关闭/显示管理（localStorage 持久化）
+function shouldShowTip(id) { return !(JSON.parse(localStorage.getItem("korean_dismissed_tips") || "{}")[id]); }
+function dismissTip(btn, id) {
+  var d = JSON.parse(localStorage.getItem("korean_dismissed_tips") || "{}");
+  d[id] = true;
+  localStorage.setItem("korean_dismissed_tips", JSON.stringify(d));
+  var banner = btn.closest(".tip-banner");
+  if (banner) banner.style.display = "none";
+}
+
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
 var aiServiceAvailable = true;
 
@@ -398,11 +408,7 @@ function renderSkeleton() {
       <h2>🏗️ 7 大骨架规则</h2>
       <p>韩语语法的承重墙。先建立地图感，细节在练习中自然补齐。</p>
     </div>
-    <div style="margin-bottom:20px;padding:16px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
-      <strong>🎯 目标：</strong>不是精通，而是知道"有这 7 个东西存在"。
-      每个规则看一遍例句拆解，你就知道韩语的语法地图长什么样了。<br>
-      <strong>🔗 联动：</strong>断句训练页的每个词都标注了对应的骨架规则编号，可与本页对照学习。
-    </div>
+    <div class="tip-banner"><strong>🎯 目标：</strong>不是精通，而是知道"有这 7 个东西存在"。每个规则看一遍例句拆解，你就知道韩语的语法地图长什么样了。<br><strong>🔗 联动：</strong>断句训练页的每个词都标注了对应的骨架规则编号，可与本页对照学习。</div>
     ${renderColorLegend()}
     ${rulesHtml}
   `;
@@ -473,10 +479,7 @@ function renderTraining() {
       <h2>🃏 断句训练</h2>
       <p>三遍法：① 圈出助词和词尾 ② 说出每个标签的功能 ③ 不看标注猜意思</p>
     </div>
-    <div style="margin-bottom:20px;padding:16px;background:var(--accent-light);border-radius:var(--radius-sm);font-size:14px;">
-      <strong>💡 训练方法：</strong>先自己尝试断句，再点击展开看拆解。
-      每天 3-5 句，两周内完成全部 43 句。
-    </div>
+    ${shouldShowTip('training_method') ? '<div class="tip-banner accent" id="tip-training_method"><strong>💡 训练方法：</strong>先自己尝试断句，再点击展开看拆解。每天 3-5 句，两周内完成全部 43 句。<button class="tip-close" onclick="dismissTip(this, \'training_method\')">✕</button></div>' : ''}
     <div style="margin-bottom:16px;padding:14px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
       <strong>📊 已掌握</strong> <span id="trainingProgress">${doneCount} / ${SENTENCES.length}</span>
     </div>
@@ -609,12 +612,7 @@ function renderStems() {
       <h2>📝 核心词干清单</h2>
       <p>词干 + 词尾 = 完整的韩语动词/形容词。先记词干，再套规则。</p>
     </div>
-    <div style="margin-bottom:16px;padding:14px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:13px;line-height:1.8;">
-      <strong>📌 使用建议</strong><br>
-      • 每天学 10 个词干，2 周学完全部<br>
-      • 不要孤立背——每个词干配 1 个常用搭配一起记<br>
-      • 优先掌握动词——前 50 个动词词干覆盖 80% 日常表达
-    </div>
+    <div class="tip-banner" style="margin-bottom:16px;font-size:13px;line-height:1.8;"><strong>📌 使用建议</strong><br>• 每天学 10 个词干，2 周学完全部<br>• 不要孤立背——每个词干配 1 个常用搭配一起记<br>• 优先掌握动词——前 50 个动词词干覆盖 80% 日常表达</div>
     <div style="margin-bottom:16px;">
       <input id="stemSearch" class="ai-input" style="width:100%;box-sizing:border-box;" placeholder="🔍 搜索词干 / 含义 / 例句（如：吃、공부、먹다）" oninput="filterStems(this.value)" />
     </div>
@@ -677,13 +675,7 @@ function renderSchedule() {
       <h2>🗓️ 两周日课表</h2>
       <p>每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。</p>
     </div>
-    <div style="margin-bottom:20px;padding:16px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
-      <strong>⚡ 核心原则</strong><br>
-      ① 20 分钟到就停——超时容易产生厌倦<br>
-      ② 不追求完美——Day 7 能断句 30% 就算成功<br>
-      ③ 重复比新学重要——前 7 天反复练 30 句 > 学 100 句但不熟<br>
-      ④ 声音很重要——所有句子至少读出声 1 遍
-    </div>
+    <div class="tip-banner"><strong>⚡ 核心原则</strong><br>① 20 分钟到就停——超时容易产生厌倦<br>② 不追求完美——Day 7 能断句 30% 就算成功<br>③ 重复比新学重要——前 7 天反复练 30 句 > 学 100 句但不熟<br>④ 声音很重要——所有句子至少读出声 1 遍</div>
     <div style="margin-bottom:16px;padding:14px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
       <strong>📊 学习进度</strong> ${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)
       <div style="margin-top:8px;height:8px;background:var(--card-bg);border-radius:4px;overflow:hidden;">
