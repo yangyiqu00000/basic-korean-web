@@ -98,91 +98,13 @@ def generate_audio(texts):
     
     return mapping
 
-# ============ 更新 app.js 使用本地音频 ============
+# ============ 说明：不再改写 app.js ============
+# 历史上此脚本会就地重写 js/app.js，把播放逻辑从"走 TTS 服务器"改成"读本地
+# audio_map.json"。这种做法有副作用：一旦 app.js 被手改，替换会静默失效，且破坏了
+# 默认的"走服务器"行为。现保留为无副作用——播放始终由前端通过 TTS 服务器完成，
+# 预生成音频仅作为可选离线缓存。
 def update_app_js():
-    js_path = os.path.join(os.path.dirname(__file__), "js", "app.js")
-    
-    with open(js_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    # 替换 playBtn 使用本地音频
-    old_play = """function playBtn(text, size) {
-  var sizeStyle = size === "small" ? "font-size:14px;padding:2px 8px;" : "font-size:16px;padding:4px 12px;";
-  var encoded = encodeURIComponent(text);
-  return '<button class="korean-speak-btn" data-text="' + encoded + '" style="' + sizeStyle + 'background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;margin-left:8px;vertical-align:middle;line-height:1.4;font-family:inherit;" title="点击播放韩语发音">\\u{1F50A}</button>';
-}"""
-    
-    new_play = """function playBtn(text, size) {
-  var sizeStyle = size === "small" ? "font-size:14px;padding:2px 8px;" : "font-size:16px;padding:4px 12px;";
-  var encoded = encodeURIComponent(text);
-  return '<button class="korean-speak-btn" data-text="' + encoded + '" style="' + sizeStyle + 'background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;margin-left:8px;vertical-align:middle;line-height:1.4;font-family:inherit;" title="点击播放韩语发音">🔊</button>';
-}"""
-    
-    content = content.replace(old_play, new_play)
-    
-    # 替换 speakKorean 使用本地音频播放
-    old_speak = """function speakKorean(text) {
-  // 停止任何正在播放的语音
-  window.speechSynthesis.cancel();
-  
-  // 创建一个新的语音实例
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "ko-KR";
-  utterance.rate = 0.9;    // 语速稍慢，适合学习
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-  
-  // 尝试选择韩语语音
-  const voices = window.speechSynthesis.getVoices();
-  const koreanVoice = voices.find(v => v.lang.startsWith("ko"));
-  if (koreanVoice) {
-    utterance.voice = koreanVoice;
-  }
-  
-  window.speechSynthesis.speak(utterance);
-}
-
-// 预加载语音列表（Chrome 需要异步加载）
-if (typeof window !== "undefined") {
-  window.speechSynthesis.getVoices(); // 触发预加载
-  window.speechSynthesis.onvoiceschanged = () => {
-    window.speechSynthesis.getVoices();
-  };
-}"""
-    
-    new_speak = """// 音频文件映射
-var audioMap = {};
-var audioLoaded = false;
-
-// 加载音频映射
-function loadAudioMap() {
-  if (audioLoaded) return;
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "audio/audio_map.json", false);
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      audioMap = JSON.parse(xhr.responseText);
-      audioLoaded = true;
-    }
-  };
-  xhr.send();
-}
-
-function speakKorean(text) {
-  loadAudioMap();
-  var filename = audioMap[text];
-  if (filename) {
-    var audio = new Audio("audio/" + filename);
-    audio.play();
-  }
-}"""
-    
-    content = content.replace(old_speak, new_speak)
-    
-    with open(js_path, "w", encoding="utf-8") as f:
-        f.write(content)
-    
-    print("✅ app.js 已更新为使用本地音频文件")
+    print("ℹ️  跳过改写 app.js：播放继续走 TTS 服务器，预生成音频仅作离线缓存。")
 
 # ============ 主流程 ============
 if __name__ == "__main__":
@@ -197,10 +119,10 @@ if __name__ == "__main__":
     
     print("\n🔊 开始生成音频...")
     generate_audio(texts)
-    
-    print("\n🔄 更新 app.js...")
-    update_app_js()
-    
+
+    print("\n🔄 说明：播放仍走 TTS 服务器（js/app.js 不被本脚本修改）。")
+    print("   预生成音频仅作为离线缓存，可选；如需使用需另行在 app.js 中接入 audio_map.json。")
+
     print("\n🎉 全部完成！")
     print(f"   音频文件位置: {AUDIO_DIR}/")
     print(f"   共生成 {len(texts)} 个音频文件")

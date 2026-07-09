@@ -227,6 +227,43 @@ function generateAudio(text, filepath) {
   });
 }
 
+// ============================================
+// TTS 并发控制
+// 限制同时运行的 edge-tts 子进程数量，并对相同文本去重，
+// 避免多人/批量同时请求时瞬间拉起大量进程拖垮机器。
+// ============================================
+const MAX_TTS_CONCURRENCY = 3;
+const ttsInflight = Object.create(null); // hash -> Promise
+let ttsActive = 0;
+const ttsQueue = [];
+
+function pumpTTS() {
+  if (ttsActive >= MAX_TTS_CONCURRENCY) return;
+  const next = ttsQueue.shift();
+  if (!next) return;
+  ttsActive++;
+  next.job()
+    .then(next.resolve, next.reject)
+    .finally(function() {
+      ttsActive--;
+      pumpTTS();
+    });
+}
+
+function runTTS(job) {
+  return new Promise(function(resolve, reject) {
+    ttsQueue.push({ job: job, resolve: resolve, reject: reject });
+    pumpTTS();
+  });
+}
+
+function enqueueTTS(hash, task) {
+  if (ttsInflight[hash]) return ttsInflight[hash];
+  const p = runTTS(task).finally(function() { delete ttsInflight[hash]; });
+  ttsInflight[hash] = p;
+  return p;
+}
+
 // 读取 POST body
 function readBody(req) {
   return new Promise((resolve) => {
@@ -265,7 +302,7 @@ const server = http.createServer(async (req, res) => {
     if (!fs.existsSync(filepath)) {
       console.log('  🔊 生成:', text.substring(0, 40));
       try {
-        await generateAudio(text, filepath);
+        await enqueueTTS(hash, function() { return generateAudio(text, filepath); });
       } catch (e) {
         console.log('  ❌ 失败:', e.message.substring(0, 80));
         res.writeHead(500);
@@ -367,7 +404,7 @@ const server = http.createServer(async (req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log('🇰🇷 TTS + AI Server running on http://localhost:' + PORT);
   console.log('🎤 Voice: ' + VOICE);
   if (AI_CONFIG && AI_CONFIG.api_key && !AI_CONFIG.api_key.includes('YOUR-API-KEY')) {

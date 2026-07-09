@@ -26,3 +26,6 @@ Thumbs.db
 
 # 日志
 *.log
+
+# Python 缓存
+__pycache__/

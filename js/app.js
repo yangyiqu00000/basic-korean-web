@@ -4,6 +4,12 @@
 // ============================================
 // 统一色彩系统 - 词性 → CSS class
 // ============================================
+// TTS / AI 服务地址：前端只连本地，需与 tts_server 绑定的 127.0.0.1 保持一致
+var TTS_BASE = "http://" + "127.0.0.1:1234";
+
+// AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
+var aiServiceAvailable = true;
+
 var ELEM_COLORS = [
   { cls: "elem-stem",               label: "词干/词根", desc: "名词、动词词干" },
   { cls: "elem-particle",           label: "助词",     desc: "은/는, 이/가, 을/를…" },
@@ -153,7 +159,7 @@ function speakKorean(text) {
   }
 
   // 尝试从本地 TTS 服务器获取
-  var audio = new Audio("http://127.0.0.1:1234/tts?text=" + encodeURIComponent(text));
+  var audio = new Audio(TTS_BASE + "/tts?text=" + encodeURIComponent(text));
 
   audio.addEventListener("canplaythrough", function() {
     ttsAvailable = true;
@@ -219,6 +225,9 @@ function navigate(page) {
   // 启动滚动入场动效
   initRevealObserver();
   window.scrollTo({ top: 0, behavior: "smooth" });
+  // 移动端：导航完成后收起下拉菜单
+  var nav = document.getElementById("mainNav");
+  if (nav) nav.classList.remove("show");
 }
 
 function initRevealObserver() {
@@ -666,11 +675,13 @@ var aiHistory = [];
 function renderAI() {
   // 加载历史记录
   aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
+  // 渲染后探测 AI 可用性（DOM 就绪后再查，避免拿不到输入框）
+  setTimeout(checkAIService, 0);
 
   var historyHtml = aiHistory.length > 0 ? aiHistory.slice(-6).reverse().map(function(h, i) {
     return '<div class="ai-history-item" onclick="askAI(\'' + h.input.replace(/'/g, "\\'") + '\')">' +
-      '<span class="ai-history-input">' + h.input + '</span>' +
-      '<span class="ai-history-kr">' + h.kr + '</span>' +
+      '<span class="ai-history-input">' + escapeHtml(h.input) + '</span>' +
+      '<span class="ai-history-kr">' + escapeHtml(h.kr) + '</span>' +
     '</div>';
   }).join("") : '<p style="color:var(--text-light);font-size:13px;">还没有练习记录，试试输入一句中文吧</p>';
 
@@ -697,6 +708,8 @@ function renderAI() {
       </div>
     </div>
 
+    <div id="aiStatus"></div>
+
     <div id="aiResult"></div>
 
     <div class="ai-history-section">
@@ -706,8 +719,45 @@ function renderAI() {
   `;
 }
 
+// 探测 AI 服务可用性，未配置/未启动则禁用输入并提示
+function checkAIService() {
+  var input = document.getElementById("aiInput");
+  var btn = document.getElementById("aiSubmitBtn");
+  var status = document.getElementById("aiStatus");
+  var suggestBtns = document.querySelectorAll(".ai-suggest-btn");
+
+  function setUnavailable(msg) {
+    aiServiceAvailable = false;
+    if (input) input.disabled = true;
+    if (btn) btn.disabled = true;
+    suggestBtns.forEach(function(b) { b.disabled = true; });
+    if (status) status.innerHTML = '<div style="margin:10px 0;padding:10px 14px;background:#fff4e0;color:#d4731a;border-radius:10px;font-size:13px;">⚠️ ' + escapeHtml(msg) + '</div>';
+  }
+  function setAvailable() {
+    aiServiceAvailable = true;
+    if (input) input.disabled = false;
+    if (btn) btn.disabled = false;
+    suggestBtns.forEach(function(b) { b.disabled = false; });
+    if (status) status.innerHTML = "";
+  }
+
+  fetch(TTS_BASE + "/ai/status")
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.configured) setAvailable();
+      else setUnavailable("AI 未配置：请复制 ai_config.example.json 为 ai_config.json 并填写 API Key 后重启服务");
+    })
+    .catch(function() {
+      setUnavailable("TTS+AI 服务未启动：请先运行 node tts_server.js");
+    });
+}
+
 function askAI(presetText) {
   if (aiLoading) return;
+  if (aiServiceAvailable === false) {
+    showToast("AI 服务暂不可用，请按页面提示先完成配置");
+    return;
+  }
 
   var input = presetText || document.getElementById("aiInput").value.trim();
   if (!input) {
@@ -732,7 +782,7 @@ function askAI(presetText) {
     `;
   }
 
-  fetch("http://127.0.0.1:1234/ai", {
+    fetch(TTS_BASE + "/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: input })
@@ -752,13 +802,16 @@ function askAI(presetText) {
     // 渲染结果
     renderAIResult(data, resultDiv);
 
+    // 自动朗读整句（学习闭环：项目原则强调"声音很重要"）
+    setTimeout(function() { try { speakKorean(data.kr); } catch (e) {} }, 350);
+
     // 刷新历史列表
     var histSection = document.querySelector(".ai-history-list");
     if (histSection) {
       var newHistoryHtml = aiHistory.slice(-6).reverse().map(function(h) {
         return '<div class="ai-history-item" onclick="askAI(\'' + h.input.replace(/'/g, "\\'") + '\')">' +
-          '<span class="ai-history-input">' + h.input + '</span>' +
-          '<span class="ai-history-kr">' + h.kr + '</span>' +
+          '<span class="ai-history-input">' + escapeHtml(h.input) + '</span>' +
+          '<span class="ai-history-kr">' + escapeHtml(h.kr) + '</span>' +
         '</div>';
       }).join("");
       histSection.innerHTML = newHistoryHtml;
@@ -801,15 +854,15 @@ function renderAIResult(data, container) {
     var ruleNum = getRuleTag(b);
     ruleSet.add(ruleNum);
     return '<div class="breakdown-item">' +
-      '<strong>' + b.part + '</strong>' +
-      '<span class="elem-tag ' + elemCls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + (b.label || b.tag) + '</span>' +
+      '<strong>' + escapeHtml(b.part) + '</strong>' +
+      '<span class="elem-tag ' + elemCls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + escapeHtml(b.label || b.tag) + '</span>' +
       ruleBadge(ruleNum) +
-      '<span class="mean">' + b.meaning + '</span>' +
+      '<span class="mean">' + escapeHtml(b.meaning) + '</span>' +
     '</div>';
   }).join("");
 
   var ruleSummary = Array.from(ruleSet).sort().map(function(n) { return ruleBadge(n); }).join(" ");
-  var tipHtml = data.tip ? '<div class="ai-tip">🔑 ' + data.tip + '</div>' : "";
+  var tipHtml = data.tip ? '<div class="ai-tip">🔑 ' + escapeHtml(data.tip) + '</div>' : "";
 
   // 拓展例句
   var examplesHtml = "";
@@ -821,16 +874,16 @@ function renderAIResult(data, container) {
           var cls = getElemClass(b);
           var rn = getRuleTag(b);
           return '<div class="breakdown-item">' +
-            '<strong>' + b.part + '</strong>' +
-            '<span class="elem-tag ' + cls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + (b.label || b.tag) + '</span>' +
+            '<strong>' + escapeHtml(b.part) + '</strong>' +
+            '<span class="elem-tag ' + cls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + escapeHtml(b.label || b.tag) + '</span>' +
             ruleBadge(rn) +
-            '<span class="mean">' + b.meaning + '</span>' +
+            '<span class="mean">' + escapeHtml(b.meaning) + '</span>' +
           '</div>';
         }).join("");
         return '<div class="ai-example-card">' +
-          '<div class="ai-example-kr">' + ex.kr + playBtn(ex.kr, "small") + '</div>' +
+          '<div class="ai-example-kr">' + escapeHtml(ex.kr) + playBtn(ex.kr, "small") + '</div>' +
           '<div class="breakdown-row">' + exBreakdown + '</div>' +
-          '<div class="ai-example-full">→ ' + ex.full + '</div>' +
+          '<div class="ai-example-full">→ ' + escapeHtml(ex.full) + '</div>' +
         '</div>';
       }).join("") +
     '</div>';
@@ -843,12 +896,12 @@ function renderAIResult(data, container) {
       </div>
       <div class="sentence-card ai-result-sentence">
         <div class="ai-result-kr">
-          ${data.kr}${playBtn(data.kr, "small")}
+          ${escapeHtml(data.kr)}${playBtn(data.kr, "small")}
         </div>
         <div class="breakdown show ai-result-breakdown">
           <div class="breakdown-label">🔍 逐词拆解</div>
           <div class="breakdown-row">${breakdownHtml}</div>
-          <div class="ai-result-full">→ ${data.full}</div>
+          <div class="ai-result-full">→ ${escapeHtml(data.full)}</div>
           <div class="ai-result-rules">📐 涉及骨架规则：${ruleSummary}</div>
           ${tipHtml}
         </div>
@@ -1026,7 +1079,7 @@ function startFirstMessage() {
   // 发送一条空 user 消息触发 AI 开口
   var apiMessages = [{ role: "user", content: "（请开始对话）" }];
 
-  fetch("http://127.0.0.1:1234/ai/chat", {
+  fetch(TTS_BASE + "/ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ scene: sceneChatState.scenePrompt, messages: apiMessages })
@@ -1080,10 +1133,10 @@ function renderSceneChat() {
         var cls = getElemClass(b);
         var ruleNum = getRuleTag(b);
         return '<div class="breakdown-item">' +
-          '<strong>' + (b.part || '') + '</strong>' +
-          '<span class="elem-tag ' + cls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + (b.label || b.tag || '') + '</span>' +
+          '<strong>' + escapeHtml(b.part || '') + '</strong>' +
+          '<span class="elem-tag ' + cls + '" style="font-size:10px;padding:1px 6px;margin-left:4px;">' + escapeHtml(b.label || b.tag || '') + '</span>' +
           ruleBadge(ruleNum) +
-          '<span class="mean">' + (b.meaning || '') + '</span>' +
+          '<span class="mean">' + escapeHtml(b.meaning || '') + '</span>' +
         '</div>';
       }).join("");
     }
@@ -1169,7 +1222,7 @@ function sendChatMessage() {
     return { role: "assistant", content: m.kr };
   });
 
-  fetch("http://127.0.0.1:1234/ai/chat", {
+  fetch(TTS_BASE + "/ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ scene: sceneChatState.scenePrompt, messages: apiMessages })
@@ -1308,4 +1361,11 @@ function playNextReplay() {
 document.addEventListener("DOMContentLoaded", () => {
   initCardGlow();
   navigate("home");
+  // 移动端：点击页面其它区域（header 之外）时收起导航下拉
+  document.addEventListener("click", function(e) {
+    var nav = document.getElementById("mainNav");
+    if (nav && nav.classList.contains("show") && !(e.target.closest && e.target.closest(".header"))) {
+      nav.classList.remove("show");
+    }
+  });
 });
