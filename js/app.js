@@ -494,6 +494,10 @@ function renderTraining() {
     if (trainingFilter === "all") return true;
     if (trainingFilter === "unmastered") return !trainingDone[s.id];
     return s.group === trainingFilter;
+  }).sort(function(a, b) {
+    // 未掌握优先（已掌握排后）
+    var aDone = trainingDone[a.id] ? 1 : 0, bDone = trainingDone[b.id] ? 1 : 0;
+    return aDone - bDone;
   }).map(s => {
     let ruleSet = new Set();
     let breakdownHtml = s.breakdown.map(b => {
