@@ -64,9 +64,9 @@ function showOnboarding() {
       '<h2>🇰🇷 Basic Korean</h2>' +
       '<p>韩语最小可行学习系统<br>用最小的系统启动一门新语言</p>' +
       '<div class="onboarding-steps">' +
-        '<div class="onboarding-step"><span class="step-icon">🏗️</span><div class="step-text"><strong>1. 骨架规则</strong>先建立语法地图——理解 7 大骨架，知道韩语有哪几个核心部件</div></div>' +
-        '<div class="onboarding-step"><span class="step-icon">🃏</span><div class="step-text"><strong>2. 断句训练</strong>每天 3-5 句，先自己断句再展开看拆解，两周完成 43 句</div></div>' +
-        '<div class="onboarding-step"><span class="step-icon">🤖</span><div class="step-text"><strong>3. AI 练句</strong>输入任意中文，AI 翻译并拆解词性/助词/词尾，按规则编号教学</div></div>' +
+        '<div class="onboarding-step"><span class="step-icon">🏗️</span><div class="step-text"><strong>1. 筑基规则</strong>先建立语法地图——理解 7 大筑基，知道韩语有哪几个核心部件</div></div>' +
+        '<div class="onboarding-step"><span class="step-icon">🃏</span><div class="step-text"><strong>2. 抽丝训练</strong>每天 3-5 句，先自己断句再展开看拆解，两周完成 43 句</div></div>' +
+        '<div class="onboarding-step"><span class="step-icon">🤖</span><div class="step-text"><strong>3. 砥砺</strong>输入任意中文，AI 翻译并拆解词性/助词/词尾，按规则编号教学</div></div>' +
       '</div>' +
       '<button class="ai-submit-btn" onclick="closeOnboarding()">🚀 开始学习</button>' +
     '</div>';
@@ -91,8 +91,8 @@ function renderStatsContent() {
     '<div class="stats-modal">' +
       '<button class="stats-close" onclick="closeStats()">✕</button>' +
       '<h2>📊 学习统计</h2>' +
-      '<div class="stats-row"><span>📝 断句训练</span><span class="stat-value">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
-      '<div class="stats-row"><span>🗓️ 日课表</span><span class="stat-value">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
+      '<div class="stats-row"><span>📝 抽丝训练</span><span class="stat-value">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
+      '<div class="stats-row"><span>🗓️ 润物表</span><span class="stat-value">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
       '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value">' + aiHistory.length + ' 次</span></div>' +
       '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value">' + sceneHistory.length + ' 场</span></div>' +
       '<div class="stats-row"><span>🎨 主题</span><span class="stat-value">' + theme + '</span></div>' +
@@ -104,9 +104,9 @@ function renderStatsContent() {
       '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-light);">' +
         '<strong>⚙️ 数据管理</strong>' +
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">' +
-          '<button class="ai-suggest-btn" onclick="clearData(\'korean_training_done\',\'断句训练进度\')">重置断句</button>' +
-          '<button class="ai-suggest-btn" onclick="clearData(\'korean_progress\',\'日课表进度\')">重置日课</button>' +
-          '<button class="ai-suggest-btn" onclick="clearData(\'korean_ai_history\',\'AI练句历史\')">清空AI历史</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_training_done\',\'抽丝训练进度\')">重置断句</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_progress\',\'润物表进度\')">重置润物</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_ai_history\',\'砥砺历史\')">清空AI历史</button>' +
           '<button class="ai-suggest-btn" onclick="clearData(\'korean_scene_history\',\'情景对话历史\')">清空情景</button>' +
           '<button class="ai-suggest-btn" onclick="clearData(\'korean_dismissed_tips\',\'已关闭的提示\')">重置提示</button>' +
           '<button class="ai-suggest-btn" style="color:var(--error);border-color:var(--error);" onclick="clearData(\'ALL\',\'所有学习数据\')">重置全部</button>' +
@@ -179,7 +179,7 @@ function importAllData(input) {
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
 var aiServiceAvailable = true;
 
-// 断句训练"已掌握"状态（localStorage 持久化）
+// 抽丝训练"已掌握"状态（localStorage 持久化）
 var trainingDone = JSON.parse(localStorage.getItem("korean_training_done") || "{}");
 
 var ELEM_COLORS = [
@@ -264,7 +264,7 @@ function renderColorLegend() {
 }
 
 // ============================================
-// 骨架规则映射 - 拆解项 → 骨架规则编号
+// 骨架规则映射 - 拆解项 → 筑基规则编号
 // ============================================
 var RULE_MAP = {
   1: { icon: "①", name: "主宾谓", color: "#1565C0" },
@@ -312,7 +312,7 @@ function getRuleTag(b) {
 
 function ruleBadge(ruleNum) {
   var r = RULE_MAP[ruleNum];
-  return '<span onclick="event.stopPropagation(); jumpToRule(' + ruleNum + ')" style="font-size:9px;padding:1px 5px;border-radius:3px;background:' + r.color + '20;color:' + r.color + ';font-weight:600;margin-left:4px;white-space:nowrap;cursor:pointer;" title="跳转到骨架规则 ' + ruleNum + '">' + r.icon + ' ' + r.name + '</span>';
+  return '<span onclick="event.stopPropagation(); jumpToRule(' + ruleNum + ')" style="font-size:9px;padding:1px 5px;border-radius:3px;background:' + r.color + '20;color:' + r.color + ';font-weight:600;margin-left:4px;white-space:nowrap;cursor:pointer;" title="跳转到筑基规则 ' + ruleNum + '">' + r.icon + ' ' + r.name + '</span>';
 }
 
 // ============================================
@@ -480,38 +480,43 @@ function renderHome() {
       <div class="hero-cards">
         <div class="hero-card" onclick="navigate('skeleton')">
           <div class="icon">🏗️</div>
-          <h3>7 大骨架规则</h3>
+          <h3>7 大筑基规则</h3>
           <p>韩语语法的承重墙——先立起来房子不会倒</p>
         </div>
         <div class="hero-card" onclick="navigate('training')">
           <div class="icon">🃏</div>
-          <h3>断句训练</h3>
+          <h3>抽丝训练</h3>
           <p>43 句逐词拆解，学会"看标签"而不是"看单词"</p>
         </div>
         <div class="hero-card" onclick="navigate('stems')">
           <div class="icon">📝</div>
-          <h3>核心词干</h3>
+          <h3>核心剥茧</h3>
           <p>84 个最常用词干（动词 + 形容词）</p>
-        </div>
-        <div class="hero-card" onclick="navigate('schedule')">
-          <div class="icon">🗓️</div>
-          <h3>两周日课表</h3>
-          <p>每天 20 分钟，从零到能造简单句子</p>
         </div>
         <div class="hero-card" onclick="navigate('ai')">
           <div class="icon">🤖</div>
-          <h3>AI 智能练句</h3>
-          <p>输入中文，AI 自动翻译并拆解词性、标注骨架规则</p>
+          <h3>砥砺</h3>
+          <p>输入中文，AI 自动翻译并拆解词性、标注筑基规则</p>
         </div>
         <div class="hero-card" onclick="navigate('scene')">
-          <div class="icon">💬</div>
-          <h3>AI 情景对话</h3>
+          <div class="icon">🎭</div>
+          <h3>临境</h3>
           <p>选择场景，和 AI 角色用韩语对话练习，自动播放发音</p>
+        </div>
+        <div class="hero-card" onclick="navigate('schedule')">
+          <div class="icon">🗓️</div>
+          <h3>两周润物表</h3>
+          <p>每天 20 分钟，从零到能造简单句子</p>
+        </div>
+        <div class="hero-card" onclick="navigate('reference')">
+          <div class="icon">🏷️</div>
+          <h3>标签拾遗表</h3>
+          <p>助词、词尾、疑问词一览，快速查找</p>
         </div>
       </div>
     </section>
     <div style="text-align:center;margin-top:20px;color:var(--text-light);font-size:13px;">
-      <p>💡 建议顺序：骨架地图 → 断句训练 → 词干 → 按日课表执行</p>
+      <p>💡 建议顺序：筑基 → 抽丝 → 剥茧 → 砥砺 → 临境 → 润物 → 拾遗</p>
     </div>
   `;
 }
@@ -569,10 +574,10 @@ function renderSkeleton() {
 
   return `
     <div class="page-title">
-      <h2>🏗️ 7 大骨架规则</h2>
+      <h2>🏗️ 7 大筑基规则</h2>
       <p>韩语语法的承重墙。先建立地图感，细节在练习中自然补齐。</p>
     </div>
-    <div class="tip-banner"><strong>🎯 目标：</strong>不是精通，而是知道"有这 7 个东西存在"。每个规则看一遍例句拆解，你就知道韩语的语法地图长什么样了。<br><strong>🔗 联动：</strong>断句训练页的每个词都标注了对应的骨架规则编号，可与本页对照学习。</div>
+    <div class="tip-banner"><strong>🎯 目标：</strong>不是精通，而是知道"有这 7 个东西存在"。每个规则看一遍例句拆解，你就知道韩语的语法地图长什么样了。<br><strong>🔗 联动：</strong>抽丝训练页的每个词都标注了对应的筑基规则编号，可与本页对照学习。</div>
     <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="ai-suggest-btn" onclick="toggleAllRules(true)">📖 展开全部</button>
       <button class="ai-suggest-btn" onclick="toggleAllRules(false)">📕 收起全部</button>
@@ -647,7 +652,7 @@ function renderTraining() {
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">🔍 逐词拆解</div>
           <div class="breakdown-row">${breakdownHtml}</div>
           <div style="margin-top:8px;font-size:14px;color:var(--text-light);">→ ${s.full}</div>
-          <div style="margin-top:8px;font-size:12px;color:var(--text-light);">📐 涉及骨架规则：${ruleSummary}</div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text-light);">筑基规则：${ruleSummary}</div>
           ${tipHtml}
         </div>
         <div style="font-size:12px;color:var(--text-light);margin-top:4px;">👆 点击展开拆解</div>
@@ -659,7 +664,7 @@ function renderTraining() {
 
   return `
     <div class="page-title">
-      <h2>🃏 断句训练</h2>
+      <h2>🃏 抽丝训练</h2>
       <p>三遍法：① 圈出助词和词尾 ② 说出每个标签的功能 ③ 不看标注猜意思</p>
     </div>
     ${shouldShowTip('training_method') ? '<div class="tip-banner accent" id="tip-training_method"><strong>💡 训练方法：</strong>先自己尝试断句，再点击展开看拆解。每天 3-5 句，两周内完成全部 43 句。<button class="tip-close" onclick="dismissTip(this, \'training_method\')">✕</button></div>' : ''}
@@ -714,7 +719,7 @@ function updateTrainingProgress() {
   el.textContent = doneCount + " / " + SENTENCES.length;
   // 全部掌握时庆祝
   if (doneCount === SENTENCES.length && doneCount > 0) {
-    showToast("🎉🎉🎉 全部掌握！你已经完成了 43 句断句训练，太棒了！");
+    showToast("🎉🎉🎉 全部掌握！你已经完成了 43 句抽丝训练，太棒了！");
   }
 }
 
@@ -745,7 +750,7 @@ function practiceCardHtml(s) {
         <div style="font-size:13px;font-weight:600;margin-bottom:8px;">🔍 逐词拆解</div>
         <div class="breakdown-row">${breakdownHtml}</div>
         <div style="margin-top:8px;font-size:14px;color:var(--text-light);">→ ${s.full}</div>
-        <div style="margin-top:8px;font-size:12px;color:var(--text-light);">📐 涉及骨架规则：${ruleSummary}</div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-light);">筑基规则：${ruleSummary}</div>
         ${s.tip ? `<div class="ai-tip">🔑 ${s.tip}</div>` : ""}
       </div>
       <div class="practice-actions">
@@ -803,7 +808,7 @@ function renderStems() {
 
   return `
     <div class="page-title">
-      <h2>📝 核心词干清单</h2>
+      <h2>📝 核心剥茧清单</h2>
       <p>词干 + 词尾 = 完整的韩语动词/形容词。先记词干，再套规则。</p>
     </div>
     <div class="tip-banner" style="margin-bottom:16px;font-size:13px;line-height:1.8;"><strong>📌 使用建议</strong><br>• 每天学 10 个词干，2 周学完全部<br>• 不要孤立背——每个词干配 1 个常用搭配一起记<br>• 优先掌握动词——前 50 个动词词干覆盖 80% 日常表达</div>
@@ -855,17 +860,17 @@ function playAllStems() {
 
 // === SCHEDULE PAGE ===
 var SCHEDULE = [
-  { day: 1, title: "通读骨架地图", tasks: ["读 7 大骨架规则", "读标签速查表", "找一段韩语歌词，试着找出 은/는/을/를/에/요"] },
-  { day: 2, title: "助词识别训练", tasks: ["复习助词表", "做断句训练 #1-5 自我介绍（三遍法）", "学动词词干 1-10 号"] },
-  { day: 3, title: "时态识别训练", tasks: ["复习时态词尾", "做断句训练 #6-10 日常动作+描述", "学动词词干 11-20 号"] },
-  { day: 4, title: "描述与否定", tasks: ["复习规则 ①②③⑥", "做断句训练 #11-15 否定句+疑问命令", "学形容词词干 1-10 号"] },
-  { day: 5, title: "连接词尾", tasks: ["复习规则 ⑤", "做断句训练 #16-20 连接词尾", "学动词词干 21-35 号"] },
-  { day: 6, title: "购物点餐场景", tasks: ["做断句训练 #21-24 购物点餐", "练习点餐对话：이거 얼마예요? / 주세요", "学动词词干 36-52 号"] },
-  { day: 7, title: "第一周总复习", tasks: ["不看标注尝试断句 #1-20", "遮住速查表说含义", "自造 3 个简单句子"] },
-  { day: 8, title: "问路交通场景", tasks: ["做断句训练 #25-28 问路交通", "练习问路对话：어디에 있어요? / 오른쪽으로", "复习形容词词干 1-20 号"] },
-  { day: 9, title: "时间计划场景", tasks: ["做断句训练 #29-32 时间计划", "练习约会对话：몇 시에 만날까요?", "学形容词词干 21-32 号"] },
-  { day: 10, title: "请求感谢场景", tasks: ["做断句训练 #33-36 请求感谢", "练习请求对话：주세요 / 좀 부탁해요", "复习全部动词词干"] },
-  { day: 11, title: "情感感受场景", tasks: ["做断句训练 #37-43 情感感受+新词尾", "练习表达心情：기분이 좋아요 / 피곤해요", "复习全部形容词词干"] },
+  { day: 1, title: "通读筑基地图", tasks: ["读 7 大筑基规则", "读拾遗表", "找一段韩语歌词，试着找出 은/는/을/를/에/요"] },
+  { day: 2, title: "助词识别训练", tasks: ["复习助词表", "做抽丝训练 #1-5 自我介绍（三遍法）", "学动词词干 1-10 号"] },
+  { day: 3, title: "时态识别训练", tasks: ["复习时态词尾", "做抽丝训练 #6-10 日常动作+描述", "学动词词干 11-20 号"] },
+  { day: 4, title: "描述与否定", tasks: ["复习规则 ①②③⑥", "做抽丝训练 #11-15 否定句+疑问命令", "学形容词词干 1-10 号"] },
+  { day: 5, title: "连接词尾", tasks: ["复习规则 ⑤", "做抽丝训练 #16-20 连接词尾", "学动词词干 21-35 号"] },
+  { day: 6, title: "购物点餐场景", tasks: ["做抽丝训练 #21-24 购物点餐", "练习点餐对话：이거 얼마예요? / 주세요", "学动词词干 36-52 号"] },
+  { day: 7, title: "第一周总复习", tasks: ["不看标注尝试断句 #1-20", "遮住拾遗表说含义", "自造 3 个简单句子"] },
+  { day: 8, title: "问路交通场景", tasks: ["做抽丝训练 #25-28 问路交通", "练习问路对话：어디에 있어요? / 오른쪽으로", "复习形容词词干 1-20 号"] },
+  { day: 9, title: "时间计划场景", tasks: ["做抽丝训练 #29-32 时间计划", "练习约会对话：몇 시에 만날까요?", "学形容词词干 21-32 号"] },
+  { day: 10, title: "请求感谢场景", tasks: ["做抽丝训练 #33-36 请求感谢", "练习请求对话：주세요 / 좀 부탁해요", "复习全部动词词干"] },
+  { day: 11, title: "情感感受场景", tasks: ["做抽丝训练 #37-43 情感感受+新词尾", "练习表达心情：기분이 좋아요 / 피곤해요", "复习全部形容词词干"] },
   { day: 12, title: "连接词尾实战", tasks: ["复习 -고/-서/-지만/-면", "造 5 个复合句", "用 -고 싶어요 造 3 个愿望句"] },
   { day: 13, title: "自由输出", tasks: ["写 100 字韩语日记", "朗读 3 遍，注意语调", "用学过的句型造 10 个新句子"] },
   { day: 14, title: "两周总验收", tasks: ["断句 43 句正确率 70% 以上", "用 -요 体做自我介绍+问答", "掌握 84 个词干 + 43 个核心句型"] }
@@ -892,7 +897,7 @@ function renderSchedule() {
 
   return `
     <div class="page-title">
-      <h2>🗓️ 两周日课表</h2>
+      <h2>🗓️ 两周润物表</h2>
       <p>每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。</p>
     </div>
     <div class="tip-banner"><strong>⚡ 核心原则</strong><br>① 20 分钟到就停——超时容易产生厌倦<br>② 不追求完美——Day 7 能断句 30% 就算成功<br>③ 重复比新学重要——前 7 天反复练 30 句 > 学 100 句但不熟<br>④ 声音很重要——所有句子至少读出声 1 遍</div>
@@ -967,7 +972,7 @@ function renderReference() {
 
   return `
     <div class="page-title">
-      <h2>🏷️ 标签速查表</h2>
+      <h2>🏷️ 标签拾遗表</h2>
       <p>看到以下标签立刻知道"前面这个词是什么角色"。建议截图或打印。</p>
     </div>
 
@@ -1041,8 +1046,8 @@ function renderAI() {
 
   return `
     <div class="page-title">
-      <h2>🤖 AI 智能练句</h2>
-      <p>输入任意中文句子，AI 会自动翻译成韩语并按你的学习体系拆解词性、助词、词尾和骨架规则</p>
+      <h2>🤖 砥砺</h2>
+      <p>输入任意中文句子，AI 会自动翻译成韩语并按你的学习体系拆解词性、助词、词尾和筑基规则</p>
     </div>
 
     <div class="ai-input-section">
@@ -1304,7 +1309,7 @@ function renderAIResult(data, container) {
           <div class="breakdown-label">🔍 逐词拆解</div>
           <div class="breakdown-row">${breakdownHtml}</div>
           <div class="ai-result-full">→ ${escapeHtml(data.full)}</div>
-          <div class="ai-result-rules">📐 涉及骨架规则：${ruleSummary}</div>
+          <div class="ai-result-rules">筑基规则：${ruleSummary}</div>
           ${tipHtml}
         </div>
       </div>
@@ -1418,7 +1423,7 @@ function renderScene() {
 
   return '' +
     '<div class="page-title">' +
-      '<h2>💬 AI 情景对话</h2>' +
+      '<h2>🎭 临境</h2>' +
       '<p>选择一个场景，AI 会扮演韩国角色和你对话。支持中文回答——AI 会理解并继续韩语对话。</p>' +
     '</div>' +
     '<div class="scene-tips">' +
@@ -1519,7 +1524,7 @@ function startFirstMessage() {
 
 function renderSceneChat() {
   if (!sceneChatState.active) {
-    return '<div class="page-title"><h2>💬 AI 情景对话</h2><p>请先选择一个场景</p></div>';
+    return '<div class="page-title"><h2>🎭 临境</h2><p>请先选择一个场景</p></div>';
   }
 
   var msgsHtml = sceneChatState.messages.map(function(m, i) {
@@ -1827,7 +1832,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   // 全局键盘快捷键 1-8 切换页面（输入框内/带修饰键时不触发，避免误触）
-  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"schedule", "6":"reference", "7":"ai", "8":"scene" };
+  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"ai", "6":"scene", "7":"schedule", "8":"reference" };
   document.addEventListener("keydown", function(e) {
     var t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
