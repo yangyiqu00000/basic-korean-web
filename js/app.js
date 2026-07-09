@@ -768,6 +768,10 @@ function renderStems() {
     <div style="margin-bottom:16px;">
       <input id="stemSearch" class="ai-input" style="width:100%;box-sizing:border-box;" placeholder="🔍 搜索词干 / 含义 / 例句（如：吃、공부、먹다）" oninput="filterStems(this.value)" />
     </div>
+    <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="ai-suggest-btn" onclick="playAllStems()">▶ 全部播放</button>
+      <span style="font-size:12px;color:var(--text-light);align-self:center;">最有效学发音的方式：先听再跟读</span>
+    </div>
     ${catsHtml}
   `;
 }
@@ -783,6 +787,28 @@ function filterStems(q) {
     var any = cat.querySelector(".stem-item:not(.ref-hidden)");
     cat.style.display = any ? "" : "none";
   });
+}
+
+// 词干页顺序播放所有可见项（先读词干，再读例句）
+var stemPlayTimer = null;
+function playAllStems() {
+  if (stemPlayTimer) { clearTimeout(stemPlayTimer); stemPlayTimer = null; }
+  var items = document.querySelectorAll("#mainContent .stem-item:not(.ref-hidden)");
+  if (!items.length) { showToast("没有可播放的词干"); return; }
+  showToast("🔊 正在播放 " + items.length + " 个词干…");
+  var idx = 0;
+  function playNext() {
+    if (idx >= items.length) { showToast("✅ 播放完毕"); stemPlayTimer = null; return; }
+    var el = items[idx];
+    var stemEl = el.querySelector(".stem");
+    var exampleEl = el.querySelector(".example");
+    var text = (stemEl ? stemEl.textContent : "") + ". " + (exampleEl ? exampleEl.textContent : "");
+    speakKorean(text);
+    if (stemEl) stemEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    idx++;
+    stemPlayTimer = setTimeout(playNext, Math.max(2500, text.length * 200));
+  }
+  playNext();
 }
 
 // === SCHEDULE PAGE ===
