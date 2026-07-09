@@ -638,7 +638,7 @@ function renderReference() {
   }
 
   let particlesHtml = REFERENCE.particles.map(p => `
-    <tr>
+    <tr class="ref-row">
       <td><span class="elem-tag elem-particle" style="font-size:14px;padding:2px 10px;border-radius:99px;">${p.tag}</span></td>
       <td>${p.type}</td>
       <td>${p.meaning}</td>
@@ -648,7 +648,7 @@ function renderReference() {
   `).join("");
 
   let endingsHtml = REFERENCE.endings.map(e => `
-    <tr>
+    <tr class="ref-row">
       <td><span class="elem-tag ${endingCls(e)}" style="font-size:14px;padding:2px 10px;border-radius:99px;">${e.tag}</span></td>
       <td>${e.type}</td>
       <td>${e.meaning}</td>
@@ -658,7 +658,7 @@ function renderReference() {
   `).join("");
 
   let qwordsHtml = REFERENCE.questionWords.map(q => `
-    <span style="display:inline-block;padding:6px 14px;background:var(--bg);border-radius:8px;margin:4px;border:1px solid var(--border);">
+    <span class="ref-qword" style="display:inline-block;padding:6px 14px;background:var(--bg);border-radius:8px;margin:4px;border:1px solid var(--border);">
       <strong style="font-size:18px;font-family:'Noto Sans KR',sans-serif;">${q.word}</strong>${playBtn(q.word, "small")}
       <span style="color:var(--text-light);margin-left:6px;font-size:13px;">= ${q.meaning}</span>
     </span>
@@ -672,7 +672,11 @@ function renderReference() {
 
     ${renderColorLegend()}
 
-    <div class="card">
+    <div style="margin-bottom:16px;">
+      <input id="refSearch" class="ai-input" style="width:100%;box-sizing:border-box;" placeholder="🔍 搜索助词 / 词尾 / 疑问词（如：主题、과거、뭐）" oninput="filterReference(this.value)" />
+    </div>
+
+    <div class="card ref-section">
       <div class="card-title">🔴 助词 <span class="badge badge-red">${REFERENCE.particles.length} 个</span></div>
       <table class="ref-table">
         <thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th></tr></thead>
@@ -680,7 +684,7 @@ function renderReference() {
       </table>
     </div>
 
-    <div class="card">
+    <div class="card ref-section">
       <div class="card-title">🟠 词尾 <span class="badge badge-orange">${REFERENCE.endings.length} 个</span></div>
       <table class="ref-table">
         <thead><tr><th>词尾</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th></tr></thead>
@@ -688,7 +692,7 @@ function renderReference() {
       </table>
     </div>
 
-    <div class="card">
+    <div class="card ref-section">
       <div class="card-title">❓ 疑问词 <span class="badge badge-green">${REFERENCE.questionWords.length} 个</span></div>
       <div>${qwordsHtml}</div>
     </div>
@@ -702,6 +706,19 @@ function renderReference() {
       看到 고/서/지만 → 句子未完！
     </div>
   `;
+}
+
+// 参考页实时搜索：按文本过滤行，并隐藏无命中分组
+function filterReference(q) {
+  q = (q || "").trim().toLowerCase();
+  document.querySelectorAll("#mainContent .ref-row, #mainContent .ref-qword").forEach(function(el) {
+    var hit = !q || el.textContent.toLowerCase().includes(q);
+    el.classList.toggle("ref-hidden", !hit);
+  });
+  document.querySelectorAll("#mainContent .ref-section").forEach(function(sec) {
+    var any = sec.querySelector(".ref-row:not(.ref-hidden), .ref-qword:not(.ref-hidden)");
+    sec.style.display = any ? "" : "none";
+  });
 }
 
 // === AI PAGE ===
