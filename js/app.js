@@ -281,7 +281,7 @@ function getRuleTag(b) {
 
 function ruleBadge(ruleNum) {
   var r = RULE_MAP[ruleNum];
-  return '<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:' + r.color + '20;color:' + r.color + ';font-weight:600;margin-left:4px;white-space:nowrap;">' + r.icon + ' ' + r.name + '</span>';
+  return '<span onclick="event.stopPropagation(); jumpToRule(' + ruleNum + ')" style="font-size:9px;padding:1px 5px;border-radius:3px;background:' + r.color + '20;color:' + r.color + ';font-weight:600;margin-left:4px;white-space:nowrap;cursor:pointer;" title="跳转到骨架规则 ' + ruleNum + '">' + r.icon + ' ' + r.name + '</span>';
 }
 
 // ============================================
@@ -379,6 +379,19 @@ function navigate(page) {
   // 移动端：导航完成后收起下拉菜单
   var nav = document.getElementById("mainNav");
   if (nav) nav.classList.remove("show");
+  // 骨架规则跳转：展开并滚动到目标规则
+  if (pendingRule !== null && page === "skeleton") {
+    var idx = pendingRule - 1;
+    setTimeout(function() {
+      var body = document.getElementById("ruleBody" + idx);
+      if (body) {
+        body.classList.add("open");
+        if (body.previousElementSibling) body.previousElementSibling.classList.add("open");
+        body.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      pendingRule = null;
+    }, 100);
+  }
 }
 
 function initRevealObserver() {
@@ -471,6 +484,10 @@ function renderHome() {
     </div>
   `;
 }
+
+// 骨架规则跳转（从断句/AI 结果点击规则编号直达骨架页并展开）
+var pendingRule = null;
+function jumpToRule(n) { pendingRule = n; navigate("skeleton"); }
 
 // === SKELETON PAGE ===
 function renderSkeleton() {
