@@ -24,6 +24,10 @@
   /* 边框：暖米色 */
   --border: #e4ddd4;
 
+  /* 头部背景（毛玻璃底色） */
+  --header-bg: rgba(246,246,245,0.72);
+  --nav-show-bg: rgba(246,246,245,0.95);
+
   /* 功能色 */
   --success: #21825f;
   --warning: #d4731a;
@@ -40,6 +44,45 @@
   /* 缓动 */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ===== 暗色主题 ===== */
+[data-theme="dark"] {
+  --bg: #1a1714;
+  --card-bg: #221d17;
+  --text: #f3ece4;
+  --text-light: #b3a89c;
+  --border: #3a342c;
+  --primary: #e8924f;
+  --primary-lighter: #2e2317;
+  --accent: #e8924f;
+  --accent-light: #2e2317;
+  --header-bg: rgba(26,23,20,0.82);
+  --nav-show-bg: rgba(26,23,20,0.97);
+  --shadow: 0 2px 8px rgba(0,0,0,0.35), 0 8px 24px -12px rgba(0,0,0,0.5);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.4), 0 16px 40px -16px rgba(0,0,0,0.6);
+  /* 词性色块：暗色下沉 */
+  --elem-stem-bg: #3a2e25;
+  --elem-stem-color: #e6cfb8;
+  --elem-particle-bg: #3a1f1f;
+  --elem-particle-color: #e89a8a;
+  --elem-ending-terminal-bg: #3a2e1f;
+  --elem-ending-terminal-color: #e6bf8a;
+  --elem-ending-connective-bg: #1f3328;
+  --elem-ending-connective-color: #8cd4a0;
+  --elem-ending-tense-bg: #3a2e1f;
+  --elem-ending-tense-color: #e6bf8a;
+  --elem-negation-bg: #2a1f33;
+  --elem-negation-color: #c28ad4;
+  --elem-mood-bg: #1f2e33;
+  --elem-mood-color: #8ac4d4;
+}
+[data-theme="dark"] .elem-stem { background: var(--elem-stem-bg); color: var(--elem-stem-color); }
+[data-theme="dark"] .elem-particle { background: var(--elem-particle-bg); color: var(--elem-particle-color); }
+[data-theme="dark"] .elem-ending-terminal { background: var(--elem-ending-terminal-bg); color: var(--elem-ending-terminal-color); }
+[data-theme="dark"] .elem-ending-connective { background: var(--elem-ending-connective-bg); color: var(--elem-ending-connective-color); }
+[data-theme="dark"] .elem-ending-tense { background: var(--elem-ending-tense-bg); color: var(--elem-ending-tense-color); }
+[data-theme="dark"] .elem-negation { background: var(--elem-negation-bg); color: var(--elem-negation-color); }
+[data-theme="dark"] .elem-mood { background: var(--elem-mood-bg); color: var(--elem-mood-color); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -59,10 +102,10 @@ body {
 
 /* ---- Header ---- */
 .header {
-  background: rgba(246,246,245,0.72);
+  background: var(--header-bg);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid rgba(228,221,212,0.6);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -109,6 +152,8 @@ body {
 .nav-item:hover { background: var(--primary-lighter); color: var(--primary); }
 .nav-item.active { background: var(--primary); color: white; }
 .mobile-menu-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text); }
+.theme-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px 8px; border-radius: 8px; transition: background 0.2s var(--ease); }
+.theme-toggle:hover { background: var(--primary-lighter); }
 
 /* ---- Main ---- */
 .main {
@@ -742,6 +787,7 @@ body {
 .ai-result-kr { font-size: 24px; font-weight: 500; margin-bottom: 8px; font-family: 'Noto Sans KR', sans-serif; }
 .ai-result-breakdown { max-height: none; opacity: 1; margin-top: 12px; }
 .breakdown-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.ai-status-warn { margin: 10px 0; padding: 10px 14px; background: var(--accent-light); color: var(--warning); border-radius: 10px; font-size: 13px; }
 .ref-hidden { display: none !important; }
 .ai-result-full { margin-top: 8px; font-size: 14px; color: var(--text-light); }
 .ai-result-rules { margin-top: 8px; font-size: 12px; color: var(--text-light); }
@@ -897,7 +943,7 @@ body {
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .nav { display: none; }
-  .nav.show { display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: rgba(246,246,245,0.95); backdrop-filter: blur(16px); padding: 12px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow); }
+  .nav.show { display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: var(--nav-show-bg); backdrop-filter: blur(16px); padding: 12px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow); }
   .mobile-menu-btn { display: block; }
   .header-inner { padding: 0 16px; }
   .hero h1 { font-size: 28px; }

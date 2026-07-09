@@ -7,6 +7,28 @@
 // TTS / AI 服务地址：前端只连本地，需与 tts_server 绑定的 127.0.0.1 保持一致
 var TTS_BASE = "http://" + "127.0.0.1:1234";
 
+// 主题初始化与切换（暗色/亮色，localStorage 持久化，首次跟随系统偏好）
+var THEME_KEY = "korean_theme";
+function initTheme() {
+  var saved = localStorage.getItem(THEME_KEY);
+  if (saved) { applyTheme(saved); return; }
+  // 首次访问：跟随系统偏好
+  var prefers = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  applyTheme(prefers);
+}
+function applyTheme(theme) {
+  if (theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+  else document.documentElement.removeAttribute("data-theme");
+  var btn = document.getElementById("themeToggle");
+  if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  var next = cur === "dark" ? "light" : "dark";
+  applyTheme(next);
+  localStorage.setItem(THEME_KEY, next);
+}
+
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
 var aiServiceAvailable = true;
 
@@ -664,7 +686,7 @@ function renderSchedule() {
     </div>
     <div style="margin-bottom:16px;padding:14px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
       <strong>📊 学习进度</strong> ${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)
-      <div style="margin-top:8px;height:8px;background:white;border-radius:4px;overflow:hidden;">
+      <div style="margin-top:8px;height:8px;background:var(--card-bg);border-radius:4px;overflow:hidden;">
         <div style="height:100%;width:${doneCount / totalCount * 100}%;background:var(--primary);transition:width 0.3s;"></div>
       </div>
     </div>
@@ -855,7 +877,7 @@ function checkAIService() {
     if (input) input.disabled = true;
     if (btn) btn.disabled = true;
     suggestBtns.forEach(function(b) { b.disabled = true; });
-    if (status) status.innerHTML = '<div style="margin:10px 0;padding:10px 14px;background:#fff4e0;color:#d4731a;border-radius:10px;font-size:13px;">⚠️ ' + escapeHtml(msg) + '</div>';
+    if (status) status.innerHTML = '<div class="ai-status-warn">⚠️ ' + escapeHtml(msg) + '</div>';
   }
   function setAvailable() {
     aiServiceAvailable = true;
@@ -1573,6 +1595,7 @@ function exportSceneTxt() {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   initCardGlow();
   navigate("home");
   // 移动端：点击页面其它区域（header 之外）时收起导航下拉
