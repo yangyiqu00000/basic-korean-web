@@ -342,6 +342,16 @@ body {
 .stats-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .stats-row:last-child { border: none; }
 .stats-row .stat-value { font-weight: 700; color: var(--primary); }
+.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.onboarding-modal { background: var(--card-bg); border-radius: var(--radius); padding: 32px; max-width: 460px; width: 100%; text-align: center; box-shadow: var(--shadow-hover); }
+.onboarding-modal h2 { font-size: 24px; margin-bottom: 8px; }
+.onboarding-modal p { color: var(--text-light); font-size: 14px; margin-bottom: 24px; }
+.onboarding-steps { text-align: left; margin: 0 auto 24px; max-width: 340px; }
+.onboarding-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.onboarding-step:last-child { border: none; }
+.onboarding-step .step-icon { width: 28px; text-align: center; font-size: 20px; flex-shrink: 0; }
+.onboarding-step .step-text { color: var(--text); }
+.onboarding-step .step-text strong { display: block; }
 .tip-banner { margin-bottom: 20px; padding: 16px; background: var(--primary-lighter); border-radius: var(--radius-sm); font-size: 14px; position: relative; }
 .tip-banner.accent { background: var(--accent-light); }
 .tip-close { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-light); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; }

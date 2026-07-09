@@ -52,6 +52,28 @@ function closeStats() {
   var el = document.getElementById("statsOverlay");
   if (el) el.remove();
 }
+function showOnboarding() {
+  var overlay = document.createElement("div");
+  overlay.className = "onboarding-overlay";
+  overlay.id = "onboardingOverlay";
+  overlay.innerHTML =
+    '<div class="onboarding-modal">' +
+      '<h2>🇰🇷 Basic Korean</h2>' +
+      '<p>韩语最小可行学习系统<br>用最小的系统启动一门新语言</p>' +
+      '<div class="onboarding-steps">' +
+        '<div class="onboarding-step"><span class="step-icon">🏗️</span><div class="step-text"><strong>1. 骨架规则</strong>先建立语法地图——理解 7 大骨架，知道韩语有哪几个核心部件</div></div>' +
+        '<div class="onboarding-step"><span class="step-icon">🃏</span><div class="step-text"><strong>2. 断句训练</strong>每天 3-5 句，先自己断句再展开看拆解，两周完成 43 句</div></div>' +
+        '<div class="onboarding-step"><span class="step-icon">🤖</span><div class="step-text"><strong>3. AI 练句</strong>输入任意中文，AI 翻译并拆解词性/助词/词尾，按规则编号教学</div></div>' +
+      '</div>' +
+      '<button class="ai-submit-btn" onclick="closeOnboarding()">🚀 开始学习</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+function closeOnboarding() {
+  localStorage.setItem("korean_onboarded", "1");
+  var el = document.getElementById("onboardingOverlay");
+  if (el) el.remove();
+}
 function renderStatsContent() {
   var progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
   var trainingDone = JSON.parse(localStorage.getItem("korean_training_done") || "{}");
@@ -85,6 +107,7 @@ function renderStatsContent() {
           '<button class="ai-suggest-btn" onclick="clearData(\'korean_scene_history\',\'情景对话历史\')">清空情景</button>' +
           '<button class="ai-suggest-btn" onclick="clearData(\'korean_dismissed_tips\',\'已关闭的提示\')">重置提示</button>' +
           '<button class="ai-suggest-btn" style="color:var(--error);border-color:var(--error);" onclick="clearData(\'ALL\',\'所有学习数据\')">重置全部</button>' +
+          '<button class="ai-suggest-btn" onclick="closeStats(); showOnboarding()">📖 新手引导</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1681,6 +1704,8 @@ document.addEventListener("DOMContentLoaded", () => {
     navigator.serviceWorker.register("/sw.js").catch(function(e) {});
   }
   navigate("home");
+  // 首次访问：显示新手引导
+  if (!localStorage.getItem("korean_onboarded")) { setTimeout(showOnboarding, 300); }
   // 移动端：点击页面其它区域（header 之外）时收起导航下拉
   document.addEventListener("click", function(e) {
     var nav = document.getElementById("mainNav");
