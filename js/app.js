@@ -108,6 +108,7 @@ function renderStatsContent() {
           '<button class="ai-suggest-btn" onclick="clearData(\'korean_dismissed_tips\',\'已关闭的提示\')">重置提示</button>' +
           '<button class="ai-suggest-btn" style="color:var(--error);border-color:var(--error);" onclick="clearData(\'ALL\',\'所有学习数据\')">重置全部</button>' +
           '<button class="ai-suggest-btn" onclick="closeStats(); showOnboarding()">📖 新手引导</button>' +
+          '<button class="ai-suggest-btn" onclick="exportAllData()">📤 备份数据</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -124,6 +125,24 @@ function clearData(key, name) {
   closeStats();
   setTimeout(function() { navigate(currentPage); }, 100);
   showToast('已清空「' + name + '」');
+}
+
+// 导出全部学习数据为 JSON 备份文件
+function exportAllData() {
+  var keys = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_custom_scenes","korean_dismissed_tips","korean_theme","korean_voice","korean_onboarded"];
+  var data = {};
+  keys.forEach(function(k) {
+    var v = localStorage.getItem(k);
+    if (v !== null) data[k] = JSON.parse(v);
+  });
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "basic_korean_backup_" + Date.now() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast("✅ 已导出备份文件（" + keys.length + " 项数据）");
 }
 
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
