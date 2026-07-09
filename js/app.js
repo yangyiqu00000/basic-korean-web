@@ -10,6 +10,9 @@ var TTS_BASE = "http://" + "127.0.0.1:1234";
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
 var aiServiceAvailable = true;
 
+// 断句训练"已掌握"状态（localStorage 持久化）
+var trainingDone = JSON.parse(localStorage.getItem("korean_training_done") || "{}");
+
 var ELEM_COLORS = [
   { cls: "elem-stem",               label: "词干/词根", desc: "名词、动词词干" },
   { cls: "elem-particle",           label: "助词",     desc: "은/는, 이/가, 을/를…" },
@@ -395,11 +398,16 @@ let trainingFilter = "all";
 
 function renderTraining() {
   let groups = [...new Set(SENTENCES.map(s => s.group))];
-  let filterBtns = ['<button class="filter-btn active" onclick="setTrainingFilter(\'all\')">全部</button>']
-    .concat(groups.map(g => `<button class="filter-btn" onclick="setTrainingFilter('${g}')">${g}</button>`))
+  let filterBtns = ['<button class="filter-btn active" data-group="all" onclick="setTrainingFilter(\'all\')">全部</button>']
+    .concat(groups.map(g => `<button class="filter-btn" data-group="${g}" onclick="setTrainingFilter('${g}')">${g}</button>`))
+    .concat(['<button class="filter-btn" data-group="unmastered" onclick="setTrainingFilter(\'unmastered\')">未掌握</button>'])
     .join("");
 
-  let sentencesHtml = SENTENCES.filter(s => trainingFilter === "all" || s.group === trainingFilter).map(s => {
+  let sentencesHtml = SENTENCES.filter(s => {
+    if (trainingFilter === "all") return true;
+    if (trainingFilter === "unmastered") return !trainingDone[s.id];
+    return s.group === trainingFilter;
+  }).map(s => {
     let ruleSet = new Set();
     let breakdownHtml = s.breakdown.map(b => {
       let elemCls = getElemClass(b);
@@ -415,10 +423,14 @@ function renderTraining() {
 
     let ruleSummary = [...ruleSet].sort().map(n => ruleBadge(n)).join(" ");
     let tipHtml = s.tip ? `<div class="ai-tip">🔑 ${s.tip}</div>` : "";
+    let done = trainingDone[s.id];
 
     return `
-      <div class="sentence-card" onclick="toggleBreakdown(this)">
-        <div class="sentence-num">#${s.id} · ${s.group}</div>
+      <div class="sentence-card ${done ? "mastered" : ""}" onclick="toggleBreakdown(this)">
+        <div class="sentence-top">
+          <div class="sentence-num">#${s.id} · ${s.group}</div>
+          <button class="master-btn ${done ? "mastered" : ""}" onclick="event.stopPropagation(); toggleMastered(${s.id}, this)" title="标记为已掌握">${done ? "✓ 已掌握" : "○ 标记掌握"}</button>
+        </div>
         <div class="kr">${s.kr}${playBtn(s.kr, "small")}</div>
         <div class="breakdown">
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">🔍 逐词拆解</div>
@@ -432,6 +444,8 @@ function renderTraining() {
     `;
   }).join("");
 
+  let doneCount = Object.values(trainingDone).filter(v => v).length;
+
   return `
     <div class="page-title">
       <h2>🃏 断句训练</h2>
@@ -440,6 +454,9 @@ function renderTraining() {
     <div style="margin-bottom:20px;padding:16px;background:var(--accent-light);border-radius:var(--radius-sm);font-size:14px;">
       <strong>💡 训练方法：</strong>先自己尝试断句，再点击展开看拆解。
       每天 3-5 句，两周内完成全部 43 句。
+    </div>
+    <div style="margin-bottom:16px;padding:14px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
+      <strong>📊 已掌握</strong> <span id="trainingProgress">${doneCount} / ${SENTENCES.length}</span>
     </div>
     ${renderColorLegend()}
     <div class="filter-bar">${filterBtns}</div>
@@ -450,7 +467,7 @@ function renderTraining() {
 function setTrainingFilter(group) {
   trainingFilter = group;
   document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.classList.toggle("active", (group === "all" && btn.textContent === "全部") || btn.textContent === group);
+    btn.classList.toggle("active", btn.dataset.group === group);
   });
   var main = document.getElementById("mainContent");
   main.innerHTML = renderTraining();
@@ -462,6 +479,25 @@ function setTrainingFilter(group) {
     item.style.animationDelay = Math.min(i * 0.04, 0.4) + "s";
   });
   initRevealObserver();
+}
+
+// 标记/取消"已掌握"，持久化并刷新计数（不整页重渲染以保留滚动与展开态）
+function toggleMastered(id, btn) {
+  trainingDone[id] = !trainingDone[id];
+  localStorage.setItem("korean_training_done", JSON.stringify(trainingDone));
+  var card = btn.closest(".sentence-card");
+  if (card) card.classList.toggle("mastered", trainingDone[id]);
+  btn.classList.toggle("mastered", trainingDone[id]);
+  btn.textContent = trainingDone[id] ? "✓ 已掌握" : "○ 标记掌握";
+  updateTrainingProgress();
+  // 处于"未掌握"筛选时，标记掌握后即时隐藏该卡
+  if (trainingFilter === "unmastered" && trainingDone[id] && card) card.style.display = "none";
+}
+
+function updateTrainingProgress() {
+  var el = document.getElementById("trainingProgress");
+  if (!el) return;
+  el.textContent = Object.values(trainingDone).filter(v => v).length + " / " + SENTENCES.length;
 }
 
 function toggleBreakdown(el) {
@@ -677,6 +713,11 @@ function renderAI() {
   aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
   // 渲染后探测 AI 可用性（DOM 就绪后再查，避免拿不到输入框）
   setTimeout(checkAIService, 0);
+  // 进入页面即聚焦输入框（聊天类产品标准预期；不强制滚动，避免移动端突兀）
+  setTimeout(function() {
+    var ai = document.getElementById("aiInput");
+    if (ai) ai.focus({ preventScroll: true });
+  }, 0);
 
   var historyHtml = aiHistory.length > 0 ? aiHistory.slice(-6).reverse().map(function(h, i) {
     return '<div class="ai-history-item" onclick="askAI(\'' + h.input.replace(/'/g, "\\'") + '\')">' +

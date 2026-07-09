@@ -31,7 +31,7 @@
 - **AI 输出契约**：`tts_server.js` 的 prompt 要求模型只返回严格 JSON（`kr/full/breakdown[rules]/tip/examples`），服务端会剥离可能的 markdown 代码块包裹。改 AI 输出结构时，需同时更新 prompt 与 `app.js` 的 `renderAIResult` / 情景对话渲染。
 - **7 大骨架规则**编号为 ①②③④⑤⑥⑦；AI 返回的 `rules` 字段引用这些数字，`tts_server.js` 中的 prompt 有完整定义。
 - **敬语规范**：AI 始终用 `-요` 体（命令用 `-세요`），prompt 中已锁定。
-- **持久化**：LocalStorage（学习进度、AI 练句历史、自定义情景 `korean_custom_scenes`）。无后端数据库。情景对话的"场景"由用户自定义存于 localStorage，**不是**数据文件。
+- **持久化**：LocalStorage（学习进度 `korean_progress`、断句训练"已掌握" `korean_training_done`、AI 练句历史 `korean_ai_history`、自定义情景 `korean_custom_scenes`、情景对话历史 `korean_scene_history`）。无后端数据库。情景对话的"场景"由用户自定义存于 localStorage，**不是**数据文件。
 
 ## 已知坑点
 - `audio/*.mp3`、`audio/*.json`、`ai_config.json` 已被 gitignore——音频和密钥均不提交。
