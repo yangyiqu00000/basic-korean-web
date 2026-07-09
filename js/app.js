@@ -795,6 +795,8 @@ var aiHistory = [];
 function renderAI() {
   // 加载历史记录
   aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
+  // 为历史项补齐稳定 id（旧数据可能缺 id），供删除定位
+  aiHistory.forEach(function(h, i) { if (!h.id) h.id = "h" + i + "-" + (h.time || 0); });
   // 渲染后探测 AI 可用性（DOM 就绪后再查，避免拿不到输入框）
   setTimeout(checkAIService, 0);
   // 进入页面即聚焦输入框（聊天类产品标准预期；不强制滚动，避免移动端突兀）
@@ -802,13 +804,6 @@ function renderAI() {
     var ai = document.getElementById("aiInput");
     if (ai) ai.focus({ preventScroll: true });
   }, 0);
-
-  var historyHtml = aiHistory.length > 0 ? aiHistory.slice(-6).reverse().map(function(h, i) {
-    return '<div class="ai-history-item" onclick="askAI(\'' + h.input.replace(/'/g, "\\'") + '\')">' +
-      '<span class="ai-history-input">' + escapeHtml(h.input) + '</span>' +
-      '<span class="ai-history-kr">' + escapeHtml(h.kr) + '</span>' +
-    '</div>';
-  }).join("") : '<p style="color:var(--text-light);font-size:13px;">还没有练习记录，试试输入一句中文吧</p>';
 
   return `
     <div class="page-title">
@@ -838,8 +833,12 @@ function renderAI() {
     <div id="aiResult"></div>
 
     <div class="ai-history-section">
-      <h3 style="font-size:16px;margin-bottom:12px;color:var(--text-light);">📜 最近练习</h3>
-      <div class="ai-history-list">${historyHtml}</div>
+      <h3 style="font-size:16px;margin-bottom:12px;color:var(--text-light);">📜 最近练习 <span id="aiHistoryCount">${aiHistory.length}</span> 条</h3>
+      <div class="ai-history-tools" style="margin-bottom:8px;">
+        <button class="ai-suggest-btn" onclick="exportAIHistory()">📤 导出</button>
+        <button class="ai-suggest-btn" onclick="clearAIHistory()">🗑 清空</button>
+      </div>
+      <div class="ai-history-list">${buildAIHistoryHtml()}</div>
     </div>
   `;
 }
@@ -875,6 +874,54 @@ function checkAIService() {
     .catch(function() {
       setUnavailable("TTS+AI 服务未启动：请先运行 node tts_server.js");
     });
+}
+
+// 构建练习历史列表 HTML（最近 6 条，含删除按钮）
+function buildAIHistoryHtml() {
+  if (!aiHistory.length) return '<p style="color:var(--text-light);font-size:13px;">还没有练习记录，试试输入一句中文吧</p>';
+  return aiHistory.slice(-6).reverse().map(function(h) {
+    return '<div class="ai-history-item" onclick="askAI(\'' + (h.input || "").replace(/'/g, "\\'") + '\')">' +
+      '<span class="ai-history-input">' + escapeHtml(h.input || "") + '</span>' +
+      '<span class="ai-history-kr">' + escapeHtml(h.kr || "") + '</span>' +
+      '<button class="ai-history-del" onclick="event.stopPropagation(); deleteAIHistory(\'' + h.id + '\')" title="删除">✕</button>' +
+    '</div>';
+  }).join("");
+}
+
+function deleteAIHistory(id) {
+  aiHistory = aiHistory.filter(function(h) { return h.id !== id; });
+  localStorage.setItem("korean_ai_history", JSON.stringify(aiHistory));
+  var list = document.querySelector(".ai-history-list");
+  if (list) list.innerHTML = buildAIHistoryHtml();
+  var cnt = document.getElementById("aiHistoryCount");
+  if (cnt) cnt.textContent = aiHistory.length;
+}
+
+function clearAIHistory() {
+  if (!aiHistory.length) { showToast("练习历史已为空"); return; }
+  aiHistory = [];
+  localStorage.setItem("korean_ai_history", JSON.stringify(aiHistory));
+  var list = document.querySelector(".ai-history-list");
+  if (list) list.innerHTML = buildAIHistoryHtml();
+  var cnt = document.getElementById("aiHistoryCount");
+  if (cnt) cnt.textContent = 0;
+  showToast("已清空练习历史");
+}
+
+function exportAIHistory() {
+  if (!aiHistory.length) { showToast("没有可导出的练习记录"); return; }
+  var lines = ["韩语练句历史导出", "导出时间：" + new Date().toLocaleString(), ""];
+  aiHistory.slice().reverse().forEach(function(h) {
+    lines.push("中文：" + (h.input || "") + "\n韩语：" + (h.kr || "") + (h.full ? "  （" + h.full + "）" : ""));
+  });
+  var blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "练句历史_" + Date.now() + ".txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast("已导出练习历史");
 }
 
 function askAI(presetText) {
@@ -919,8 +966,8 @@ function askAI(presetText) {
     if (btn) btn.disabled = false;
     if (btnText) btnText.textContent = "拆解 ✨";
 
-    // 保存到历史
-    aiHistory.push({ input: input, kr: data.kr, full: data.full, data: data, time: Date.now() });
+    // 保存到历史（带稳定 id，供删除定位）
+    aiHistory.push({ id: "h" + Date.now() + "_" + Math.random().toString(36).slice(2, 7), input: input, kr: data.kr, full: data.full, data: data, time: Date.now() });
     if (aiHistory.length > 30) aiHistory.shift();
     localStorage.setItem("korean_ai_history", JSON.stringify(aiHistory));
 
@@ -933,13 +980,9 @@ function askAI(presetText) {
     // 刷新历史列表
     var histSection = document.querySelector(".ai-history-list");
     if (histSection) {
-      var newHistoryHtml = aiHistory.slice(-6).reverse().map(function(h) {
-        return '<div class="ai-history-item" onclick="askAI(\'' + h.input.replace(/'/g, "\\'") + '\')">' +
-          '<span class="ai-history-input">' + escapeHtml(h.input) + '</span>' +
-          '<span class="ai-history-kr">' + escapeHtml(h.kr) + '</span>' +
-        '</div>';
-      }).join("");
-      histSection.innerHTML = newHistoryHtml;
+      histSection.innerHTML = buildAIHistoryHtml();
+      var c = document.getElementById("aiHistoryCount");
+      if (c) c.textContent = aiHistory.length;
     }
 
     // 清空输入框

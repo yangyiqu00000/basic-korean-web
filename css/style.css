@@ -733,6 +733,8 @@ body {
 .ai-history-item:hover { border-color: rgba(226,140,81,0.3); box-shadow: var(--shadow); transform: translateX(4px); }
 .ai-history-input { font-size: 14px; color: var(--text); font-weight: 500; }
 .ai-history-kr { font-size: 13px; color: var(--primary); font-family: 'Noto Sans KR', sans-serif; margin-left: auto; }
+.ai-history-del { background: transparent; border: none; color: var(--text-light); cursor: pointer; font-size: 13px; padding: 4px 6px; border-radius: 6px; flex-shrink: 0; }
+.ai-history-del:hover { color: #c0392b; background: var(--bg); }
 
 /* ---- AI Result Card ---- */
 .ai-result-label { font-size: 12px; color: var(--text-light); }
