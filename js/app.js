@@ -7,6 +7,9 @@
 // TTS / AI 服务地址：前端只连本地，需与 tts_server 绑定的 127.0.0.1 保持一致
 var TTS_BASE = "http://" + "127.0.0.1:1234";
 
+var APP_VERSION = "1.0.0";
+var APP_LAST_COMMIT = "78da555 feat: 交叉链接";
+
 // 主题初始化与切换（暗色/亮色，localStorage 持久化，首次跟随系统偏好）
 var THEME_KEY = "korean_theme";
 function initTheme() {
@@ -110,6 +113,7 @@ function renderStatsContent() {
           '<button class="ai-suggest-btn" onclick="closeStats(); showOnboarding()">📖 新手引导</button>' +
           '<button class="ai-suggest-btn" onclick="exportAllData()">📤 备份数据</button>' +
         '</div>' +
+        '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;font-size:11px;color:var(--text-light);text-align:center;">Basic Korean 🇰🇷 v' + APP_VERSION + ' · ' + APP_LAST_COMMIT + '</div>' +
       '</div>' +
     '</div>';
 }
