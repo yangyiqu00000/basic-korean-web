@@ -71,7 +71,31 @@ function renderStatsContent() {
       '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value">' + aiHistory.length + ' 次</span></div>' +
       '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value">' + sceneHistory.length + ' 场</span></div>' +
       '<div class="stats-row"><span>🎨 主题</span><span class="stat-value">' + theme + '</span></div>' +
+      '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-light);">' +
+        '<strong>⚙️ 数据管理</strong>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_training_done\',\'断句训练进度\')">重置断句</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_progress\',\'日课表进度\')">重置日课</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_ai_history\',\'AI练句历史\')">清空AI历史</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_scene_history\',\'情景对话历史\')">清空情景</button>' +
+          '<button class="ai-suggest-btn" onclick="clearData(\'korean_dismissed_tips\',\'已关闭的提示\')">重置提示</button>' +
+          '<button class="ai-suggest-btn" style="color:var(--error);border-color:var(--error);" onclick="clearData(\'ALL\',\'所有学习数据\')">重置全部</button>' +
+        '</div>' +
+      '</div>' +
     '</div>';
+}
+
+// 清空指定 localStorage 数据（带确认）
+function clearData(key, name) {
+  if (!confirm('确定将「' + name + '」清空？此操作不可恢复。')) return;
+  var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_theme"] : [key];
+  keys.forEach(function(k) { localStorage.removeItem(k); });
+  // 重置模块级变量
+  if (key === "ALL" || key === "korean_training_done") { trainingDone = {}; }
+  if (key === "ALL" || key === "korean_ai_history") { aiHistory = []; }
+  closeStats();
+  setTimeout(function() { navigate(currentPage); }, 100);
+  showToast('已清空「' + name + '」');
 }
 
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
