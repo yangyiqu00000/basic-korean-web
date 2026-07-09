@@ -1652,6 +1652,9 @@ function exportSceneTxt() {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
+  // 全局未捕获错误处理（防止空白页，显示友好提示）
+  window.addEventListener("error", function(e) { showToast("⚠️ 发生了意外错误，但页面仍可继续使用。"); console.error(e); });
+  window.addEventListener("unhandledrejection", function(e) { showToast("⚠️ 请求异常，请检查 TTS+AI 服务是否正常运行。"); console.error(e); });
   initTheme();
   initCardGlow();
   // 注册 Service Worker（PWA 离线缓存）
