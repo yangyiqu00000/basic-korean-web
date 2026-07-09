@@ -1,0 +1,13 @@
+{
+  "name": "Basic Korean 🇰🇷",
+  "short_name": "Basic Korean",
+  "description": "韩语最小可行学习系统 — 7大骨架规则 + 断句训练 + AI 智能练句",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f6f6f5",
+  "theme_color": "#c46a29",
+  "icons": [
+    { "src": "assets/icon-192.svg", "type": "image/svg+xml", "sizes": "192x192" },
+    { "src": "assets/icon-512.svg", "type": "image/svg+xml", "sizes": "512x512" }
+  ]
+}

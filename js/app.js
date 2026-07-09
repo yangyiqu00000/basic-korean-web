@@ -1595,6 +1595,10 @@ function exportSceneTxt() {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initCardGlow();
+  // 注册 Service Worker（PWA 离线缓存）
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(function(e) {});
+  }
   navigate("home");
   // 移动端：点击页面其它区域（header 之外）时收起导航下拉
   document.addEventListener("click", function(e) {
