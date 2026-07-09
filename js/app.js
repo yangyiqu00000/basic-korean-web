@@ -1442,4 +1442,13 @@ document.addEventListener("DOMContentLoaded", () => {
       nav.classList.remove("show");
     }
   });
+  // 全局键盘快捷键 1-8 切换页面（输入框内/带修饰键时不触发，避免误触）
+  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"schedule", "6":"reference", "7":"ai", "8":"scene" };
+  document.addEventListener("keydown", function(e) {
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var page = KEY_PAGE_MAP[e.key];
+    if (page) { e.preventDefault(); navigate(page); }
+  });
 });
