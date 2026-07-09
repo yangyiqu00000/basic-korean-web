@@ -283,6 +283,9 @@ body {
 .practice-card { background: var(--primary-lighter); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 16px; border: 1px solid var(--border); }
 .practice-card .kr { font-size: 24px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; margin: 8px 0; }
 .practice-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.key-btn { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.35; margin-left: 6px; padding: 0; transition: opacity 0.2s var(--ease); }
+.key-btn.on { opacity: 1; }
+.review-msg-ai.keyed { border-left: 3px solid var(--primary); }
 
 /* ---- Stems Grid ---- */
 .stem-grid {

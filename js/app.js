@@ -1105,7 +1105,8 @@ var sceneChatState = {
   scenePrompt: "",
   messages: [],     // {role: 'user'|'assistant', kr, zh, breakdown}
   loading: false,
-  muted: false
+  muted: false,
+  keySet: new Set() // 复习时标记的重点句索引
 };
 
 function renderScene() {
@@ -1192,6 +1193,7 @@ function startSceneChat(id, title, prompt) {
   sceneChatState.messages = [];
   sceneChatState.loading = false;
   sceneChatState.muted = false;
+  sceneChatState.keySet = new Set();
   navigate("sceneChat");
 }
 
@@ -1423,15 +1425,16 @@ function finishSceneChat() {
 }
 
 function renderSceneReview() {
-  var msgsHtml = sceneChatState.messages.map(function(m) {
+  var msgsHtml = sceneChatState.messages.map(function(m, i) {
     if (m.role === "user") {
       return '<div class="review-msg review-msg-user">' +
         '<div class="review-role">🧑 我</div>' +
         '<div class="review-text">' + escapeHtml(m.content) + '</div>' +
       '</div>';
     }
-    return '<div class="review-msg review-msg-ai">' +
-      '<div class="review-role">🤖 AI</div>' +
+    var keyed = sceneChatState.keySet.has(i);
+    return '<div class="review-msg review-msg-ai' + (keyed ? ' keyed' : '') + '" data-idx="' + i + '">' +
+      '<div class="review-role">🤖 AI <button class="key-btn ' + (keyed ? 'on' : '') + '" onclick="toggleSceneKey(' + i + ', this)" title="标记为重点句">⭐</button></div>' +
       '<div class="review-kr">' + escapeHtml(m.kr || '') + playBtn(m.kr || '', "small") + '</div>' +
       '<div class="review-zh">' + escapeHtml(m.zh || '') + '</div>' +
     '</div>';
@@ -1441,12 +1444,14 @@ function renderSceneReview() {
   main.innerHTML = '' +
     '<div class="page-title">' +
       '<h2>📖 对话复习</h2>' +
-      '<p>场景：' + escapeHtml(sceneChatState.sceneTitle) + ' &nbsp;|&nbsp; 共 ' + sceneChatState.messages.length + ' 条消息</p>' +
+      '<p>场景：' + escapeHtml(sceneChatState.sceneTitle) + ' &nbsp;|&nbsp; 共 ' + sceneChatState.messages.length + ' 条 &nbsp;|&nbsp; 重点句 <span id="sceneKeyCount">' + sceneChatState.keySet.size + '</span></p>' +
     '</div>' +
     '<div class="review-container">' + msgsHtml + '</div>' +
     '<div class="review-actions">' +
       '<button class="ai-submit-btn" onclick="exitSceneChat()">返回场景列表</button>' +
       '<button class="ai-suggest-btn" onclick="replayAllSceneAudio()" style="padding:14px 28px;">🔊 顺序播放全部</button>' +
+      '<button class="ai-suggest-btn" onclick="replayKeySceneAudio()">🔁 重练重点句</button>' +
+      '<button class="ai-suggest-btn" onclick="exportSceneTxt()">📤 导出</button>' +
     '</div>';
 
   main.classList.remove("page-enter");
@@ -1454,10 +1459,32 @@ function renderSceneReview() {
   main.classList.add("page-enter");
 }
 
+// 标记/取消重点句
+function toggleSceneKey(i, btn) {
+  if (sceneChatState.keySet.has(i)) sceneChatState.keySet.delete(i);
+  else sceneChatState.keySet.add(i);
+  var on = sceneChatState.keySet.has(i);
+  btn.classList.toggle("on", on);
+  var card = btn.closest(".review-msg-ai");
+  if (card) card.classList.toggle("keyed", on);
+  var cnt = document.getElementById("sceneKeyCount");
+  if (cnt) cnt.textContent = sceneChatState.keySet.size;
+}
+
 var replayQueue = [];
 var replayIndex = 0;
 function replayAllSceneAudio() {
-  replayQueue = sceneChatState.messages.filter(function(m) { return m.role === "assistant" && m.kr; });
+  replayQueue = sceneChatState.messages.map(function(m, i) { return { kr: m.kr, idx: i }; })
+    .filter(function(x) { return x.kr; });
+  replayIndex = 0;
+  playNextReplay();
+}
+
+// 仅重练标记为重点句的 AI 回复（影子跟读）
+function replayKeySceneAudio() {
+  if (sceneChatState.keySet.size === 0) { showToast("请先点 ⭐ 标记重点句"); return; }
+  replayQueue = sceneChatState.messages.map(function(m, i) { return { kr: m.kr, idx: i }; })
+    .filter(function(x) { return x.kr && sceneChatState.keySet.has(x.idx); });
   replayIndex = 0;
   playNextReplay();
 }
@@ -1467,19 +1494,38 @@ function playNextReplay() {
     showToast("播放完毕");
     return;
   }
-  var msg = replayQueue[replayIndex];
-  // 滚动到当前消息
-  var reviewMsgs = document.querySelectorAll(".review-msg-ai .review-kr");
-  if (reviewMsgs[replayIndex]) {
-    reviewMsgs[replayIndex].scrollIntoView({ behavior: "smooth", block: "center" });
-    reviewMsgs[replayIndex].style.background = "var(--primary-lighter)";
-    setTimeout(function() { reviewMsgs[replayIndex].style.background = ""; }, 2000);
+  var item = replayQueue[replayIndex];
+  // 按消息原始索引精确定位（修正此前用 replayIndex 直接索引 DOM 的错位隐患）
+  var el = document.querySelector('.review-msg-ai[data-idx="' + item.idx + '"] .review-kr');
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.style.background = "var(--primary-lighter)";
+    setTimeout(function() { el.style.background = ""; }, 2000);
   }
-  speakKorean(msg.kr);
+  speakKorean(item.kr);
   replayIndex++;
-  // 估算播放时长后播下一条
-  var duration = Math.max(2000, msg.kr.length * 300);
+  var duration = Math.max(2000, item.kr.length * 300);
   setTimeout(playNextReplay, duration);
+}
+
+// 导出对话记录为 txt
+function exportSceneTxt() {
+  if (!sceneChatState.messages.length) { showToast("没有可导出的对话"); return; }
+  var lines = ["场景：" + sceneChatState.sceneTitle, "导出时间：" + new Date().toLocaleString(), ""];
+  sceneChatState.messages.forEach(function(m) {
+    var who = m.role === "user" ? "我" : "AI";
+    var line = who + "：" + (m.kr || m.content || "");
+    if (m.zh) line += "  （" + m.zh + "）";
+    lines.push(line);
+  });
+  var blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "场景对话_" + (sceneChatState.sceneTitle || "scene") + "_" + Date.now() + ".txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast("已导出对话记录");
 }
 
 // Initialize
