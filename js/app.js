@@ -112,6 +112,8 @@ function renderStatsContent() {
           '<button class="ai-suggest-btn" style="color:var(--error);border-color:var(--error);" onclick="clearData(\'ALL\',\'所有学习数据\')">重置全部</button>' +
           '<button class="ai-suggest-btn" onclick="closeStats(); showOnboarding()">📖 新手引导</button>' +
           '<button class="ai-suggest-btn" onclick="exportAllData()">📤 备份数据</button>' +
+          '<button class="ai-suggest-btn" onclick="document.getElementById(\'importInput\').click()">📥 导入备份</button>' +
+          '<input type="file" id="importInput" accept=".json" style="display:none" onchange="importAllData(this)" />' +
         '</div>' +
         '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;font-size:11px;color:var(--text-light);text-align:center;">Basic Korean 🇰🇷 v' + APP_VERSION + ' · ' + APP_LAST_COMMIT + '</div>' +
       '</div>' +
@@ -147,6 +149,31 @@ function exportAllData() {
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   showToast("✅ 已导出备份文件（" + keys.length + " 项数据）");
+}
+
+// 从 JSON 文件导入备份数据
+function importAllData(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!confirm("确定导入备份？此操作会覆盖当前所有学习数据。")) return;
+      var count = 0;
+      Object.keys(data).forEach(function(k) {
+        localStorage.setItem(k, JSON.stringify(data[k]));
+        count++;
+      });
+      showToast("✅ 已导入 " + count + " 项数据，刷新页面后生效");
+      closeStats();
+      setTimeout(function() { location.reload(); }, 1000);
+    } catch (err) {
+      showToast("❌ 导入失败：文件格式错误");
+    }
+  };
+  reader.readAsText(file);
+  input.value = ""; // 重置，允许重复选择同一文件
 }
 
 // AI 服务是否可用（由 checkAIService 探测 /ai/status 后设置）
