@@ -58,8 +58,8 @@ def generate_audio(texts):
     new_gen = 0
     
     for i, text in enumerate(texts, 1):
-        # 用 hash 作为文件名（避免特殊字符问题）
-        file_hash = hashlib.md5(text.encode()).hexdigest()
+        # 用 hash(文本+嗓音) 作为文件名，与 tts_server.js 的缓存键一致
+        file_hash = hashlib.md5((text + "\u0000" + VOICE).encode()).hexdigest()
         filename = f"{file_hash}.mp3"
         filepath = os.path.join(AUDIO_DIR, filename)
         
@@ -88,7 +88,7 @@ def generate_audio(texts):
     # 生成映射文件（文本 → 文件名）
     mapping = {}
     for text in texts:
-        file_hash = hashlib.md5(text.encode()).hexdigest()
+        file_hash = hashlib.md5((text + "\u0000" + VOICE).encode()).hexdigest()
         mapping[text] = f"{file_hash}.mp3"
     
     map_path = os.path.join(AUDIO_DIR, "audio_map.json")

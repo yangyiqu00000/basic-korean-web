@@ -297,7 +297,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const hash = crypto.createHash('md5').update(Buffer.from(text, 'utf-8')).digest('hex');
+    // 缓存键同时包含文本与嗓音：同一句话换嗓音时各自独立缓存，
+    // 否则换嗓音后会命中旧嗓音的缓存文件，导致"换嗓音无效"。
+    const hash = crypto.createHash('md5').update(Buffer.from(text + '\u0000' + voice, 'utf-8')).digest('hex');
     const filepath = path.join(AUDIO_DIR, hash + '.mp3');
 
     if (!fs.existsSync(filepath)) {
