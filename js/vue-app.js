@@ -56,7 +56,8 @@
 'training-card': window.TrainingCardComponent,
 	    'training-page': window.TrainingPageComponent,
 	    'reference-page': window.ReferencePageComponent,
-	    'schedule-page': window.SchedulePageComponent
+	    'schedule-page': window.SchedulePageComponent,
+		    'skeleton-page': window.SkeletonPageComponent
   };
   Object.keys(componentMap).forEach(function(name) {
     if (componentMap[name]) {

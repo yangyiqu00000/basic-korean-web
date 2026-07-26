@@ -74,8 +74,9 @@
 		    <script src="js/components/TrainingCard.js"></script>
 <script src="js/components/TrainingPage.js"></script>
 <script src="js/components/ReferencePage.js"></script>
-				    <script src="js/components/SchedulePage.js"></script>
-				    <script src="js/vue-app.js"></script>
+<script src="js/components/SchedulePage.js"></script>
+<script src="js/components/SkeletonPage.js"></script>
+					    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
 <script type="text/x-template" id="home-page-template">
@@ -284,39 +285,79 @@
 			      </div>
 </script>
 
-			    <!-- Schedule Page Template -->
-			    <script type="text/x-template" id="schedule-page-template">
-			      <div class="schedule-page">
-			        <div class="page-title">
-			          <h2>🗓️ 两周润物表</h2>
-			          <p>每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。</p>
-			        </div>
-			        <div class="tip-banner">
-			          <strong>⚡ 核心原则</strong><br>
-			          ① 20 分钟到就停<br>
-			          ② 不追求完美<br>
-			          ③ 重复比新学重要<br>
-			          ④ 所有句子至少读出声 1 遍
-			        </div>
-			        <div class="progress-overview">
-			          <strong>📊 学习进度</strong> {{ doneCount }} / {{ totalCount }} ({{ percent }}%)
-			          <div class="progress-bar">
-			            <div class="progress-fill" :style="'width:' + percent + '%'"></div>
-			          </div>
-			        </div>
-			        <div class="schedule-grid">
-			          <div class="day-card" v-for="(day, di) in schedule" :key="day.day">
-			            <div class="day-num">Day {{ day.day }}</div>
-			            <div class="day-title">{{ day.title }}</div>
-			            <div class="task" v-for="(task, ti) in day.tasks" :key="ti" @click="toggleCheck(di, ti)">
-			              <span class="check" :class="{ done: isDone(di, ti) }"></span>
-			              {{ task }}
-			            </div>
-			          </div>
-			        </div>
-			      </div>
-			    </script>
-				</body>
+<!-- Schedule Page Template -->
+				    <script type="text/x-template" id="schedule-page-template">
+				      <div class="schedule-page">
+				        <div class="page-title">
+				          <h2>🗓️ 两周润物表</h2>
+				          <p>每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。</p>
+				        </div>
+				        <div class="tip-banner">
+				          <strong>⚡ 核心原则</strong><br>
+				          ① 20 分钟到就停<br>
+				          ② 不追求完美<br>
+				          ③ 重复比新学重要<br>
+				          ④ 所有句子至少读出声 1 遍
+				        </div>
+				        <div class="progress-overview">
+				          <strong>📊 学习进度</strong> {{ doneCount }} / {{ totalCount }} ({{ percent }}%)
+				          <div class="progress-bar">
+				            <div class="progress-fill" :style="'width:' + percent + '%'"></div>
+				          </div>
+				        </div>
+				        <div class="schedule-grid">
+				          <div class="day-card" v-for="(day, di) in schedule" :key="day.day">
+				            <div class="day-num">Day {{ day.day }}</div>
+				            <div class="day-title">{{ day.title }}</div>
+				            <div class="task" v-for="(task, ti) in day.tasks" :key="ti" @click="toggleCheck(di, ti)">
+				              <span class="check" :class="{ done: isDone(di, ti) }"></span>
+				              {{ task }}
+				            </div>
+				          </div>
+				        </div>
+				      </div>
+				    </script>
+
+				    <!-- Skeleton Page Template -->
+				    <script type="text/x-template" id="skeleton-page-template">
+				      <div class="skeleton-page">
+				        <div class="page-title">
+				          <h2>🏗️ 筑基</h2>
+				          <p>7 大骨架规则 — 韩语句子的核心逻辑。理解它们，就能看懂 80% 的句子。</p>
+				        </div>
+				        <div class="skeleton-actions">
+				          <bk-button variant="secondary" size="sm" @click="expandAll">📖 展开全部</bk-button>
+				          <bk-button variant="secondary" size="sm" @click="collapseAll">📕 收起全部</bk-button>
+				        </div>
+				        <div class="rule-card" v-for="rule in rules" :key="rule.id">
+				          <div class="rule-header" @click="toggleRule(rule.id)">
+				            <span class="rule-icon">{{ rule.icon }}</span>
+				            <span class="rule-title">{{ rule.title }}</span>
+				            <span class="rule-toggle">{{ expanded[rule.id] ? '▲' : '▼' }}</span>
+				          </div>
+				          <transition name="slide-down">
+				            <div v-if="expanded[rule.id]" class="rule-body">
+				              <p class="rule-summary">{{ rule.summary }}</p>
+				              <p class="rule-details" style="white-space:pre-line">{{ rule.details }}</p>
+				              <div class="rule-examples">
+				                <div class="rule-example" v-for="(ex, i) in rule.examples" :key="i">
+				                  <div class="ex-kr" @click="speak(ex.kr)">
+				                    {{ ex.kr }} <span class="play-btn-inline">🔊</span>
+				                  </div>
+				                  <div class="ex-breakdown">
+				                    <span class="ex-part" v-for="(b, j) in ex.breakdown" :key="j">
+				                      {{ b[0] }}<span class="ex-meaning">({{ b[1] }})</span>
+				                    </span>
+				                  </div>
+				                </div>
+				              </div>
+				              <div class="rule-tip">💡 {{ rule.tip }}</div>
+				            </div>
+				          </transition>
+				        </div>
+				      </div>
+				    </script>
+					</body>
 </html>
 
 <script>

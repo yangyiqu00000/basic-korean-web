@@ -1329,3 +1329,21 @@ body {
 .bk-modal-header h3 { margin: 0; }
 .bk-modal-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-light); }
 .bk-modal-body { padding: var(--space-lg); }
+
+/* ===== 骨架规则页 Vue 过渡 ===== */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all var(--transition-base, 250ms ease);
+  overflow: hidden;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+}
+.slide-down-enter-to,
+.slide-down-leave-from {
+  opacity: 1;
+  max-height: 2000px;
+}

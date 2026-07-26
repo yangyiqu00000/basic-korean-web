@@ -563,6 +563,9 @@ function jumpToRule(n) { pendingRule = n; navigate("skeleton"); }
 
 // === SKELETON PAGE ===
 function renderSkeleton() {
+  if (window.vueApp) {
+    return '<div><skeleton-page></skeleton-page></div>';
+  }
   let rulesHtml = RULES.map((rule, idx) => {
     let examplesHtml = rule.examples.map(ex => {
       let breakdownHtml = ex.breakdown.map(b => {
