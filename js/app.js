@@ -394,41 +394,60 @@ var revealObserver = null;
 var currentPage = "home";
 
 function navigate(page) {
+  // 关闭移动端菜单
+  var nav = document.getElementById('mainNav');
+  if (nav && nav.classList.contains('open')) {
+    nav.classList.remove('open');
+    var btn = document.querySelector('.mobile-menu-btn');
+    if (btn) btn.textContent = '☰';
+  }
+
   currentPage = page;
   document.querySelectorAll(".nav-item").forEach(el => {
     var match = el.dataset.page === page || (page === "sceneChat" && el.dataset.page === "scene");
     el.classList.toggle("active", match);
   });
   var main = document.getElementById("mainContent");
-  main.innerHTML = renderPage(page);
-  // 重新触发入场动效
-  main.classList.remove("page-enter");
-  void main.offsetWidth; // force reflow
-  main.classList.add("page-enter");
-  // 列表项错落延迟
-  var items = main.querySelectorAll(".sentence-card, .stem-item, .day-card, .rule-item, .card");
-  items.forEach(function(item, i) {
-    item.style.animationDelay = Math.min(i * 0.04, 0.6) + "s";
-  });
-  // 启动滚动入场动效
-  initRevealObserver();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  // 移动端：导航完成后收起下拉菜单
-  var nav = document.getElementById("mainNav");
-  if (nav) nav.classList.remove("show");
-  // 骨架规则跳转：展开并滚动到目标规则
-  if (pendingRule !== null && page === "skeleton") {
-    var idx = pendingRule - 1;
-    setTimeout(function() {
-      var body = document.getElementById("ruleBody" + idx);
-      if (body) {
-        body.classList.add("open");
-        if (body.previousElementSibling) body.previousElementSibling.classList.add("open");
-        body.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-      pendingRule = null;
-    }, 100);
-  }
+
+  // Fade out
+  main.style.opacity = "0";
+  main.style.transform = "translateY(8px)";
+  main.style.transition = "opacity 150ms ease, transform 150ms ease";
+
+  setTimeout(function() {
+    main.innerHTML = renderPage(page);
+    // 重新触发入场动效
+    main.classList.remove("page-enter");
+    void main.offsetWidth; // force reflow
+    main.classList.add("page-enter");
+    // 列表项错落延迟
+    var items = main.querySelectorAll(".sentence-card, .stem-item, .day-card, .rule-item, .card");
+    items.forEach(function(item, i) {
+      item.style.animationDelay = Math.min(i * 0.04, 0.6) + "s";
+    });
+    // 启动滚动入场动效
+    initRevealObserver();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // 骨架规则跳转：展开并滚动到目标规则
+    if (pendingRule !== null && page === "skeleton") {
+      var idx = pendingRule - 1;
+      setTimeout(function() {
+        var body = document.getElementById("ruleBody" + idx);
+        if (body) {
+          body.classList.add("open");
+          if (body.previousElementSibling) body.previousElementSibling.classList.add("open");
+          body.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        pendingRule = null;
+      }, 100);
+    }
+
+    // Fade in
+    requestAnimationFrame(function() {
+      main.style.opacity = "1";
+      main.style.transform = "translateY(0)";
+    });
+  }, 150);
 }
 
 function initRevealObserver() {
@@ -457,7 +476,14 @@ function initCardGlow() {
 }
 
 function toggleMobileMenu() {
-  document.getElementById("mainNav").classList.toggle("show");
+  var nav = document.getElementById('mainNav');
+  if (nav) {
+    nav.classList.toggle('open');
+    var btn = document.querySelector('.mobile-menu-btn');
+    if (btn) {
+      btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
+    }
+  }
 }
 
 // Render routing

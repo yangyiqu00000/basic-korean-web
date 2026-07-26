@@ -1137,3 +1137,69 @@ body {
 .play-btn:active {
   transform: scale(0.96);
 }
+
+/* ===== 移动端导航 ===== */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast, 150ms ease);
+  }
+  .mobile-menu-btn:hover {
+    background: var(--border);
+  }
+
+  .header-inner {
+    flex-wrap: wrap;
+  }
+
+  .nav {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: var(--space-xs, 4px);
+    padding: var(--space-md, 16px) 0;
+    border-top: 1px solid var(--border);
+    margin-top: var(--space-sm, 8px);
+  }
+  .nav.open {
+    display: flex;
+  }
+  .nav-item {
+    width: 100%;
+    text-align: left;
+    padding: var(--space-sm, 8px) var(--space-md, 16px);
+    border-radius: var(--radius-sm);
+  }
+  .nav-item.active {
+    background: var(--primary-lighter);
+    color: var(--primary);
+  }
+}
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+  .nav {
+    display: flex !important;
+  }
+}
+
+/* ===== iOS 安全区适配 ===== */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .header {
+    padding-top: env(safe-area-inset-top);
+  }
+  .footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
