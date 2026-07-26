@@ -1,6 +1,6 @@
-// Basic Korean Web — Service Worker
-// 缓存核心静态资源，支持离线学习（骨架规则/断句/词干/参考等均本地数据）
-const CACHE = "basic-korean-v1";
+// Basic Korean Web — Service Worker v2
+// 缓存核心静态资源，支持离线学习
+const CACHE = "basic-korean-v2";
 const URLS = [
   "/",
   "/index.html",
@@ -11,27 +11,62 @@ const URLS = [
   "/js/sentences_data.js",
   "/js/reference_data.js",
   "/js/app.js",
+  "/js/vue-app.js",
+  "/js/components/HomePage.js",
+  "/js/components/StatsPanel.js",
   "/manifest.json",
   "/assets/icon-192.svg",
   "/assets/icon-512.svg"
 ];
 
+// 安装：预缓存核心资源
 self.addEventListener("install", function(e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function(cache) { return cache.addAll(URLS); })
-  );
   self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE).then(function(cache) {
+      return cache.addAll(URLS);
+    })
+  );
 });
 
+// 激活：清理旧缓存
 self.addEventListener("activate", function(e) {
   e.waitUntil(
-    caches.keys().then(function(keys) { return Promise.all(keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); })); })
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) { return k !== CACHE; })
+            .map(function(k) { return caches.delete(k); })
+      );
+    })
   );
-  self.clients.claim();
 });
 
+// 拦截：缓存优先 > 网络备用
 self.addEventListener("fetch", function(e) {
+  var url = new URL(e.request.url);
+  if (url.origin !== location.origin) return;
+
+  // 音频文件：网络优先，缓存备用
+  if (url.pathname.startsWith("/audio/")) {
+    e.respondWith(
+      fetch(e.request).catch(function() {
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
+
+  // 静态资源：缓存优先
   e.respondWith(
-    caches.match(e.request).then(function(r) { return r || fetch(e.request); })
+    caches.match(e.request).then(function(resp) {
+      return resp || fetch(e.request).then(function(netResp) {
+        return caches.open(CACHE).then(function(cache) {
+          cache.put(e.request, netResp.clone());
+          return netResp;
+        });
+      });
+    }).catch(function() {
+      return caches.match("/index.html");
+    })
   );
 });
