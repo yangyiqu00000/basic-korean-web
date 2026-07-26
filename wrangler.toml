@@ -1,0 +1,6 @@
+name = "basic-korean"
+pages_build_output_dir = "."
+compatibility_date = "2026-07-26"
+
+[env.production]
+name = "basic-korean"
