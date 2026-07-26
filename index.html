@@ -199,18 +199,10 @@
 		    </script>
 
 		    <!-- Training Page Template -->
-		    <script type="text/x-template" id="training-page-template">
-		      <div class="training-page">
-		        <div class="page-title">
-		          <h2>🃏 抽丝训练</h2>
-		          <p>点击韩文句子查看拆解，点击色块查看含义。已掌握在下，需练习在上。</p>
-		        </div>
-		        <div class="training-stats-bar">
-		          <span>已掌握: {{ doneCount }} / {{ sentences.length }}</span>
-		          <div class="progress-bar">
-		            <div class="progress-fill" :style="'width:' + (doneCount / sentences.length * 100) + '%'"></div>
-		          </div>
-		        </div>
+			    <script type="text/x-template" id="training-page-template">
+			      <div class="training-page">
+			        <bk-page-header icon="🃏" title="抽丝训练" desc="点击韩文句子查看拆解，点击色块查看含义。已掌握在下，需练习在上。"></bk-page-header>
+			        <bk-progress-bar :done="doneCount" :total="sentences.length" label="已掌握"></bk-progress-bar>
 		        <div v-if="allDone" class="celebration-banner">
 		          🎉 全部掌握！你太棒了！
 		        </div>
@@ -228,12 +220,9 @@
 </script>
 
 			    <!-- Reference Page Template -->
-			    <script type="text/x-template" id="reference-page-template">
-			      <div class="reference-page">
-			        <div class="page-title">
-			          <h2>🏷️ 拾遗</h2>
-			          <p>助词、终结词尾、疑问词速查表</p>
-			        </div>
+				    <script type="text/x-template" id="reference-page-template">
+				      <div class="reference-page">
+				        <bk-page-header icon="🏷️" title="拾遗" desc="助词、终结词尾、疑问词速查表"></bk-page-header>
 
 			        <h3 class="ref-section-title">📌 助词</h3>
 			        <div class="ref-table">
@@ -290,25 +279,17 @@
 </script>
 
 <!-- Schedule Page Template -->
-				    <script type="text/x-template" id="schedule-page-template">
-				      <div class="schedule-page">
-				        <div class="page-title">
-				          <h2>🗓️ 两周润物表</h2>
-				          <p>每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。</p>
-				        </div>
-				        <div class="tip-banner">
-				          <strong>⚡ 核心原则</strong><br>
-				          ① 20 分钟到就停<br>
-				          ② 不追求完美<br>
-				          ③ 重复比新学重要<br>
-				          ④ 所有句子至少读出声 1 遍
-				        </div>
-				        <div class="progress-overview">
-				          <strong>📊 学习进度</strong> {{ doneCount }} / {{ totalCount }} ({{ percent }}%)
-				          <div class="progress-bar">
-				            <div class="progress-fill" :style="'width:' + percent + '%'"></div>
-				          </div>
-				        </div>
+					    <script type="text/x-template" id="schedule-page-template">
+					      <div class="schedule-page">
+					        <bk-page-header icon="🗓️" title="两周润物表" desc="每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。"></bk-page-header>
+					        <bk-tip-banner tip-id="schedule-tip">
+					          <strong>⚡ 核心原则</strong><br>
+					          ① 20 分钟到就停<br>
+					          ② 不追求完美<br>
+					          ③ 重复比新学重要<br>
+					          ④ 所有句子至少读出声 1 遍
+					        </bk-tip-banner>
+					        <bk-progress-bar :done="doneCount" :total="totalCount" label="📊 学习进度"></bk-progress-bar>
 				        <div class="schedule-grid">
 				          <div class="day-card" v-for="(day, di) in schedule" :key="day.day">
 				            <div class="day-num">Day {{ day.day }}</div>
@@ -323,12 +304,9 @@
 				    </script>
 
 				    <!-- Skeleton Page Template -->
-				    <script type="text/x-template" id="skeleton-page-template">
-				      <div class="skeleton-page">
-				        <div class="page-title">
-				          <h2>🏗️ 筑基</h2>
-				          <p>7 大骨架规则 — 韩语句子的核心逻辑。理解它们，就能看懂 80% 的句子。</p>
-				        </div>
+					    <script type="text/x-template" id="skeleton-page-template">
+					      <div class="skeleton-page">
+					        <bk-page-header icon="🏗️" title="筑基" desc="7 大骨架规则 — 韩语句子的核心逻辑。理解它们，就能看懂 80% 的句子。"></bk-page-header>
 				        <div class="skeleton-actions">
 				          <bk-button variant="secondary" size="sm" @click="expandAll">📖 展开全部</bk-button>
 				          <bk-button variant="secondary" size="sm" @click="collapseAll">📕 收起全部</bk-button>
