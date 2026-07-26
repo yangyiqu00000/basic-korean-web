@@ -1,5 +1,4 @@
-// js/vue-app.js — Vue 3 渐进式迁移入口
-// 不破坏现有 app.js 全局函数，逐步接管组件渲染
+// js/vue-app.js — Vue 3 渐进式迁移入口（懒加载版）
 
 ;(function() {
   'use strict';
@@ -9,20 +8,85 @@
     return;
   }
 
+  // 关键组件映射（已通过 script 标签加载）
+  var criticalComponents = {
+    'home-page': window.HomePageComponent,
+    'stats-panel': window.StatsPanelComponent,
+    'bk-button': window.BkButtonComponent,
+    'bk-card': window.BkCardComponent,
+    'bk-badge': window.BkBadgeComponent,
+    'bk-modal': window.BkModalComponent
+  };
+
+  // 页面组件与懒加载文件名的映射
+  var pageComponentMap = {
+    'skeleton': 'SkeletonPage',
+    'training': 'TrainingPage',
+    'stems': 'StemsPage',
+    'ai': 'AiPage',
+    'scene': 'ScenePage',
+    'schedule': 'SchedulePage',
+    'reference': 'ReferencePage'
+  };
+
   var app = Vue.createApp({
     data: function() {
       return {
         currentPage: 'home',
         isMobileMenuOpen: false,
-        isDarkTheme: document.documentElement.getAttribute('data-theme') === 'dark'
+        isDarkTheme: document.documentElement.getAttribute('data-theme') === 'dark',
+        pageLoaded: {}  // 跟踪每页组件是否已加载
       };
     },
     methods: {
       navigate: function(page) {
+        var self = this;
         this.currentPage = page;
         this.isMobileMenuOpen = false;
-        if (typeof window.navigate === 'function') {
-          window.navigate(page);
+
+        // 如果是首页，不需要懒加载
+        if (page === 'home') {
+          if (typeof window.navigate === 'function') {
+            window.navigate(page);
+          }
+          return;
+        }
+
+        // 检查页面组件是否已加载
+        var componentName = pageComponentMap[page];
+        if (!componentName) {
+          if (typeof window.navigate === 'function') {
+            window.navigate(page);
+          }
+          return;
+        }
+
+        // 如果组件已加载，直接导航
+        if (this.pageLoaded[page]) {
+          if (typeof window.navigate === 'function') {
+            window.navigate(page);
+          }
+          return;
+        }
+
+        // 异步加载组件，加载完成后导航
+        if (typeof window.loadComponent === 'function') {
+          window.loadComponent(componentName).then(function() {
+            self.pageLoaded[page] = true;
+            if (typeof window.navigate === 'function') {
+              window.navigate(page);
+            }
+          }).catch(function(err) {
+            console.error('Failed to load page component:', err);
+            // 回退到原生 JS
+            if (typeof window.navigate === 'function') {
+              window.navigate(page);
+            }
+          });
+        } else {
+          if (typeof window.navigate === 'function') {
+            window.navigate(page);
+          }
         }
       },
       toggleTheme: function() {
@@ -45,29 +109,19 @@
     }
   });
 
-  // 注册组件（后续逐步添加）
-  var componentMap = {
-    'home-page': window.HomePageComponent,
-    'stats-panel': window.StatsPanelComponent,
-    'bk-button': window.BkButtonComponent,
-    'bk-card': window.BkCardComponent,
-    'bk-badge': window.BkBadgeComponent,
-    'bk-modal': window.BkModalComponent,
-'training-card': window.TrainingCardComponent,
-	    'training-page': window.TrainingPageComponent,
-	    'reference-page': window.ReferencePageComponent,
-	    'schedule-page': window.SchedulePageComponent,
-		    'skeleton-page': window.SkeletonPageComponent,
-		    'stems-page': window.StemsPageComponent,
-			    'ai-page': window.AiPageComponent,
-		    'scene-page': window.ScenePageComponent
-  };
-  Object.keys(componentMap).forEach(function(name) {
-    if (componentMap[name]) {
-      app.component(name, componentMap[name]);
+  // 注册关键组件（首屏必需的）
+  Object.keys(criticalComponents).forEach(function(name) {
+    if (criticalComponents[name]) {
+      app.component(name, criticalComponents[name]);
     }
   });
 
+  // 标记已通过 script 预加载的组件
+  if (typeof window.markComponentLoaded === 'function') {
+    window.markComponentLoaded('HomePage');
+    window.markComponentLoaded('StatsPanel');
+  }
+
   window.vueApp = app.mount('#app');
-  console.log('Vue 3 app mounted');
+  console.log('Vue 3 app mounted (lazy loading mode)');
 })();
