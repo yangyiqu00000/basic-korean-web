@@ -8,8 +8,12 @@
     <link rel="manifest" href="manifest.json">
     <title>Basic Korean 🇰🇷 - 韩语最小可行系统</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- 预加载关键资源 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="preload" href="css/style.css" as="style">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Vue 3 (CDN, 零构建渐进式) -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -526,7 +530,18 @@
         </div>
       </div>
     </script>
-								</body>
+								<script>
+  // 性能标记
+  window.addEventListener('load', function() {
+    // 标记首屏渲染完成时间
+    var perf = performance.timing;
+    if (perf) {
+      var loadTime = perf.loadEventEnd - perf.navigationStart;
+      console.log('Page load time: ' + loadTime + 'ms');
+    }
+  });
+</script>
+</body>
 </html>
 
 <script>

@@ -406,15 +406,21 @@ body {
   background: var(--primary-lighter); border-radius: var(--radius-sm);
   font-size: 14px; font-weight: 500;
 }
-.training-stats-bar .progress-bar {
-  flex: 1; height: 8px; background: var(--card-bg);
+/* Shared progress bar base styles */
+.training-stats-bar .progress-bar,
+.progress-overview .progress-bar {
+  height: 8px; background: var(--card-bg);
   border-radius: 4px; overflow: hidden;
 }
-.training-stats-bar .progress-fill {
+.training-stats-bar .progress-fill,
+.progress-overview .progress-fill {
   height: 100%; background: var(--primary);
   transition: width 0.3s ease;
 }
-.celebration-banner {
+.training-stats-bar .progress-bar {
+		  flex: 1;
+		}
+	.celebration-banner {
   text-align: center; padding: 20px; margin-bottom: 16px;
   font-size: 18px; font-weight: 600;
   background: var(--success); color: #fff;
@@ -603,15 +609,10 @@ body {
   font-size: 14px; font-weight: 500;
 }
 .progress-overview .progress-bar {
-  margin-top: 8px; height: 8px; background: var(--card-bg);
-  border-radius: 4px; overflow: hidden;
-}
-.progress-overview .progress-fill {
-  height: 100%; background: var(--primary);
-  transition: width 0.3s ease;
-}
+		  margin-top: 8px;
+		}
 
-/* ---- Reference Table ---- */
+	/* ---- Reference Table ---- */
 .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .ref-table th { background: var(--primary-lighter); color: var(--primary); padding: 10px 14px; text-align: left; font-weight: 600; }
 .ref-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
