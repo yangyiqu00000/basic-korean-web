@@ -824,6 +824,9 @@ function toggleBreakdown(el) {
 
 // === STEMS PAGE ===
 function renderStems() {
+  if (window.vueApp) {
+    return '<div><stems-page></stems-page></div>';
+  }
   const categories = [
     { id: "verbs", title: "动词词干 (52个)", data: STEMS.verbs },
     { id: "adjectives", title: "形容词词干 (32个)", data: STEMS.adjectives }

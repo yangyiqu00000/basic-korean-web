@@ -76,7 +76,8 @@
 <script src="js/components/ReferencePage.js"></script>
 <script src="js/components/SchedulePage.js"></script>
 <script src="js/components/SkeletonPage.js"></script>
-					    <script src="js/vue-app.js"></script>
+<script src="js/components/StemsPage.js"></script>
+						    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
 <script type="text/x-template" id="home-page-template">
@@ -356,8 +357,36 @@
 				          </transition>
 				        </div>
 				      </div>
-				    </script>
-					</body>
+</script>
+
+    <!-- Stems Page Template -->
+    <script type="text/x-template" id="stems-page-template">
+      <div class="stems-page">
+        <div class="page-title">
+          <h2>📝 剥茧</h2>
+          <p>84 个核心词干（动词/形容词）。词干 + 词尾 = 完整句子。</p>
+        </div>
+        <div class="stems-actions">
+          <bk-button v-if="!isPlaying" variant="primary" size="sm" @click="playAll">▶️ 顺序播放全部</bk-button>
+          <bk-button v-else variant="danger" size="sm" @click="stopPlay">⏹️ 停止播放</bk-button>
+        </div>
+        <div class="stems-grid">
+          <div class="stem-card" v-for="s in allStems" :key="s.stem">
+            <div class="stem-main" @click="speak(s.stem + '. ' + s.example)">
+              <span class="stem" :class="getElemClass()">{{ s.stem }}</span>
+              <span class="stem-proto">{{ s.proto }}</span>
+              <span class="stem-irreg" v-if="s.irreg">⚠️ {{ s.irreg }}</span>
+              <span class="stem-play-btn">🔊</span>
+            </div>
+            <div class="stem-details">
+              <span class="stem-meaning">{{ s.meaning }}</span>
+              <span class="stem-example" @click="speak(s.example)">{{ s.example }} 🔊</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </script>
+						</body>
 </html>
 
 <script>
