@@ -645,6 +645,9 @@ function toggleAllRules(expand) {
 let trainingFilter = "all";
 
 function renderTraining() {
+  if (window.vueApp) {
+    return '<div><training-page></training-page></div>';
+  }
   let groups = [...new Set(SENTENCES.map(s => s.group))];
   let filterBtns = ['<button class="filter-btn active" data-group="all" onclick="setTrainingFilter(\'all\')">全部</button>']
     .concat(groups.map(g => `<button class="filter-btn" data-group="${g}" onclick="setTrainingFilter('${g}')">${g}</button>`))

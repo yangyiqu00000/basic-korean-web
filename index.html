@@ -70,8 +70,10 @@
 		    <script src="js/components/BkButton.js"></script>
 		    <script src="js/components/BkCard.js"></script>
 		    <script src="js/components/BkBadge.js"></script>
-		    <script src="js/components/BkModal.js"></script>
-	    <script src="js/vue-app.js"></script>
+<script src="js/components/BkModal.js"></script>
+		    <script src="js/components/TrainingCard.js"></script>
+		    <script src="js/components/TrainingPage.js"></script>
+		    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
 <script type="text/x-template" id="home-page-template">
@@ -160,6 +162,62 @@
 		          </div>
 		        </div>
 		      </transition>
+</script>
+
+		    <!-- Training Card Template -->
+		    <script type="text/x-template" id="training-card-template">
+		      <div class="sentence-card" :class="{ mastered: done }">
+		        <div class="sentence-group-badge">{{ sentence.group }}</div>
+		        <div class="sentence-kr" @click="toggleReveal">
+		          {{ sentence.kr }}
+		          <button class="play-btn" @click.stop="speak" title="播放读音">🔊</button>
+		        </div>
+		        <transition name="slide-up">
+		          <div v-if="isRevealed" class="sentence-details">
+		            <div class="sentence-breakdown">
+		              <span v-for="(b, i) in sentence.breakdown" :key="i" :class="getElemClass(b.tag)">
+		                {{ b.part }}
+		                <span class="elem-label">{{ b.meaning }}</span>
+		              </span>
+		            </div>
+		            <div class="sentence-full">{{ sentence.full }}</div>
+		          </div>
+		        </transition>
+		        <div class="sentence-actions">
+		          <button class="check" :class="{ done: done }" @click="toggleDone">
+		            {{ done ? '✅ 已掌握' : '○ 标记掌握' }}
+		          </button>
+		        </div>
+		      </div>
+		    </script>
+
+		    <!-- Training Page Template -->
+		    <script type="text/x-template" id="training-page-template">
+		      <div class="training-page">
+		        <div class="page-title">
+		          <h2>🃏 抽丝训练</h2>
+		          <p>点击韩文句子查看拆解，点击色块查看含义。已掌握在下，需练习在上。</p>
+		        </div>
+		        <div class="training-stats-bar">
+		          <span>已掌握: {{ doneCount }} / {{ sentences.length }}</span>
+		          <div class="progress-bar">
+		            <div class="progress-fill" :style="'width:' + (doneCount / sentences.length * 100) + '%'"></div>
+		          </div>
+		        </div>
+		        <div v-if="allDone" class="celebration-banner">
+		          🎉 全部掌握！你太棒了！
+		        </div>
+		        <div class="training-grid">
+		          <training-card
+		            v-for="s in sortedSentences"
+		            :key="s.id"
+		            :sentence="s"
+		            :done="trainingDone[s.id] || false"
+		            :index="s.id"
+		            @toggle-done="toggleDone"
+		          ></training-card>
+		        </div>
+		      </div>
 		    </script>
 		</body>
 </html>
