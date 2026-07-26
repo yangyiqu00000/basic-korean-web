@@ -6,6 +6,11 @@
   var loaded = {};
   var pending = {};
 
+  // 组件依赖映射：主组件名 -> 依赖的组件名数组
+  var componentDeps = {
+    'TrainingPage': ['TrainingCard']
+  };
+
   window.loadComponent = function(name) {
     return new Promise(function(resolve, reject) {
       // 已加载
@@ -20,24 +25,36 @@
       }
       pending[name] = [resolve];
 
-      var script = document.createElement('script');
-      script.src = 'js/components/' + name + '.js';
-      script.onload = function() {
-        loaded[name] = true;
-        var cbs = pending[name];
+      // 先加载依赖
+      var deps = componentDeps[name] || [];
+      var depPromises = deps.map(function(dep) {
+        if (loaded[dep]) return Promise.resolve();
+        return window.loadComponent(dep);
+      });
+
+      Promise.all(depPromises).then(function() {
+        var script = document.createElement('script');
+        script.src = 'js/components/' + name + '.js';
+        script.onload = function() {
+          loaded[name] = true;
+          var cbs = pending[name];
+          delete pending[name];
+          cbs.forEach(function(fn) { fn(window[name + 'Component']); });
+          // 注册到 Vue 应用
+          if (window.vueApp && window[name + 'Component']) {
+            var kebab = name.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+            window.vueApp.component(kebab, window[name + 'Component']);
+          }
+        };
+        script.onerror = function() {
+          delete pending[name];
+          reject(new Error('Failed to load component: ' + name));
+        };
+        document.body.appendChild(script);
+      }).catch(function(err) {
         delete pending[name];
-        cbs.forEach(function(fn) { fn(window[name + 'Component']); });
-        // 注册到 Vue 应用
-        if (window.vueApp && window[name + 'Component']) {
-          var kebab = name.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
-          window.vueApp.component(kebab, window[name + 'Component']);
-        }
-      };
-      script.onerror = function() {
-        delete pending[name];
-        reject(new Error('Failed to load component: ' + name));
-      };
-      document.body.appendChild(script);
+        reject(err);
+      });
     });
   };
 
