@@ -75,6 +75,10 @@
 			    <script src="js/components/BkCard.js"></script>
 			    <script src="js/components/BkBadge.js"></script>
 <script src="js/components/BkModal.js"></script>
+<script src="js/components/BkPageHeader.js"></script>
+<script src="js/components/BkProgressBar.js"></script>
+<script src="js/components/BkTipBanner.js"></script>
+<script src="js/components/BkColorLegend.js"></script>
 			    <script src="js/component-loader.js"></script>
 <script src="js/vue-app.js"></script>
 
@@ -530,9 +534,35 @@
         </div>
       </div>
     </script>
-								<script>
-  // 性能标记
-  window.addEventListener('load', function() {
+    <!-- PageHeader Template -->
+    <script type="text/x-template" id="bk-page-header-template">
+      <div class="page-title">
+        <h2>{{ icon }} {{ title }}</h2>
+        <p v-if="desc">{{ desc }}</p>
+      </div>
+    </script>
+
+    <!-- ProgressBar Template -->
+    <script type="text/x-template" id="bk-progress-bar-template">
+      <div class="progress-overview">
+        <strong>{{ label }}</strong> {{ done }} / {{ total }} ({{ percent }}%)
+        <div class="progress-bar"><div class="progress-fill" :style="'width:'+percent+'%'"></div></div>
+      </div>
+    </script>
+
+    <!-- TipBanner Template -->
+    <script type="text/x-template" id="bk-tip-banner-template">
+      <div v-if="visible" class="tip-banner" :class="'tip-'+type"><slot /><button v-if="dismissable" class="tip-dismiss" @click="dismiss">✕</button></div>
+    </script>
+
+    <!-- ColorLegend Template -->
+    <script type="text/x-template" id="bk-color-legend-template">
+      <div class="color-legend" :class="{compact:compact}"><span class="legend-label">🎨 词性标注：</span><span v-for="e in elems" :key="e.cls" :class="e.cls" style="padding:2px 8px;border-radius:6px;font-size:12px;">{{ e.label }}</span></div>
+    </script>
+
+    <script>
+	  // 性能标记
+	  window.addEventListener('load', function() {
     // 标记首屏渲染完成时间
     var perf = performance.timing;
     if (perf) {

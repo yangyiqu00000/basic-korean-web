@@ -15,7 +15,11 @@
     'bk-button': window.BkButtonComponent,
     'bk-card': window.BkCardComponent,
     'bk-badge': window.BkBadgeComponent,
-    'bk-modal': window.BkModalComponent
+    'bk-modal': window.BkModalComponent,
+    'bk-page-header': window.BkPageHeaderComponent,
+    'bk-progress-bar': window.BkProgressBarComponent,
+    'bk-tip-banner': window.BkTipBannerComponent,
+    'bk-color-legend': window.BkColorLegendComponent
   };
 
   // 页面组件与懒加载文件名的映射
