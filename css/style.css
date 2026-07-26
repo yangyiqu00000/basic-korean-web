@@ -43,6 +43,29 @@
 
   /* 缓动 */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 间距系统 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* 字体大小系统 */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* 过渡动画时间 */
+  --transition-fast: 150ms var(--ease);
+  --transition-base: 250ms var(--ease);
+  --transition-slow: 400ms var(--ease);
 }
 
 /* ===== 暗色主题 ===== */
@@ -1084,4 +1107,33 @@ body {
   .chat-content { max-width: 85%; }
   .chat-container { max-height: calc(100vh - 320px); }
   .review-actions { flex-direction: column; }
+}
+
+/* ===== 卡片交互动效 ===== */
+.module-card,
+.day-card,
+.stem-card,
+.sentence-card {
+  transition: transform var(--transition-base, 250ms ease),
+              box-shadow var(--transition-base, 250ms ease);
+}
+.module-card:hover,
+.day-card:hover,
+.stem-card:hover,
+.sentence-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* 按钮点击反馈 */
+.nav-item,
+.play-btn,
+.check {
+  cursor: pointer;
+  transition: transform var(--transition-fast, 150ms ease),
+              background var(--transition-fast, 150ms ease);
+}
+.nav-item:active,
+.play-btn:active {
+  transform: scale(0.96);
 }
