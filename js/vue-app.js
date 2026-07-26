@@ -1,4 +1,4 @@
-// js/vue-app.js — Vue 3 渐进式迁移入口（懒加载版，使用 template 选项）
+// js/vue-app.js — Vue 3 应用入口（所有组件预加载，无懒加载，确保兼容）
 
 ;(function() {
   'use strict';
@@ -8,33 +8,8 @@
     return;
   }
 
-  // 关键组件映射（已通过 script 标签加载）
-  var criticalComponents = {
-    'home-page': window.HomePageComponent,
-    'stats-panel': window.StatsPanelComponent,
-    'bk-button': window.BkButtonComponent,
-    'bk-card': window.BkCardComponent,
-    'bk-badge': window.BkBadgeComponent,
-    'bk-modal': window.BkModalComponent,
-    'bk-page-header': window.BkPageHeaderComponent,
-    'bk-progress-bar': window.BkProgressBarComponent,
-    'bk-tip-banner': window.BkTipBannerComponent,
-    'bk-color-legend': window.BkColorLegendComponent
-  };
-
-  // 页面组件与懒加载文件名的映射
-  var pageComponentMap = {
-    'skeleton': 'SkeletonPage',
-    'training': 'TrainingPage',
-    'stems': 'StemsPage',
-    'ai': 'AiPage',
-    'scene': 'ScenePage',
-    'schedule': 'SchedulePage',
-    'reference': 'ReferencePage'
-  };
-
   var app = Vue.createApp({
-    template: '<home-page></home-page>',
+    template: '<component :is="currentView"></component>',
     data: function() {
       return {
         currentPage: 'home',
@@ -55,75 +30,45 @@
           'schedule': 'schedule-page',
           'reference': 'reference-page'
         };
-        return map[this.currentPage] || null;
+        return map[this.currentPage] || 'home-page';
       }
     },
     methods: {
       navigate: function(page) {
-        var self = this;
         this.isMobileMenuOpen = false;
-
-        if (page === 'home') {
-          this.currentPage = 'home';
-          return;
-        }
-
-        var componentName = pageComponentMap[page];
-        if (!componentName) {
-          this.currentPage = 'home';
-          return;
-        }
-
-        if (this.pageLoaded[page]) {
-          this.currentPage = page;
-          return;
-        }
-
-        if (typeof window.loadComponent === 'function') {
-          window.loadComponent(componentName).then(function() {
-            self.pageLoaded[page] = true;
-            self.currentPage = page;
-          }).catch(function(err) {
-            console.error('Failed to load page component:', err);
-            self.currentPage = 'home';
-          });
-        } else {
-          this.currentPage = page;
-        }
-      },
-      toggleTheme: function() {
-        if (typeof window.toggleTheme === 'function') {
-          window.toggleTheme();
-        }
-        this.isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
-      },
-      toggleMobileMenu: function() {
-        this.isMobileMenuOpen = !this.isMobileMenuOpen;
-        if (typeof window.toggleMobileMenu === 'function') {
-          window.toggleMobileMenu();
-        }
-      },
-      openStats: function() {
-        if (typeof window.openStats === 'function') {
-          window.openStats();
-        }
+        this.currentPage = page;
       }
     }
   });
 
-  // 注册关键组件（首屏必需的）
-  Object.keys(criticalComponents).forEach(function(name) {
-    if (criticalComponents[name]) {
-      app.component(name, criticalComponents[name]);
+  // 注册所有组件（全部预加载，确保动态组件按名称匹配）
+  var allComponents = {
+    'home-page': window.HomePageComponent,
+    'stats-panel': window.StatsPanelComponent,
+    'bk-button': window.BkButtonComponent,
+    'bk-card': window.BkCardComponent,
+    'bk-badge': window.BkBadgeComponent,
+    'bk-modal': window.BkModalComponent,
+    'bk-page-header': window.BkPageHeaderComponent,
+    'bk-progress-bar': window.BkProgressBarComponent,
+    'bk-tip-banner': window.BkTipBannerComponent,
+    'bk-color-legend': window.BkColorLegendComponent,
+    'skeleton-page': window.SkeletonPageComponent,
+    'training-page': window.TrainingPageComponent,
+    'stems-page': window.StemsPageComponent,
+    'ai-page': window.AiPageComponent,
+    'scene-page': window.ScenePageComponent,
+    'schedule-page': window.SchedulePageComponent,
+    'reference-page': window.ReferencePageComponent,
+    'training-card': window.TrainingCardComponent
+  };
+
+  Object.keys(allComponents).forEach(function(name) {
+    if (allComponents[name]) {
+      app.component(name, allComponents[name]);
     }
   });
 
-  // 标记已通过 script 预加载的组件
-  if (typeof window.markComponentLoaded === 'function') {
-    window.markComponentLoaded('HomePage');
-    window.markComponentLoaded('StatsPanel');
-  }
-
   window.vueApp = app.mount('#vue-root');
-  console.log('Vue 3 app mounted (lazy loading mode)');
+  console.log('Vue 3 app mounted');
 })();
