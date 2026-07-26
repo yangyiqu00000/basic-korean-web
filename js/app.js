@@ -1083,6 +1083,9 @@ var aiLoading = false;
 var aiHistory = [];
 
 function renderAI() {
+  if (window.vueApp) {
+    return '<div><ai-page></ai-page></div>';
+  }
   // 加载历史记录
   aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
   // 为历史项补齐稳定 id（旧数据可能缺 id），供删除定位
