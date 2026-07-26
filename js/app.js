@@ -410,25 +410,7 @@ var revealObserver = null;
 var currentPage = "home";
 
 function navigate(page) {
-  // 如果 Vue 已激活，委托给 Vue 的路由（不再操作 innerHTML）
-  if (window.vueApp && typeof window.vueApp.navigate === 'function') {
-    window.vueApp.navigate(page);
-    // 但仍需更新导航高亮、关闭移动端菜单
-    var nav = document.getElementById('mainNav');
-    if (nav && nav.classList.contains('open')) {
-      nav.classList.remove('open');
-      var btn = document.querySelector('.mobile-menu-btn');
-      if (btn) btn.textContent = '☰';
-    }
-    currentPage = page;
-    document.querySelectorAll(".nav-item").forEach(el => {
-      var match = el.dataset.page === page || (page === "sceneChat" && el.dataset.page === "scene");
-      el.classList.toggle("active", match);
-    });
-    return;
-  }
-
-  // 关闭移动端菜单
+  // 关闭移动端菜单（无论 Vue 是否激活都要执行）
   var nav = document.getElementById('mainNav');
   if (nav && nav.classList.contains('open')) {
     nav.classList.remove('open');
@@ -441,6 +423,44 @@ function navigate(page) {
     var match = el.dataset.page === page || (page === "sceneChat" && el.dataset.page === "scene");
     el.classList.toggle("active", match);
   });
+
+  // 如果 Vue 已激活，委托路由并异步执行页面副作用
+  if (window.vueApp && typeof window.vueApp.navigate === 'function') {
+    window.vueApp.navigate(page);
+
+    // 等 Vue 渲染完成后再执行页面副作用（动画/滚动/规则跳转/交叉观察）
+    setTimeout(function() {
+      var main = document.getElementById("mainContent");
+      if (!main) return;
+
+      // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // 列表项错落延迟动画
+      var items = main.querySelectorAll(".sentence-card, .stem-item, .day-card, .rule-item, .card");
+      items.forEach(function(item, i) {
+        item.style.animationDelay = Math.min(i * 0.04, 0.6) + "s";
+      });
+
+      // 启动滚动入场动效
+      initRevealObserver();
+
+      // 骨架规则跳转
+      if (pendingRule !== null && page === "skeleton") {
+        var idx = pendingRule - 1;
+        setTimeout(function() {
+          var ruleHeader = document.querySelector(".rule-header");
+          if (ruleHeader) {
+            ruleHeader.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+          pendingRule = null;
+        }, 100);
+      }
+    }, 200);
+    return;
+  }
+
+  // 非 Vue 模式：传统 innerHTML 渲染 + 动效
   var main = document.getElementById("mainContent");
 
   // Fade out
