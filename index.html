@@ -74,58 +74,28 @@
 	    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
-    <script type="text/x-template" id="home-page-template">
+<script type="text/x-template" id="home-page-template">
       <div class="home-page">
         <div class="hero-section">
           <div class="hero-icon">🇰🇷</div>
           <h1 class="hero-title">Basic Korean</h1>
           <p class="hero-subtitle">用最小系统启动一门新语言</p>
-          <div class="hero-stats" @click="openStats">
-            <span class="stat-badge">📊 学习统计</span>
-          </div>
+          <bk-button variant="secondary" @click="openStats">📊 学习统计</bk-button>
         </div>
         <div class="home-modules">
-          <div class="module-card" @click="go('skeleton')">
-            <span class="module-icon">🏗️</span>
-            <span class="module-name">筑基</span>
-            <span class="module-desc">7 大骨架规则</span>
-          </div>
-          <div class="module-card" @click="go('training')">
-            <span class="module-icon">🃏</span>
-            <span class="module-name">抽丝</span>
-            <span class="module-desc">断句训练</span>
-          </div>
-          <div class="module-card" @click="go('stems')">
-            <span class="module-icon">📝</span>
-            <span class="module-name">剥茧</span>
-            <span class="module-desc">核心词干</span>
-          </div>
-          <div class="module-card" @click="go('ai')">
-            <span class="module-icon">🤖</span>
-            <span class="module-name">砥砺</span>
-            <span class="module-desc">AI 练句</span>
-          </div>
-          <div class="module-card" @click="go('scene')">
-            <span class="module-icon">🎭</span>
-            <span class="module-name">临境</span>
-            <span class="module-desc">情景对话</span>
-          </div>
-          <div class="module-card" @click="go('schedule')">
-            <span class="module-icon">🗓️</span>
-            <span class="module-name">润物</span>
-            <span class="module-desc">两周日课</span>
-          </div>
-          <div class="module-card" @click="go('reference')">
-            <span class="module-icon">🏷️</span>
-            <span class="module-name">拾遗</span>
-            <span class="module-desc">标签速查</span>
-          </div>
+          <bk-card v-for="mod in modules" :key="mod.page" @click="go(mod.page)">
+            <div class="module-card-content">
+              <span class="module-icon">{{ mod.icon }}</span>
+              <span class="module-name">{{ mod.name }}</span>
+              <span class="module-desc">{{ mod.desc }}</span>
+            </div>
+          </bk-card>
         </div>
         <div class="home-footer">
           <p>Basic Korean 启动包 {{ appVersion }} · 用最小系统启动一门新语言</p>
         </div>
       </div>
-</script>
+    </script>
 
 	    <!-- StatsPanel Template -->
 	    <script type="text/x-template" id="stats-panel-template">
