@@ -78,6 +78,7 @@
 <script src="js/components/SkeletonPage.js"></script>
 <script src="js/components/StemsPage.js"></script>
 <script src="js/components/AiPage.js"></script>
+<script src="js/components/ScenePage.js"></script>
 							    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
@@ -451,8 +452,88 @@
           </div>
         </div>
       </div>
+</script>
+
+    <!-- Scene Page Template -->
+    <script type="text/x-template" id="scene-page-template">
+      <div class="scene-page">
+        <!-- 选择模式 -->
+        <div v-if="mode === 'select'">
+          <div class="page-title">
+            <h2>🎭 临境</h2>
+            <p>选择场景，AI 扮演韩国人与你对话。</p>
+          </div>
+
+          <div class="scene-list">
+            <h3>📌 默认场景</h3>
+            <div class="scene-grid">
+              <div class="scene-chip" v-for="s in defaultScenes" :key="s" @click="startScene(s)">{{ s }}</div>
+            </div>
+          </div>
+
+          <div class="scene-list" v-if="customScenes.length">
+            <h3>✏️ 自定义场景</h3>
+            <div class="scene-grid">
+              <div class="scene-chip custom" v-for="(s, i) in customScenes" :key="'c'+i" @click="startScene(s)">
+                {{ s }}
+                <span class="scene-chip-del" @click.stop="deleteCustomScene(i)">✕</span>
+              </div>
+            </div>
+          </div>
+
+          <bk-button variant="secondary" size="sm" @click="addCustomScene">➕ 添加自定义场景</bk-button>
+
+          <div class="scene-history" v-if="history.length">
+            <div class="scene-history-header">
+              <h3>📜 对话历史</h3>
+              <bk-button variant="danger" size="sm" @click="clearHistory">🗑️ 清除</bk-button>
+            </div>
+            <div class="scene-history-item" v-for="(item, i) in history" :key="i" @click="viewReview(item)">
+              <span class="shi-scene">{{ item.scene }}</span>
+              <span class="shi-time">{{ item.time ? item.time.slice(0,10) : '' }}</span>
+              <span class="shi-del" @click.stop="deleteHistory(i)">✕</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 聊天模式 -->
+        <div v-if="mode === 'chat'">
+          <div class="chat-header">
+            <button class="chat-back" @click="backToSelect">← 返回</button>
+            <h3>{{ selectedScene }}</h3>
+          </div>
+          <div class="chat-messages">
+            <div class="chat-msg" v-for="(msg, i) in messages" :key="i" :class="msg.role">
+              <div class="msg-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</div>
+              <div class="msg-content" v-html="escapeHtml(msg.content)"></div>
+            </div>
+            <div v-if="loading" class="chat-msg assistant">
+              <div class="msg-avatar">🤖</div>
+              <div class="msg-content">⏳ 思考中...</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-input" v-model="input" @keyup.enter="sendMessage" placeholder="输入回应..." :disabled="loading" />
+            <bk-button variant="primary" @click="sendMessage" :disabled="loading || !input.trim()">发送</bk-button>
+          </div>
+        </div>
+
+        <!-- 复习模式 -->
+        <div v-if="mode === 'review' && reviewItem">
+          <div class="chat-header">
+            <button class="chat-back" @click="mode='select'">← 返回</button>
+            <h3>{{ reviewItem.scene }} — 回顾</h3>
+          </div>
+          <div class="chat-messages">
+            <div class="chat-msg" v-for="(msg, i) in reviewItem.messages" :key="i" :class="msg.role">
+              <div class="msg-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</div>
+              <div class="msg-content" v-html="escapeHtml(msg.content)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </script>
-							</body>
+								</body>
 </html>
 
 <script>

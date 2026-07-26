@@ -1446,6 +1446,9 @@ var sceneChatState = {
 };
 
 function renderScene() {
+  if (window.vueApp) {
+    return '<div><scene-page></scene-page></div>';
+  }
   // 加载自定义场景
   var customScenes = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
 

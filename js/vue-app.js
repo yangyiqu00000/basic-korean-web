@@ -59,7 +59,8 @@
 	    'schedule-page': window.SchedulePageComponent,
 		    'skeleton-page': window.SkeletonPageComponent,
 		    'stems-page': window.StemsPageComponent,
-			    'ai-page': window.AiPageComponent
+			    'ai-page': window.AiPageComponent,
+		    'scene-page': window.ScenePageComponent
   };
   Object.keys(componentMap).forEach(function(name) {
     if (componentMap[name]) {
