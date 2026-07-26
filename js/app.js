@@ -1339,7 +1339,15 @@ function exportSceneTxt() {
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
   // 全局未捕获错误处理（防止空白页，显示友好提示）
-  window.addEventListener("error", function(e) { showToast("⚠️ 发生了意外错误，但页面仍可继续使用。"); console.error(e); });
+  window.addEventListener("error", function(e) {
+    // 资源加载错误（favicon/图片/字体 404）不影响功能，不弹 toast
+    if (e.target && e.target !== window) {
+      return;
+    }
+    // 真正的 JS 异常才提示
+    showToast("⚠️ 发生了意外错误，但页面仍可继续使用。");
+    console.error(e);
+  });
   window.addEventListener("unhandledrejection", function(e) { showToast("⚠️ 请求异常，请检查 TTS+AI 服务是否正常运行。"); console.error(e); });
   initTheme();
   initCardGlow();
