@@ -44,6 +44,12 @@ function dismissTip(btn, id) {
 
 // 学习统计弹窗
 function openStats() {
+  // 优先使用 Vue StatsPanel 组件
+  if (window.vueApp && window.vueApp.$refs && window.vueApp.$refs.statsPanel) {
+    window.vueApp.$refs.statsPanel.open();
+    return;
+  }
+  // 原有 fallback 逻辑
   var overlay = document.createElement("div");
   overlay.className = "stats-overlay";
   overlay.id = "statsOverlay";

@@ -338,10 +338,112 @@ body {
 .stats-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .stats-modal { background: var(--card-bg); border-radius: var(--radius); padding: 24px; max-width: 420px; width: 100%; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: var(--shadow-hover); }
 .stats-modal h2 { font-size: 20px; margin-bottom: 16px; }
-.stats-close { position: absolute; right: 16px; top: 16px; background: transparent; border: none; color: var(--text-light); cursor: pointer; font-size: 20px; }
+.stats-close { position: absolute; right: 16px; top: 16px; background: transparent; border: none; color: var(--text-light); cursor: pointer; font-size: 20px; padding: 4px 8px; border-radius: 6px; }
+.stats-close:hover { background: var(--bg); color: var(--text); }
 .stats-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .stats-row:last-child { border: none; }
 .stats-row .stat-value { font-weight: 700; color: var(--primary); }
+
+/* ---- StatsPanel Vue Component ---- */
+.stats-panel {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 0;
+  max-width: 420px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-hover);
+}
+.stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.stats-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+.stats-header .stats-close {
+  position: static;
+  font-size: 18px;
+  padding: 6px 10px;
+}
+.stats-body {
+  padding: 16px 24px 24px;
+}
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.stat-item:last-of-type {
+  border-bottom: none;
+}
+.stat-label {
+  color: var(--text);
+  font-weight: 500;
+}
+.stat-version {
+  font-size: 11px;
+  color: var(--text-light);
+  text-align: center;
+  padding: 12px 0 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.stat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.stat-btn {
+  flex: 1;
+  min-width: calc(50% - 4px);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  font-family: inherit;
+  color: var(--text);
+  text-align: center;
+}
+.stat-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-lighter);
+  color: var(--primary);
+}
+.stat-btn-danger {
+  border-color: rgba(208,87,58,0.3);
+  color: var(--error);
+}
+.stat-btn-danger:hover {
+  border-color: var(--error);
+  background: rgba(208,87,58,0.08);
+  color: var(--error);
+}
+
+/* Vue transition: fade */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s var(--ease);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 .onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .onboarding-modal { background: var(--card-bg); border-radius: var(--radius); padding: 32px; max-width: 460px; width: 100%; text-align: center; box-shadow: var(--shadow-hover); }
 .onboarding-modal h2 { font-size: 24px; margin-bottom: 8px; }

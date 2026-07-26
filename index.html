@@ -50,10 +50,11 @@
         </main>
 
         <!-- 底部 -->
-        <footer class="footer">
-            <p>Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言</p>
-        </footer>
-    </div>
+<footer class="footer">
+	            <p>Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言</p>
+	        </footer>
+	        <stats-panel ref="statsPanel"></stats-panel>
+	    </div>
 
     <!-- 数据层 - 按顺序加载 -->
     <script src="js/data.js"></script>
@@ -64,7 +65,8 @@
     <!-- 应用层 -->
     <script src="js/app.js"></script>
     <!-- Vue 3 渐进式迁移入口 -->
-    <script src="js/components/HomePage.js"></script>
+<script src="js/components/HomePage.js"></script>
+	    <script src="js/components/StatsPanel.js"></script>
     <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
@@ -119,6 +121,45 @@
           <p>Basic Korean 启动包 {{ appVersion }} · 用最小系统启动一门新语言</p>
         </div>
       </div>
-    </script>
-</body>
+</script>
+
+	    <!-- StatsPanel Template -->
+	    <script type="text/x-template" id="stats-panel-template">
+	      <transition name="fade">
+	        <div v-if="isVisible" class="stats-overlay" @click="onClickOverlay">
+	          <div class="stats-panel">
+	            <div class="stats-header">
+	              <h3>📊 学习统计</h3>
+	              <button class="stats-close" @click="close">✕</button>
+	            </div>
+	            <div class="stats-body">
+	              <div class="stat-item">
+	                <span class="stat-label">🗓️ 日课表进度</span>
+	                <span class="stat-value">{{ scheduleDone }} / {{ scheduleTotal }}</span>
+	              </div>
+	              <div class="stat-item">
+	                <span class="stat-label">🃏 断句已掌握</span>
+	                <span class="stat-value">{{ trainingDoneCount }} / {{ trainingTotal }}</span>
+	              </div>
+	              <div class="stat-item">
+	                <span class="stat-label">🤖 AI 练句历史</span>
+	                <span class="stat-value">{{ aiHistoryCount }} 条</span>
+	              </div>
+	              <div class="stat-item">
+	                <span class="stat-label">🎭 情景对话历史</span>
+	                <span class="stat-value">{{ sceneHistoryCount }} 条</span>
+	              </div>
+	              <div class="stat-version">v{{ appVersion }} ({{ lastCommit }})</div>
+	              <div class="stat-actions">
+	                <button class="stat-btn" @click="exportAllData">📤 导出数据</button>
+	                <button class="stat-btn" @click="importAllData">📥 导入数据</button>
+	                <button class="stat-btn stat-btn-danger" @click="clearData('korean_progress', '日课表进度')">🗑️ 重置日课</button>
+	                <button class="stat-btn stat-btn-danger" @click="clearData('korean_training_done', '断句掌握')">🗑️ 重置断句</button>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      </transition>
+	    </script>
+	</body>
 </html>

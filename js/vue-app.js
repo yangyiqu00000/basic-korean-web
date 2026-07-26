@@ -47,7 +47,8 @@
 
   // 注册组件（后续逐步添加）
   var componentMap = {
-    'home-page': window.HomePageComponent
+    'home-page': window.HomePageComponent,
+    'stats-panel': window.StatsPanelComponent
   };
   Object.keys(componentMap).forEach(function(name) {
     if (componentMap[name]) {
