@@ -473,6 +473,10 @@ function renderPage(page) {
 
 // === HOME PAGE ===
 function renderHome() {
+  // 如果 Vue 已接管，使用 Vue 首页组件
+  if (window.vueApp) {
+    return '<div><home-page></home-page></div>';
+  }
   return `
     <section class="hero">
       <h1>🇰🇷 Basic Korean</h1>

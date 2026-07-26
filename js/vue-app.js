@@ -46,7 +46,9 @@
   });
 
   // 注册组件（后续逐步添加）
-  var componentMap = {};
+  var componentMap = {
+    'home-page': window.HomePageComponent
+  };
   Object.keys(componentMap).forEach(function(name) {
     if (componentMap[name]) {
       app.component(name, componentMap[name]);
