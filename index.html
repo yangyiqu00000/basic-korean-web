@@ -72,8 +72,9 @@
 		    <script src="js/components/BkBadge.js"></script>
 <script src="js/components/BkModal.js"></script>
 		    <script src="js/components/TrainingCard.js"></script>
-		    <script src="js/components/TrainingPage.js"></script>
-		    <script src="js/vue-app.js"></script>
+<script src="js/components/TrainingPage.js"></script>
+			    <script src="js/components/ReferencePage.js"></script>
+			    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
 <script type="text/x-template" id="home-page-template">
@@ -218,8 +219,70 @@
 		          ></training-card>
 		        </div>
 		      </div>
-		    </script>
-		</body>
+</script>
+
+			    <!-- Reference Page Template -->
+			    <script type="text/x-template" id="reference-page-template">
+			      <div class="reference-page">
+			        <div class="page-title">
+			          <h2>🏷️ 拾遗</h2>
+			          <p>助词、终结词尾、疑问词速查表</p>
+			        </div>
+
+			        <h3 class="ref-section-title">📌 助词</h3>
+			        <div class="ref-table">
+			          <div class="ref-row ref-header">
+			            <span class="ref-col-tag">标记</span>
+			            <span class="ref-col-type">类型</span>
+			            <span class="ref-col-meaning">含义</span>
+			            <span class="ref-col-level">等级</span>
+			            <span class="ref-col-example">示例</span>
+			          </div>
+			          <div class="ref-row" v-for="p in ref.particles" :key="p.tag">
+			            <span class="ref-col-tag">{{ p.tag }}</span>
+			            <span class="ref-col-type">{{ p.type }}</span>
+			            <span class="ref-col-meaning">{{ p.meaning }}</span>
+			            <span class="ref-col-level">
+			              <bk-badge :color="p.level === '核心' ? 'primary' : 'warning'">{{ p.level }}</bk-badge>
+			            </span>
+			            <span class="ref-col-example">{{ p.example }}</span>
+			          </div>
+			        </div>
+
+			        <h3 class="ref-section-title">🔚 终结词尾</h3>
+			        <div class="ref-table">
+			          <div class="ref-row ref-header">
+			            <span class="ref-col-tag">词尾</span>
+			            <span class="ref-col-type">类型</span>
+			            <span class="ref-col-meaning">含义</span>
+			            <span class="ref-col-level">等级</span>
+			            <span class="ref-col-example">示例</span>
+			          </div>
+			          <div class="ref-row" v-for="e in ref.endings" :key="e.tag">
+			            <span class="ref-col-tag">{{ e.tag }}</span>
+			            <span class="ref-col-type">{{ e.type }}</span>
+			            <span class="ref-col-meaning">{{ e.meaning }}</span>
+			            <span class="ref-col-level">
+			              <bk-badge :color="e.level === '核心' ? 'primary' : e.level === '常用' ? 'warning' : 'success'">{{ e.level }}</bk-badge>
+			            </span>
+			            <span class="ref-col-example">{{ e.example }}</span>
+			          </div>
+			        </div>
+
+			        <h3 class="ref-section-title">❓ 疑问词</h3>
+			        <div class="ref-table">
+			          <div class="ref-row ref-header">
+			            <span class="ref-col-word">单词</span>
+			            <span class="ref-col-meaning">含义</span>
+			          </div>
+			          <div class="ref-row" v-for="q in ref.questionWords" :key="q.word">
+			            <span class="ref-col-word">{{ q.word }}</span>
+			            <span class="ref-col-meaning">{{ q.meaning }}</span>
+			          </div>
+			        </div>
+			      </div>
+			    </script>
+			</body>
 </html>
 
 <script>

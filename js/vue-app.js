@@ -53,8 +53,9 @@
     'bk-card': window.BkCardComponent,
     'bk-badge': window.BkBadgeComponent,
     'bk-modal': window.BkModalComponent,
-    'training-card': window.TrainingCardComponent,
-    'training-page': window.TrainingPageComponent
+'training-card': window.TrainingCardComponent,
+	    'training-page': window.TrainingPageComponent,
+	    'reference-page': window.ReferencePageComponent
   };
   Object.keys(componentMap).forEach(function(name) {
     if (componentMap[name]) {

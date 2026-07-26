@@ -970,6 +970,9 @@ function toggleCheck(el) {
 
 // === REFERENCE PAGE ===
 function renderReference() {
+  if (window.vueApp) {
+    return '<div><reference-page></reference-page></div>';
+  }
   function endingCls(e) {
     var m = e.meaning || "", t = e.type || "";
     if (m.includes("过去") || m.includes("未来") || m.includes("正在")) return "elem-ending-tense";
