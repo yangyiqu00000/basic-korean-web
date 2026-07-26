@@ -66,8 +66,12 @@
     <script src="js/app.js"></script>
     <!-- Vue 3 渐进式迁移入口 -->
 <script src="js/components/HomePage.js"></script>
-	    <script src="js/components/StatsPanel.js"></script>
-    <script src="js/vue-app.js"></script>
+		    <script src="js/components/StatsPanel.js"></script>
+		    <script src="js/components/BkButton.js"></script>
+		    <script src="js/components/BkCard.js"></script>
+		    <script src="js/components/BkBadge.js"></script>
+		    <script src="js/components/BkModal.js"></script>
+	    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
     <script type="text/x-template" id="home-page-template">
@@ -160,8 +164,34 @@
 	          </div>
 	        </div>
 	      </transition>
-	    </script>
-	</body>
+</script>
+		
+		    <!-- Design System 组件模板 -->
+		    <script type="text/x-template" id="bk-button-template">
+		      <button :class="classes" :disabled="disabled" @click="$emit('click')"><slot /></button>
+		    </script>
+		    <script type="text/x-template" id="bk-card-template">
+		      <div class="bk-card" :class="{ 'bk-card-hoverable': hoverable }" :style="'padding:var(--space-' + padding + ')'">
+		        <slot />
+		      </div>
+		    </script>
+		    <script type="text/x-template" id="bk-badge-template">
+		      <span :class="classes"><slot /></span>
+		    </script>
+		    <script type="text/x-template" id="bk-modal-template">
+		      <transition name="fade">
+		        <div v-if="visible" class="bk-modal-overlay" @click="onClickOverlay">
+		          <div class="bk-modal">
+		            <div class="bk-modal-header">
+		              <h3>{{ title }}</h3>
+		              <button class="bk-modal-close" @click="close">✕</button>
+		            </div>
+		            <div class="bk-modal-body"><slot /></div>
+		          </div>
+		        </div>
+		      </transition>
+		    </script>
+		</body>
 </html>
 
 <script>

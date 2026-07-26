@@ -1203,3 +1203,35 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ===== Design System 组件样式 ===== */
+.bk-btn {
+  display: inline-flex; align-items: center; gap: var(--space-xs, 4px);
+  border: none; border-radius: var(--radius-sm, 12px); cursor: pointer;
+  font-family: inherit; font-weight: 500;
+  transition: all var(--transition-fast, 150ms ease);
+}
+.bk-btn:active { transform: scale(0.96); }
+.bk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.bk-btn-primary { background: var(--primary); color: #fff; }
+.bk-btn-secondary { background: var(--border); color: var(--text); }
+.bk-btn-danger { background: var(--error); color: #fff; }
+.bk-btn-sm { padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm); }
+.bk-btn-md { padding: var(--space-sm) var(--space-md); font-size: var(--text-base); }
+.bk-btn-lg { padding: var(--space-md) var(--space-lg); font-size: var(--text-lg); }
+
+.bk-card { background: var(--card-bg); border-radius: var(--radius, 20px); border: 1px solid var(--border, #e4ddd4); }
+.bk-card-hoverable { transition: transform var(--transition-base, 250ms), box-shadow var(--transition-base, 250ms); }
+.bk-card-hoverable:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+
+.bk-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: var(--text-xs, 0.75rem); font-weight: 500; }
+.bk-badge-primary { background: var(--primary-lighter); color: var(--primary); }
+.bk-badge-success { background: var(--success); color: #fff; }
+.bk-badge-warning { background: var(--warning); color: #fff; }
+
+.bk-modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
+.bk-modal { background: var(--card-bg); border-radius: var(--radius, 20px); max-width: 480px; width: 90%; box-shadow: var(--shadow-hover); }
+.bk-modal-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--border, #e4ddd4); }
+.bk-modal-header h3 { margin: 0; }
+.bk-modal-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-light); }
+.bk-modal-body { padding: var(--space-lg); }
