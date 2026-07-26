@@ -66,6 +66,7 @@ function showOnboarding() {
   overlay.className = "onboarding-overlay";
   overlay.id = "onboardingOverlay";
   overlay.innerHTML =
+    '<div class="onboarding-backdrop" id="onboardingBackdrop"></div>' +
     '<div class="onboarding-modal">' +
       '<h2>🇰🇷 Basic Korean</h2>' +
       '<p>韩语最小可行学习系统<br>用最小的系统启动一门新语言</p>' +
@@ -77,11 +78,31 @@ function showOnboarding() {
       '<button class="ai-submit-btn" onclick="closeOnboarding()">🚀 开始学习</button>' +
     '</div>';
   document.body.appendChild(overlay);
+
+  // 点击背景关闭
+  document.getElementById("onboardingBackdrop").onclick = closeOnboarding;
+
+  // 6 秒后自动关闭（给用户足够时间阅读）
+  setTimeout(function() {
+    var el = document.getElementById("onboardingOverlay");
+    if (el && el.parentNode) {
+      el.classList.add("onboarding-fade-out");
+      setTimeout(function() {
+        if (el.parentNode) el.remove();
+        localStorage.setItem("korean_onboarded", "1");
+      }, 300);
+    }
+  }, 6000);
 }
 function closeOnboarding() {
   localStorage.setItem("korean_onboarded", "1");
   var el = document.getElementById("onboardingOverlay");
-  if (el) el.remove();
+  if (el) {
+    el.classList.add("onboarding-fade-out");
+    setTimeout(function() {
+      if (el.parentNode) el.remove();
+    }, 300);
+  }
 }
 function renderStatsContent() {
   var progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");

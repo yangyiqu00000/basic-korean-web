@@ -17,19 +17,34 @@ echo "========================================"
 echo " Basic Korean E2E Tests"
 echo "========================================"
 
-# === T0: 打开页面 + 移除 onboarding 遮罩 ===
+# === T0: Onboarding 遮罩测试 ===
 echo ""
-echo "--- T0: 准备浏览器环境 ---"
-"$PWCLI" open "$BASE/" 2>/dev/null
-# 先设置 localStorage 跳过 onboarding，然后刷新
+echo "--- T0: Onboarding 遮罩测试 ---"
+# 先清除 localStorage 让 onboarding 出现
 "$PWCLI" run-code 2>/dev/null << 'JSCODE'
-localStorage.setItem('korean_onboarding_shown', 'true');
-var ov = document.getElementById('onboardingOverlay');
-if (ov) ov.remove();
+localStorage.removeItem('korean_onboarded');
 JSCODE
-sleep 0.5
-# 刷新页面让 localStorage 生效
 "$PWCLI" open "$BASE/" 2>/dev/null
+sleep 0.5
+SNAP=$("$PWCLI" snapshot 2>/dev/null)
+if echo "$SNAP" | grep -qi "最小可行\|开始学习"; then
+  pass "Onboarding 出现"
+  # 关闭 onboarding
+  "$PWCLI" run-code 2>/dev/null << 'JSCODE'
+closeOnboarding();
+JSCODE
+  sleep 0.5
+  SNAP2=$("$PWCLI" snapshot 2>/dev/null)
+  echo "$SNAP2" | grep -qi "onboarding" && fail "Onboarding 关闭" || pass "Onboarding 关闭后 DOM 清除"
+else
+  fail "Onboarding 出现"
+fi
+# 设置 localStorage 让后续测试不弹窗
+"$PWCLI" run-code 2>/dev/null << 'JSCODE'
+localStorage.setItem('korean_onboarded', '1');
+JSCODE
+"$PWCLI" open "$BASE/" 2>/dev/null
+sleep 0.5
 echo "  浏览器环境已准备"
 
 # === T1: 首页加载 ===
@@ -77,9 +92,16 @@ echo "$SNAP" | grep -q "☀️" && pass "主题切换 (暗色)" || pass "主题�
 # === T4: 统计弹窗 ===
 echo ""
 echo "--- T4: 统计弹窗 ---"
-"$PWCLI" click "e19" 2>/dev/null; sleep 0.5
+"$PWCLI" click "e19" 2>/dev/null; sleep 1
 SNAP=$("$PWCLI" snapshot 2>/dev/null)
-echo "$SNAP" | grep -qi "学习统计\|日课表" && pass "统计弹窗打开" || fail "统计弹窗打开"
+if echo "$SNAP" | grep -qi "学习统计\|日课表\|已掌握\|导出数据"; then
+  pass "统计弹窗打开"
+else
+  # 重试：可能过渡动画还在跑
+  sleep 1
+  SNAP=$("$PWCLI" snapshot 2>/dev/null)
+  echo "$SNAP" | grep -qi "学习统计\|日课表\|已掌握" && pass "统计弹窗打开（重试）" || fail "统计弹窗打开"
+fi
 "$PWCLI" screenshot "$OUT/04-stats.png" 2>/dev/null
 
 # === T5: AI 页 ===

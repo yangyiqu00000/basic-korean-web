@@ -546,8 +546,22 @@ body {
 .fade-leave-to {
   opacity: 0;
 }
-.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.onboarding-modal { background: var(--card-bg); border-radius: var(--radius); padding: 32px; max-width: 460px; width: 100%; text-align: center; box-shadow: var(--shadow-hover); }
+.onboarding-overlay { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; animation: onboarding-in 0.4s ease; }
+.onboarding-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: -1; }
+.onboarding-modal { background: var(--card-bg); border-radius: var(--radius); padding: 32px; max-width: 460px; width: 100%; text-align: center; box-shadow: var(--shadow-hover); animation: onboarding-modal-in 0.4s ease; }
+.onboarding-fade-out { animation: onboarding-out 0.3s ease forwards !important; }
+@keyframes onboarding-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes onboarding-modal-in {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes onboarding-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 .onboarding-modal h2 { font-size: 24px; margin-bottom: 8px; }
 .onboarding-modal p { color: var(--text-light); font-size: 14px; margin-bottom: 24px; }
 .onboarding-steps { text-align: left; margin: 0 auto 24px; max-width: 340px; }
