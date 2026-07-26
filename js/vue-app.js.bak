@@ -1,4 +1,4 @@
-// js/vue-app.js — Vue 3 渐进式迁移入口（懒加载版，使用 template 选项）
+// js/vue-app.js — Vue 3 渐进式迁移入口（懒加载版）
 
 ;(function() {
   'use strict';
@@ -34,7 +34,7 @@
   };
 
   var app = Vue.createApp({
-    template: '<home-page></home-page>',
+    template: '<component :is="currentView"></component>',
     data: function() {
       return {
         currentPage: 'home',
@@ -59,26 +59,29 @@
       }
     },
     methods: {
-      navigate: function(page) {
         var self = this;
         this.isMobileMenuOpen = false;
 
+        // 首页直接切换
         if (page === 'home') {
           this.currentPage = 'home';
           return;
         }
 
+        // 懒加载页面组件
         var componentName = pageComponentMap[page];
         if (!componentName) {
           this.currentPage = 'home';
           return;
         }
 
+        // 如果组件已加载，直接切换
         if (this.pageLoaded[page]) {
           this.currentPage = page;
           return;
         }
 
+        // 异步加载组件，加载完成后切换
         if (typeof window.loadComponent === 'function') {
           window.loadComponent(componentName).then(function() {
             self.pageLoaded[page] = true;
@@ -126,4 +129,7 @@
 
   window.vueApp = app.mount('#vue-root');
   console.log('Vue 3 app mounted (lazy loading mode)');
+
+  // 将 Vue 的 navigate 方法暴露到全局，让 onclick 等绑定可以调用
+  window.vueNavigate = window.vueApp.navigate;
 })();

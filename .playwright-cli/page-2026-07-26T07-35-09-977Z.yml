@@ -1,0 +1,68 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5] [cursor=pointer]:
+          - generic [ref=e6]: 🇰🇷
+          - generic [ref=e7]: Basic Korean
+          - generic [ref=e8]: V1.0
+        - navigation [ref=e9]:
+          - button "🏠 归藏" [ref=e10] [cursor=pointer]
+          - button "🏗️ 筑基" [ref=e11] [cursor=pointer]
+          - button "🃏 抽丝" [ref=e12] [cursor=pointer]
+          - button "📝 剥茧" [ref=e13] [cursor=pointer]
+          - button "🤖 砥砺" [ref=e14] [cursor=pointer]
+          - button "🎭 临境" [ref=e15] [cursor=pointer]
+          - button "🗓️ 润物" [ref=e16] [cursor=pointer]
+          - button "🏷️ 拾遗" [ref=e17] [cursor=pointer]
+        - button "☀️" [ref=e66] [cursor=pointer]
+        - button "📊" [active] [ref=e19] [cursor=pointer]
+    - main [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: 🇰🇷
+          - heading "Basic Korean" [level=1] [ref=e25]
+          - paragraph [ref=e26]: 用最小系统启动一门新语言
+          - button "📊 学习统计" [ref=e27] [cursor=pointer]
+        - generic [ref=e28]:
+          - generic [ref=e29]: 🏗️筑基7 大骨架规则
+          - generic [ref=e31]: 🃏抽丝断句训练
+          - generic [ref=e33]: 📝剥茧核心词干
+          - generic [ref=e35]: 🤖砥砺AI 练句
+          - generic [ref=e37]: 🎭临境情景对话
+          - generic [ref=e39]: 🗓️润物两周日课
+          - generic [ref=e41]: 🏷️拾遗标签速查
+        - paragraph [ref=e44]: Basic Korean 启动包 1.0.0 · 用最小系统启动一门新语言
+    - contentinfo [ref=e45]:
+      - paragraph [ref=e46]: Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言
+  - generic [ref=e68]:
+    - button "✕" [ref=e69] [cursor=pointer]
+    - heading "📊 学习统计" [level=2] [ref=e70]
+    - generic [ref=e71]:
+      - generic [ref=e72]: 📝 抽丝训练
+      - generic [ref=e73]: 0 / 43 句
+    - generic [ref=e74]:
+      - generic [ref=e75]: 🗓️ 润物表
+      - generic [ref=e76]: 0 / 42 项
+    - generic [ref=e77]:
+      - generic [ref=e78]: 🤖 AI 练句
+      - generic [ref=e79]: 0 次
+    - generic [ref=e80]:
+      - generic [ref=e81]: 💬 情景对话
+      - generic [ref=e82]: 0 场
+    - generic [ref=e83]:
+      - generic [ref=e84]: 🎨 主题
+      - generic [ref=e85]: 暗色
+    - generic [ref=e86]:
+      - strong [ref=e87]: ⚙️ 数据管理
+      - generic [ref=e88]:
+        - button "重置断句" [ref=e89] [cursor=pointer]
+        - button "重置润物" [ref=e90] [cursor=pointer]
+        - button "清空AI历史" [ref=e91] [cursor=pointer]
+        - button "清空情景" [ref=e92] [cursor=pointer]
+        - button "重置提示" [ref=e93] [cursor=pointer]
+        - button "重置全部" [ref=e94] [cursor=pointer]
+        - button "📖 新手引导" [ref=e95] [cursor=pointer]
+        - button "📤 备份数据" [ref=e96] [cursor=pointer]
+        - button "📥 导入备份" [ref=e97] [cursor=pointer]
+      - generic [ref=e98]: "Basic Korean 🇰🇷 v1.0.0 · 78da555 feat: 交叉链接"

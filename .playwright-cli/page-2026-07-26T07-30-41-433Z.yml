@@ -1,0 +1,45 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5] [cursor=pointer]:
+          - generic [ref=e6]: 🇰🇷
+          - generic [ref=e7]: Basic Korean
+          - generic [ref=e8]: V1.0
+        - navigation [ref=e9]:
+          - button "🏠 归藏" [ref=e10] [cursor=pointer]
+          - button "🏗️ 筑基" [ref=e11] [cursor=pointer]
+          - button "🃏 抽丝" [ref=e12] [cursor=pointer]
+          - button "📝 剥茧" [ref=e13] [cursor=pointer]
+          - button "🤖 砥砺" [ref=e14] [cursor=pointer]
+          - button "🎭 临境" [ref=e15] [cursor=pointer]
+          - button "🗓️ 润物" [ref=e16] [cursor=pointer]
+          - button "🏷️ 拾遗" [ref=e17] [cursor=pointer]
+        - button "🌙" [ref=e18] [cursor=pointer]
+        - button "📊" [ref=e19] [cursor=pointer]
+    - main [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]: ⏳
+        - paragraph [ref=e23]: 加载中...
+    - contentinfo [ref=e24]:
+      - paragraph [ref=e25]: Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言
+  - generic [ref=e28]:
+    - heading "🇰🇷 Basic Korean" [level=2] [ref=e29]
+    - paragraph [ref=e30]: 韩语最小可行学习系统用最小的系统启动一门新语言
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: 🏗️
+        - generic [ref=e34]:
+          - strong [ref=e35]: 1. 筑基规则
+          - text: 先建立语法地图——理解 7 大筑基，知道韩语有哪几个核心部件
+      - generic [ref=e36]:
+        - generic [ref=e37]: 🃏
+        - generic [ref=e38]:
+          - strong [ref=e39]: 2. 抽丝训练
+          - text: 每天 3-5 句，先自己断句再展开看拆解，两周完成 43 句
+      - generic [ref=e40]:
+        - generic [ref=e41]: 🤖
+        - generic [ref=e42]:
+          - strong [ref=e43]: 3. 砥砺
+          - text: 输入任意中文，AI 翻译并拆解词性/助词/词尾，按规则编号教学
+    - button "🚀 开始学习" [ref=e44] [cursor=pointer]

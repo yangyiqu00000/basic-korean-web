@@ -46,11 +46,7 @@
 
         <!-- 主内容区域 -->
         <main class="main" id="mainContent">
-            <!-- 由 JS 动态渲染 -->
-            <div style="text-align:center;padding:60px 20px;">
-                <div style="font-size:48px;margin-bottom:16px;">⏳</div>
-                <p style="color:var(--text-light);">加载中...</p>
-            </div>
+            <div id="vue-root"></div>
         </main>
 
         <!-- 底部 -->
@@ -66,24 +62,8 @@
     <script src="js/stems_data.js"></script>
     <script src="js/sentences_data.js"></script>
     <script src="js/reference_data.js"></script>
-    <!-- 应用层 -->
-    <script src="js/app.js"></script>
-    <!-- Vue 3 渐进式迁移入口 -->
-<script src="js/components/HomePage.js"></script>
-			    <script src="js/components/StatsPanel.js"></script>
-			    <script src="js/components/BkButton.js"></script>
-			    <script src="js/components/BkCard.js"></script>
-			    <script src="js/components/BkBadge.js"></script>
-<script src="js/components/BkModal.js"></script>
-<script src="js/components/BkPageHeader.js"></script>
-<script src="js/components/BkProgressBar.js"></script>
-<script src="js/components/BkTipBanner.js"></script>
-<script src="js/components/BkColorLegend.js"></script>
-			    <script src="js/component-loader.js"></script>
-<script src="js/vue-app.js"></script>
-
     <!-- Vue Templates -->
-<script type="text/x-template" id="home-page-template">
+<template id="home-page-template">
       <div class="home-page">
         <div class="hero-section">
           <div class="hero-icon">🇰🇷</div>
@@ -104,10 +84,10 @@
           <p>Basic Korean 启动包 {{ appVersion }} · 用最小系统启动一门新语言</p>
         </div>
       </div>
-    </script>
+    </template>
 
 	    <!-- StatsPanel Template -->
-	    <script type="text/x-template" id="stats-panel-template">
+	    <template id="stats-panel-template">
 	      <transition name="fade">
 	        <div v-if="isVisible" class="stats-overlay" @click="onClickOverlay">
 	          <div class="stats-panel">
@@ -143,21 +123,21 @@
 	          </div>
 	        </div>
 	      </transition>
-</script>
+</template>
 		
 		    <!-- Design System 组件模板 -->
-		    <script type="text/x-template" id="bk-button-template">
+		    <template id="bk-button-template">
 		      <button :class="classes" :disabled="disabled" @click="$emit('click')"><slot /></button>
-		    </script>
-		    <script type="text/x-template" id="bk-card-template">
+		    </template>
+		    <template id="bk-card-template">
 		      <div class="bk-card" :class="{ 'bk-card-hoverable': hoverable }" :style="'padding:var(--space-' + padding + ')'">
 		        <slot />
 		      </div>
-		    </script>
-		    <script type="text/x-template" id="bk-badge-template">
+		    </template>
+		    <template id="bk-badge-template">
 		      <span :class="classes"><slot /></span>
-		    </script>
-		    <script type="text/x-template" id="bk-modal-template">
+		    </template>
+		    <template id="bk-modal-template">
 		      <transition name="fade">
 		        <div v-if="visible" class="bk-modal-overlay" @click="onClickOverlay">
 		          <div class="bk-modal">
@@ -169,10 +149,10 @@
 		          </div>
 		        </div>
 		      </transition>
-</script>
+</template>
 
 		    <!-- Training Card Template -->
-		    <script type="text/x-template" id="training-card-template">
+		    <template id="training-card-template">
 		      <div class="sentence-card" :class="{ mastered: done }">
 		        <div class="sentence-group-badge">{{ sentence.group }}</div>
 		        <div class="sentence-kr" @click="toggleReveal">
@@ -196,10 +176,10 @@
 		          </button>
 		        </div>
 		      </div>
-		    </script>
+		    </template>
 
 		    <!-- Training Page Template -->
-			    <script type="text/x-template" id="training-page-template">
+			    <template id="training-page-template">
 			      <div class="training-page">
 			        <bk-page-header icon="🃏" title="抽丝训练" desc="点击韩文句子查看拆解，点击色块查看含义。已掌握在下，需练习在上。"></bk-page-header>
 			        <bk-progress-bar :done="doneCount" :total="sentences.length" label="已掌握"></bk-progress-bar>
@@ -217,10 +197,10 @@
 		          ></training-card>
 		        </div>
 		      </div>
-</script>
+</template>
 
 			    <!-- Reference Page Template -->
-				    <script type="text/x-template" id="reference-page-template">
+				    <template id="reference-page-template">
 				      <div class="reference-page">
 				        <bk-page-header icon="🏷️" title="拾遗" desc="助词、终结词尾、疑问词速查表"></bk-page-header>
 
@@ -276,10 +256,10 @@
 			          </div>
 			        </div>
 			      </div>
-</script>
+</template>
 
 <!-- Schedule Page Template -->
-					    <script type="text/x-template" id="schedule-page-template">
+					    <template id="schedule-page-template">
 					      <div class="schedule-page">
 					        <bk-page-header icon="🗓️" title="两周润物表" desc="每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。"></bk-page-header>
 					        <bk-tip-banner tip-id="schedule-tip">
@@ -301,10 +281,10 @@
 				          </div>
 				        </div>
 				      </div>
-				    </script>
+				    </template>
 
 				    <!-- Skeleton Page Template -->
-					    <script type="text/x-template" id="skeleton-page-template">
+					    <template id="skeleton-page-template">
 					      <div class="skeleton-page">
 					        <bk-page-header icon="🏗️" title="筑基" desc="7 大骨架规则 — 韩语句子的核心逻辑。理解它们，就能看懂 80% 的句子。"></bk-page-header>
 				        <div class="skeleton-actions">
@@ -338,10 +318,10 @@
 				          </transition>
 				        </div>
 				      </div>
-</script>
+</template>
 
     <!-- Stems Page Template -->
-    <script type="text/x-template" id="stems-page-template">
+    <template id="stems-page-template">
       <div class="stems-page">
         <div class="page-title">
           <h2>📝 剥茧</h2>
@@ -366,10 +346,10 @@
           </div>
         </div>
       </div>
-</script>
+</template>
 
     <!-- AI Page Template -->
-    <script type="text/x-template" id="ai-page-template">
+    <template id="ai-page-template">
       <div class="ai-page">
         <div class="page-title">
           <h2>🤖 砥砺</h2>
@@ -431,10 +411,10 @@
           </div>
         </div>
       </div>
-</script>
+</template>
 
     <!-- Scene Page Template -->
-    <script type="text/x-template" id="scene-page-template">
+    <template id="scene-page-template">
       <div class="scene-page">
         <!-- 选择模式 -->
         <div v-if="mode === 'select'">
@@ -511,33 +491,49 @@
           </div>
         </div>
       </div>
-    </script>
+    </template>
     <!-- PageHeader Template -->
-    <script type="text/x-template" id="bk-page-header-template">
+    <template id="bk-page-header-template">
       <div class="page-title">
         <h2>{{ icon }} {{ title }}</h2>
         <p v-if="desc">{{ desc }}</p>
       </div>
-    </script>
+    </template>
 
     <!-- ProgressBar Template -->
-    <script type="text/x-template" id="bk-progress-bar-template">
+    <template id="bk-progress-bar-template">
       <div class="progress-overview">
         <strong>{{ label }}</strong> {{ done }} / {{ total }} ({{ percent }}%)
         <div class="progress-bar"><div class="progress-fill" :style="'width:'+percent+'%'"></div></div>
       </div>
-    </script>
+    </template>
 
     <!-- TipBanner Template -->
-    <script type="text/x-template" id="bk-tip-banner-template">
+    <template id="bk-tip-banner-template">
       <div v-if="visible" class="tip-banner" :class="'tip-'+type"><slot /><button v-if="dismissable" class="tip-dismiss" @click="dismiss">✕</button></div>
-    </script>
+    </template>
 
     <!-- ColorLegend Template -->
-    <script type="text/x-template" id="bk-color-legend-template">
+    <template id="bk-color-legend-template">
       <div class="color-legend" :class="{compact:compact}"><span class="legend-label">🎨 词性标注：</span><span v-for="e in elems" :key="e.cls" :class="e.cls" style="padding:2px 8px;border-radius:6px;font-size:12px;">{{ e.label }}</span></div>
-    </script>
+    </template>
+<!-- 应用层 -->
+    <script src="js/app.js"></script>
+    <!-- Vue 3 渐进式迁移入口 -->
+<script src="js/components/HomePage.js"></script>
+			    <script src="js/components/StatsPanel.js"></script>
+			    <script src="js/components/BkButton.js"></script>
+			    <script src="js/components/BkCard.js"></script>
+			    <script src="js/components/BkBadge.js"></script>
+<script src="js/components/BkModal.js"></script>
+<script src="js/components/BkPageHeader.js"></script>
+<script src="js/components/BkProgressBar.js"></script>
+<script src="js/components/BkTipBanner.js"></script>
+<script src="js/components/BkColorLegend.js"></script>
+			    <script src="js/component-loader.js"></script>
+<script src="js/vue-app.js"></script>
 
+    
     <script>
 	  // 性能标记
 	  window.addEventListener('load', function() {

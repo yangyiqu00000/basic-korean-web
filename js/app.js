@@ -410,6 +410,24 @@ var revealObserver = null;
 var currentPage = "home";
 
 function navigate(page) {
+  // 如果 Vue 已激活，委托给 Vue 的路由（不再操作 innerHTML）
+  if (window.vueApp && typeof window.vueApp.navigate === 'function') {
+    window.vueApp.navigate(page);
+    // 但仍需更新导航高亮、关闭移动端菜单
+    var nav = document.getElementById('mainNav');
+    if (nav && nav.classList.contains('open')) {
+      nav.classList.remove('open');
+      var btn = document.querySelector('.mobile-menu-btn');
+      if (btn) btn.textContent = '☰';
+    }
+    currentPage = page;
+    document.querySelectorAll(".nav-item").forEach(el => {
+      var match = el.dataset.page === page || (page === "sceneChat" && el.dataset.page === "scene");
+      el.classList.toggle("active", match);
+    });
+    return;
+  }
+
   // 关闭移动端菜单
   var nav = document.getElementById('mainNav');
   if (nav && nav.classList.contains('open')) {
@@ -1329,7 +1347,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(function(e) {});
   }
-  navigate("home");
+  // 首页初始渲染：HTML 已有 <component :is="currentView">，Vue 接管后自动渲染
+  // 此处只需更新导航高亮，不覆盖 Vue 的挂载点
+  document.querySelectorAll(".nav-item").forEach(function(el) {
+    el.classList.toggle("active", el.dataset.page === "home");
+  });
   // 首次访问：显示新手引导
   if (!localStorage.getItem("korean_onboarded")) { setTimeout(showOnboarding, 300); }
   // 移动端：点击页面其它区域（header 之外）时收起导航下拉

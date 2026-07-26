@@ -1,0 +1,10 @@
+# Cloudflare Pages deploy ignore
+node_modules/
+.worktrees/
+.git/
+.gitignore
+*.md
+docs/
+tests/
+output/
+.playwright-cli/
