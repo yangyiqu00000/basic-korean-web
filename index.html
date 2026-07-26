@@ -73,8 +73,9 @@
 <script src="js/components/BkModal.js"></script>
 		    <script src="js/components/TrainingCard.js"></script>
 <script src="js/components/TrainingPage.js"></script>
-			    <script src="js/components/ReferencePage.js"></script>
-			    <script src="js/vue-app.js"></script>
+<script src="js/components/ReferencePage.js"></script>
+				    <script src="js/components/SchedulePage.js"></script>
+				    <script src="js/vue-app.js"></script>
 
     <!-- Vue Templates -->
 <script type="text/x-template" id="home-page-template">
@@ -281,8 +282,41 @@
 			          </div>
 			        </div>
 			      </div>
+</script>
+
+			    <!-- Schedule Page Template -->
+			    <script type="text/x-template" id="schedule-page-template">
+			      <div class="schedule-page">
+			        <div class="page-title">
+			          <h2>🗓️ 两周润物表</h2>
+			          <p>每天 20 分钟，不多也不少。关键不是学了多少，而是每天都有。</p>
+			        </div>
+			        <div class="tip-banner">
+			          <strong>⚡ 核心原则</strong><br>
+			          ① 20 分钟到就停<br>
+			          ② 不追求完美<br>
+			          ③ 重复比新学重要<br>
+			          ④ 所有句子至少读出声 1 遍
+			        </div>
+			        <div class="progress-overview">
+			          <strong>📊 学习进度</strong> {{ doneCount }} / {{ totalCount }} ({{ percent }}%)
+			          <div class="progress-bar">
+			            <div class="progress-fill" :style="'width:' + percent + '%'"></div>
+			          </div>
+			        </div>
+			        <div class="schedule-grid">
+			          <div class="day-card" v-for="(day, di) in schedule" :key="day.day">
+			            <div class="day-num">Day {{ day.day }}</div>
+			            <div class="day-title">{{ day.title }}</div>
+			            <div class="task" v-for="(task, ti) in day.tasks" :key="ti" @click="toggleCheck(di, ti)">
+			              <span class="check" :class="{ done: isDone(di, ti) }"></span>
+			              {{ task }}
+			            </div>
+			          </div>
+			        </div>
+			      </div>
 			    </script>
-			</body>
+				</body>
 </html>
 
 <script>

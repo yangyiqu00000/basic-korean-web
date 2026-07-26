@@ -55,7 +55,8 @@
     'bk-modal': window.BkModalComponent,
 'training-card': window.TrainingCardComponent,
 	    'training-page': window.TrainingPageComponent,
-	    'reference-page': window.ReferencePageComponent
+	    'reference-page': window.ReferencePageComponent,
+	    'schedule-page': window.SchedulePageComponent
   };
   Object.keys(componentMap).forEach(function(name) {
     if (componentMap[name]) {

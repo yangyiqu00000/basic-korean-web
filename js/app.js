@@ -916,6 +916,9 @@ var SCHEDULE = [
 ];
 
 function renderSchedule() {
+  if (window.vueApp) {
+    return '<div><schedule-page></schedule-page></div>';
+  }
 
   let progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
 

@@ -596,6 +596,21 @@ body {
 .day-card .check.done { background: var(--success); border-color: var(--success); position: relative; }
 .day-card .check.done::after { content: "✓"; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 11px; font-weight: 700; }
 
+/* ---- Schedule Page Progress ---- */
+.progress-overview {
+  margin-bottom: 16px; padding: 14px;
+  background: var(--primary-lighter); border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 500;
+}
+.progress-overview .progress-bar {
+  margin-top: 8px; height: 8px; background: var(--card-bg);
+  border-radius: 4px; overflow: hidden;
+}
+.progress-overview .progress-fill {
+  height: 100%; background: var(--primary);
+  transition: width 0.3s ease;
+}
+
 /* ---- Reference Table ---- */
 .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .ref-table th { background: var(--primary-lighter); color: var(--primary); padding: 10px 14px; text-align: left; font-weight: 600; }
