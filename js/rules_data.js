@@ -1,6 +1,6 @@
 
 // Rules Data - 7 大骨架规则
-const RULES = [
+var RULES = [
   {
     id: 1,
     title: "句尾规则：主宾谓结构",

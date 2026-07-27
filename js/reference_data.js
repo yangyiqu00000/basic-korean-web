@@ -1,5 +1,5 @@
 // Reference Data - 标签速查
-const REFERENCE = {
+var REFERENCE = {
   particles: [
     { tag: "은/는", type: "主题标记", meaning: "至于…", level: "核心", example: "저는 (至于我)" },
     { tag: "이/가", type: "主语标记", meaning: "谁/什么作主语", level: "核心", example: "날씨가 (天气)" },

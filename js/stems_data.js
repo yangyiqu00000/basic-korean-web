@@ -1,6 +1,6 @@
 // Stems Data - 核心词干
 // 所有例句统一用 -요 体活用形，让学习者直接看到"词干 + 词尾 = 完整句子"
-const STEMS = {
+var STEMS = {
   verbs: [
     { stem: "가", proto: "가다", meaning: "去", example: "학교에 가요" },
     { stem: "오", proto: "오다", meaning: "来", example: "집에 와요" },

@@ -1,7 +1,7 @@
 // Basic Korean Web App - Data Layer
 // This file contains all learning data
 
-const DATA = {
+var DATA = {
   version: "1.0",
   built: "2026-07-04"
 };

@@ -1,5 +1,5 @@
 // Training Sentences Data - 断句训练
-const SENTENCES = [
+var SENTENCES = [
   {
     id: 1, group: "自我介绍",
     kr: "저는 학생이에요.",
