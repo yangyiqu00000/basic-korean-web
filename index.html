@@ -518,27 +518,9 @@
     <template id="bk-color-legend-template">
       <div class="color-legend" :class="{compact:compact}"><span class="legend-label">🎨 词性标注：</span><span v-for="e in elems" :key="e.cls" :class="e.cls" style="padding:2px 8px;border-radius:6px;font-size:12px;">{{ e.label }}</span></div>
     </template>
-<!-- 应用层 -->
-    <script src="js/app.js"></script>
-    <!-- Vue 3 渐进式迁移入口 -->
-<script src="js/components/HomePage.js"></script>
-			    <script src="js/components/StatsPanel.js"></script>
-			    <script src="js/components/BkButton.js"></script>
-			    <script src="js/components/BkCard.js"></script>
-			    <script src="js/components/BkBadge.js"></script>
-<script src="js/components/BkModal.js"></script>
-<script src="js/components/BkPageHeader.js"></script>
-<script src="js/components/BkProgressBar.js"></script>
-<script src="js/components/BkTipBanner.js"></script>
-	<script src="js/components/BkColorLegend.js"></script>
-	<script src="js/components/SkeletonPage.js"></script>
-	<script src="js/components/TrainingCard.js"></script>
-	<script src="js/components/TrainingPage.js"></script>
-	<script src="js/components/StemsPage.js"></script>
-	<script src="js/components/AiPage.js"></script>
-	<script src="js/components/ScenePage.js"></script>
-	<script src="js/components/SchedulePage.js"></script>
-	<script src="js/components/ReferencePage.js"></script>
+	<!-- 应用层 -->
+	<script src="js/app.js"></script>
+	<!-- Vue 3 (仅注册 Design System 组件，不接管渲染) -->
 	<script src="js/vue-app.js"></script>
 
     
