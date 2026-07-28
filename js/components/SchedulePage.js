@@ -6,7 +6,7 @@
   window.SchedulePageComponent = {
     template: '<div class="schedule-page-vue"></div>',
     mounted: function() {
-      var fn = window['renderSchedulePage'];
+      var fn = window.renderSchedule;
       if (typeof fn === 'function') {
         this.$el.innerHTML = fn();
       }

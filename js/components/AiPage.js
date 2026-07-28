@@ -6,7 +6,7 @@
   window.AiPageComponent = {
     template: '<div class="ai-page-vue"></div>',
     mounted: function() {
-      var fn = window['renderAiPage'];
+      var fn = window.renderAI;
       if (typeof fn === 'function') {
         this.$el.innerHTML = fn();
       }

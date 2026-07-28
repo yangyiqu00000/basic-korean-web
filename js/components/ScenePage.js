@@ -6,7 +6,7 @@
   window.ScenePageComponent = {
     template: '<div class="scene-page-vue"></div>',
     mounted: function() {
-      var fn = window['renderScenePage'];
+      var fn = window.renderScene;
       if (typeof fn === 'function') {
         this.$el.innerHTML = fn();
       }

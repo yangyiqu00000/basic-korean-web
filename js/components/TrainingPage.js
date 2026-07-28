@@ -6,7 +6,7 @@
   window.TrainingPageComponent = {
     template: '<div class="training-page-vue"></div>',
     mounted: function() {
-      var fn = window['renderTrainingPage'];
+      var fn = window.renderTraining;
       if (typeof fn === 'function') {
         this.$el.innerHTML = fn();
       }
