@@ -4,11 +4,11 @@
   if (typeof Vue === 'undefined') return;
 
   window.StemsPageComponent = {
-    template: '<div class="stems-page-vue"></div>',
-    mounted: function() {
-      var fn = window['renderStemsPage'];
-      if (typeof fn === 'function') {
-        this.$el.innerHTML = fn();
+    template: '<div class="stems-page-vue" v-once v-html="pageHtml"></div>',
+    computed: {
+      pageHtml: function() {
+        if (typeof window.renderStems === 'function') return window.renderStems();
+        return '';
       }
     }
   };

@@ -4,11 +4,11 @@
   if (typeof Vue === 'undefined') return;
 
   window.ReferencePageComponent = {
-    template: '<div class="reference-page-vue"></div>',
-    mounted: function() {
-      var fn = window['renderReferencePage'];
-      if (typeof fn === 'function') {
-        this.$el.innerHTML = fn();
+    template: '<div class="reference-page-vue" v-once v-html="pageHtml"></div>',
+    computed: {
+      pageHtml: function() {
+        if (typeof window.renderReference === 'function') return window.renderReference();
+        return '';
       }
     }
   };

@@ -4,11 +4,11 @@
   if (typeof Vue === 'undefined') return;
 
   window.AiPageComponent = {
-    template: '<div class="ai-page-vue"></div>',
-    mounted: function() {
-      var fn = window['renderAiPage'];
-      if (typeof fn === 'function') {
-        this.$el.innerHTML = fn();
+    template: '<div class="ai-page-vue" v-once v-html="pageHtml"></div>',
+    computed: {
+      pageHtml: function() {
+        if (typeof window.renderAI === 'function') return window.renderAI();
+        return '';
       }
     }
   };

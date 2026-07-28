@@ -4,11 +4,11 @@
   if (typeof Vue === 'undefined') return;
 
   window.ScenePageComponent = {
-    template: '<div class="scene-page-vue"></div>',
-    mounted: function() {
-      var fn = window['renderScenePage'];
-      if (typeof fn === 'function') {
-        this.$el.innerHTML = fn();
+    template: '<div class="scene-page-vue" v-once v-html="pageHtml"></div>',
+    computed: {
+      pageHtml: function() {
+        if (typeof window.renderScene === 'function') return window.renderScene();
+        return '';
       }
     }
   };

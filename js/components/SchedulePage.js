@@ -4,11 +4,11 @@
   if (typeof Vue === 'undefined') return;
 
   window.SchedulePageComponent = {
-    template: '<div class="schedule-page-vue"></div>',
-    mounted: function() {
-      var fn = window['renderSchedulePage'];
-      if (typeof fn === 'function') {
-        this.$el.innerHTML = fn();
+    template: '<div class="schedule-page-vue" v-once v-html="pageHtml"></div>',
+    computed: {
+      pageHtml: function() {
+        if (typeof window.renderSchedule === 'function') return window.renderSchedule();
+        return '';
       }
     }
   };

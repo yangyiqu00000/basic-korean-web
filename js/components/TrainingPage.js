@@ -4,11 +4,11 @@
   if (typeof Vue === 'undefined') return;
 
   window.TrainingPageComponent = {
-    template: '<div class="training-page-vue"></div>',
-    mounted: function() {
-      var fn = window['renderTrainingPage'];
-      if (typeof fn === 'function') {
-        this.$el.innerHTML = fn();
+    template: '<div class="training-page-vue" v-once v-html="pageHtml"></div>',
+    computed: {
+      pageHtml: function() {
+        if (typeof window.renderTraining === 'function') return window.renderTraining();
+        return '';
       }
     }
   };
