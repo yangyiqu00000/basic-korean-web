@@ -40,10 +40,10 @@
           var cbs = pending[name];
           delete pending[name];
           cbs.forEach(function(fn) { fn(window[name + 'Component']); });
-          // 注册到 Vue 应用
-          if (window.vueApp && window[name + 'Component']) {
+          // 注册到 Vue 应用（使用挂载前的 app 实例，mount 后 .component() 不可用）
+          if (window.vueAppInstance && window[name + 'Component']) {
             var kebab = name.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
-            window.vueApp.component(kebab, window[name + 'Component']);
+            window.vueAppInstance.component(kebab, window[name + 'Component']);
           }
         };
         script.onerror = function() {
