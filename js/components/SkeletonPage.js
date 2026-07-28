@@ -4,10 +4,13 @@
   if (typeof Vue === 'undefined') return;
 
   window.SkeletonPageComponent = {
-    template: '<div class="skeleton-page-vue"></div>',
-    mounted: function() {
-      if (typeof window.renderSkeleton === 'function') {
-        this.$el.innerHTML = window.renderSkeleton();
+    template: '<div class="skeleton-page-vue" v-once v-html="skeletonHtml"></div>',
+    computed: {
+      skeletonHtml: function() {
+        if (typeof window.renderSkeleton === 'function') {
+          return window.renderSkeleton();
+        }
+        return '';
       }
     }
   };
