@@ -1354,7 +1354,7 @@ body {
     border-top: 1px solid var(--border);
     margin-top: var(--space-sm, 8px);
   }
-  .nav.open {
+  .nav.show {
     display: flex;
   }
   .nav-item {

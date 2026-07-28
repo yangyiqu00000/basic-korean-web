@@ -408,8 +408,8 @@ var currentPage = "home";
 function navigate(page) {
   // 关闭移动端菜单（无论 Vue 是否激活都要执行）
   var nav = document.getElementById('mainNav');
-  if (nav && nav.classList.contains('open')) {
-    nav.classList.remove('open');
+  if (nav && nav.classList.contains('show')) {
+    nav.classList.remove('show');
     var btn = document.querySelector('.mobile-menu-btn');
     if (btn) btn.textContent = '☰';
   }
