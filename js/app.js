@@ -5,7 +5,7 @@
 // 统一色彩系统 - 词性 → CSS class
 // ============================================
 // TTS / AI 服务地址：前端只连本地，需与 tts_server 绑定的 127.0.0.1 保持一致
-var TTS_BASE = "http://" + "127.0.0.1:1234";
+var TTS_BASE = location.hostname === "127.0.0.1" || location.hostname === "localhost" ? "http://" + "127.0.0.1:1234" : "";
 
 var APP_VERSION = "1.0.0";
 var APP_LAST_COMMIT = "78da555 feat: 交叉链接";
