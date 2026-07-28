@@ -1,6 +1,6 @@
-// Basic Korean Web — Service Worker v2
+// Basic Korean Web — Service Worker v3
 // 缓存核心静态资源，支持离线学习
-const CACHE = "basic-korean-v2";
+const CACHE = "basic-korean-v3";
 const URLS = [
   "/",
   "/index.html",
@@ -13,6 +13,13 @@ const URLS = [
   "/js/app.js",
   "/js/vue-app.js",
   "/js/components/HomePage.js",
+  "/js/components/SkeletonPage.js",
+  "/js/components/TrainingPage.js",
+  "/js/components/StemsPage.js",
+  "/js/components/AiPage.js",
+  "/js/components/ScenePage.js",
+  "/js/components/SchedulePage.js",
+  "/js/components/ReferencePage.js",
   "/js/components/StatsPanel.js",
   "/manifest.json",
   "/assets/icon-192.svg",
