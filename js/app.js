@@ -351,14 +351,18 @@ function setVoice(voice) {
 }
 
 function speakKorean(text) {
-  // 远程部署（无 TTS 服务器）：直接用浏览器 Web Speech API
+  // 远程部署：尝试 TTS API，失败则走浏览器 Web Speech API
   if (!TTS_BASE) {
-    if (window.speechSynthesis) {
-      var utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "ko-KR";
-      utter.rate = 0.9;
-      speechSynthesis.speak(utter);
-    }
+    var audio = new Audio("/tts?text=" + encodeURIComponent(text) + "&voice=" + encodeURIComponent(getVoice()));
+    audio.addEventListener("canplaythrough", function() { audio.play(); });
+    audio.addEventListener("error", function() {
+      if (window.speechSynthesis) {
+        var utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "ko-KR";
+        utter.rate = 0.9;
+        speechSynthesis.speak(utter);
+      }
+    });
     return;
   }
 
