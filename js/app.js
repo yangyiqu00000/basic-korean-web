@@ -1900,10 +1900,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("unhandledrejection", function(e) { showToast("⚠️ 请求异常，请检查 TTS+AI 服务是否正常运行。"); console.error(e); });
   initTheme();
   initCardGlow();
-  // 注册 Service Worker（PWA 离线缓存）
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").catch(function(e) {});
-  }
   navigate("home");
   // 首次访问：显示新手引导
   if (!localStorage.getItem("korean_onboarded")) { setTimeout(showOnboarding, 300); }

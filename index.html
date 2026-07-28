@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Basic Korean 🇰🇷 - 韩语最小可行系统</title>
-    <link rel="stylesheet" href="css/style.css">
+	    <link rel="stylesheet" href="css/style.css?v=20260728">
     <!-- 预加载关键资源 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Vue 3 (CDN, 零构建渐进式) -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- 清理 Service Worker 缓存，确保加载最新文件 -->
+    <script>
+    (async function() {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) { await reg.unregister(); }
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (const key of keys) { await caches.delete(key); }
+        }
+      } catch(e) { console.warn('SW cleanup:', e); }
+    })();
+    </script>
 </head>
 <body>
     <div id="app">
@@ -63,20 +78,20 @@
     <script src="js/stems_data.js"></script>
     <script src="js/sentences_data.js"></script>
     <script src="js/reference_data.js"></script>
-    <!-- Vue Templates -->
-<!-- 应用层 -->
-	<script src="js/app.js"></script>
-	<!-- Vue 页面组件（容器 + 委托原始渲染） -->
-	<script src="js/components/HomePage.js"></script>
-	<script src="js/components/SkeletonPage.js"></script>
-	<script src="js/components/TrainingPage.js"></script>
-	<script src="js/components/StemsPage.js"></script>
-	<script src="js/components/AiPage.js"></script>
-	<script src="js/components/ScenePage.js"></script>
-	<script src="js/components/SchedulePage.js"></script>
-	<script src="js/components/ReferencePage.js"></script>
-	<!-- Vue 3：注册组件 + 接管路由 -->
-	<script src="js/vue-app.js"></script>
+	    <!-- 老的 Service Worker 注册已移除，避免缓存干扰开发 -->
+		<script src="js/app.js?v=20260728"></script>
+		<!-- Vue 页面组件（容器 + 委托原始渲染） -->
+		<script src="js/components/HomePage.js?v=20260728"></script>
+		<script src="js/components/SkeletonPage.js?v=20260728"></script>
+		<script src="js/components/TrainingPage.js?v=20260728"></script>
+		<script src="js/components/StemsPage.js?v=20260728"></script>
+		<script src="js/components/AiPage.js?v=20260728"></script>
+		<script src="js/components/ScenePage.js?v=20260728"></script>
+		<script src="js/components/SchedulePage.js?v=20260728"></script>
+		<script src="js/components/ReferencePage.js?v=20260728"></script>
+		<!-- Vue 3：注册组件 + 接管路由 -->
+		<script src="js/vue-app.js?v=20260728"></script>
+	</body>
 
     
     <script>
@@ -92,9 +107,3 @@
 </script>
 </body>
 </html>
-
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
-</script>
