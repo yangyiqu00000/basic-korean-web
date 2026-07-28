@@ -9,7 +9,7 @@
   }
 
   var app = Vue.createApp({
-    template: '<component :is="currentView"></component>',
+    template: '<component :is="currentView" :key="pageKey"></component>',
     data: function() {
       return {
         currentPage: 'home',
@@ -32,6 +32,11 @@
           'reference': 'reference-page'
         };
         return map[this.currentPage] || 'home-page';
+      },
+      pageKey: function() {
+        // 临境页面有双模式（列表/对话），用 key 强制重建组件
+        if (this.currentPage === 'sceneChat') return 'scene-chat';
+        return this.currentPage;
       }
     },
     methods: {
