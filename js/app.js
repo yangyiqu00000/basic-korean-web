@@ -1742,6 +1742,12 @@ function sendChatMessage() {
 }
 
 function refreshChatUI() {
+  // Vue 激活时：触发场景组件重新渲染（通过重新导航）
+  if (window.vueApp && typeof window.vueApp.navigate === 'function') {
+    window.vueApp.navigate("sceneChat");
+    return;
+  }
+  // 传统模式：直接替换内容
   var main = document.getElementById("mainContent");
   main.innerHTML = renderSceneChat();
   main.classList.remove("page-enter");

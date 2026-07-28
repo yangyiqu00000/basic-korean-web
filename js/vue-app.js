@@ -27,6 +27,7 @@
           'stems': 'stems-page',
           'ai': 'ai-page',
           'scene': 'scene-page',
+          'sceneChat': 'scene-page',
           'schedule': 'schedule-page',
           'reference': 'reference-page'
         };
