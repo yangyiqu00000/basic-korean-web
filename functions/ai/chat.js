@@ -64,8 +64,14 @@ export async function onRequestPost(context) {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
-    // 尝试解析 JSON（服务端可能返回 markdown 包裹）
+    // 尝试解析 JSON：有些 AI 在 JSON 前后会附带口语化文本
     let jsonText = content.trim();
+    // 从第一个 { 开始截取
+    const jsonStart = jsonText.indexOf('{');
+    const jsonEnd = jsonText.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+    }
     jsonText = jsonText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     
     try {
