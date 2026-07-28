@@ -351,6 +351,17 @@ function setVoice(voice) {
 }
 
 function speakKorean(text) {
+  // 远程部署（无 TTS 服务器）：直接用浏览器 Web Speech API
+  if (!TTS_BASE) {
+    if (window.speechSynthesis) {
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ko-KR";
+      utter.rate = 0.9;
+      speechSynthesis.speak(utter);
+    }
+    return;
+  }
+
   // 如果缓存里有，直接播
   if (audioCache[text]) {
     audioCache[text].play();
