@@ -6,7 +6,7 @@
   window.StemsPageComponent = {
     template: '<div class="stems-page-vue"></div>',
     mounted: function() {
-      var fn = window.renderStems;
+      var fn = window['renderStemsPage'];
       if (typeof fn === 'function') {
         this.$el.innerHTML = fn();
       }

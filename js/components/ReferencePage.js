@@ -6,7 +6,7 @@
   window.ReferencePageComponent = {
     template: '<div class="reference-page-vue"></div>',
     mounted: function() {
-      var fn = window.renderReference;
+      var fn = window['renderReferencePage'];
       if (typeof fn === 'function') {
         this.$el.innerHTML = fn();
       }
