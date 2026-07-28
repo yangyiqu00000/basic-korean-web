@@ -636,7 +636,7 @@ function renderSkeleton() {
           <span class="arrow">▼</span>
         </button>
         <div class="rule-body" id="ruleBody${idx}">
-          <p style="color:var(--text-light);font-size:14px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:12px;">${rule.details.replace(/\\n/g, "<br>")}</p>
+          <p style="color:var(--text-light);font-size:14px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:12px;">${rule.details.replace(/\n/g, "<br>")}</p>
           <div style="font-weight:600;font-size:14px;margin-bottom:8px;">📖 例句拆解</div>
           ${examplesHtml}
           <div style="margin-top:12px;padding:10px 14px;background:var(--accent-light);border-radius:8px;font-size:13px;">
