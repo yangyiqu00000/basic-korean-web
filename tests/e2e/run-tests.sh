@@ -166,7 +166,9 @@ echo "$KEY_DEL" | grep -A1 '### Result' | grep -qx 'true' && pass "删除场景�
 CARD_GONE=$(run_code "async () => { await new Promise(r => setTimeout(r, 200)); return document.querySelectorAll('.scene-card-custom').length === 0; }")
 echo "$CARD_GONE" | grep -A1 '### Result' | grep -qx 'true' && pass "删除后卡片即时消失" || fail "删除后卡片即时消失"
 #   断言6 keyClearOk = 清空训练数据后 pageKey 变化 + 进度即时刷新为 0 / 43
-KEY_CLEAR=$(run_code "async () => { window.navigate('training'); await new Promise(r => setTimeout(r, 400)); window.trainingDone = { '1': true, '2': true }; localStorage.setItem('korean_training_done', JSON.stringify(window.trainingDone)); var k3 = window.vueApp.pageKey; window.confirm = function(){ return true; }; window.clearData('korean_training_done', '抽丝训练进度'); await new Promise(r => setTimeout(r, 500)); return window.vueApp.pageKey !== k3; }")
+#   P1-1 改造：clearData 不再用原生 confirm()，改走 bkConfirm 自定义模态（默认聚焦取消）——
+#   测试须模拟「点击确定」即调用 window.bkConfirmOk() 才能触发清空回调。
+KEY_CLEAR=$(run_code "async () => { window.navigate('training'); await new Promise(r => setTimeout(r, 400)); window.trainingDone = { '1': true, '2': true }; localStorage.setItem('korean_training_done', JSON.stringify(window.trainingDone)); var k3 = window.vueApp.pageKey; window.clearData('korean_training_done', '抽丝训练进度'); await new Promise(r => setTimeout(r, 200)); if (typeof window.bkConfirmOk === 'function') window.bkConfirmOk(); await new Promise(r => setTimeout(r, 500)); return window.vueApp.pageKey !== k3; }")
 echo "$KEY_CLEAR" | grep -A1 '### Result' | grep -qx 'true' && pass "清空数据后 pageKey 变化" || fail "清空数据后 pageKey 变化"
 #   断言7 progZero = 清空后训练进度文本即时变为 0 / 43
 PROG_ZERO=$(run_code "async () => { var el = document.getElementById('trainingProgress'); return !!(el && el.textContent.trim() === '0 / 43'); }")

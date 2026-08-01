@@ -169,6 +169,16 @@ const AUDIO_HEADERS = {
   'Access-Control-Allow-Origin': '*'
 };
 
+// P1-9 服务端音频缓存（Cache API，同 text+voice 幂等命中直接返回，减少 Edge/付费端点调用）
+// 键：text+voice 的稳定 URL（query 顺序固定），命中即返回缓存音频。
+// 注意：必须在调用处内联 context.waitUntil(...)，不可把方法脱离 this 传递。
+async function ttsCachePut(key, resp, context) {
+  try {
+    const clone = resp.clone();
+    context.waitUntil(caches.default.put(key, clone));
+  } catch (e) { /* 缓存失败不影响主流程 */ }
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -182,6 +192,14 @@ export async function onRequest(context) {
   if (!/^[A-Za-z0-9-]+$/.test(voice)) {
     return new Response('Invalid voice', { status: 400 });
   }
+
+  // === P1-9 缓存层：同 text+voice 命中直接返回 ===
+  // 缓存键 = 请求 URL 本身（text/voice 已编码进 query，同一请求天然幂等）
+  const cacheReq = new Request(request.url, { method: "GET" });
+  try {
+    const hit = await caches.default.match(cacheReq);
+    if (hit && hit.ok) return hit;
+  } catch (e) {}
 
   // === 1) 优先方案：Google Cloud TTS（需配置 GOOGLE_TTS_API_KEY）===
   if (env.GOOGLE_TTS_API_KEY) {
@@ -206,7 +224,9 @@ export async function onRequest(context) {
         const data = await resp.json();
         const audioContent = data.audioContent; // base64
         const audioBuffer = Uint8Array.from(atob(audioContent), c => c.charCodeAt(0));
-        return new Response(audioBuffer, { status: 200, headers: AUDIO_HEADERS });
+        const out = new Response(audioBuffer, { status: 200, headers: AUDIO_HEADERS });
+        await ttsCachePut(cacheReq, out, context);
+        return out;
       }
     } catch (e) {
       console.error('Google TTS failed:', e);
@@ -236,7 +256,9 @@ export async function onRequest(context) {
       );
 
       if (resp.ok) {
-        return new Response(resp.body, { status: 200, headers: AUDIO_HEADERS });
+        const out = new Response(resp.body, { status: 200, headers: AUDIO_HEADERS });
+        await ttsCachePut(cacheReq, out, context);
+        return out;
       }
     } catch (e) {
       console.error('Azure TTS failed:', e);
@@ -249,7 +271,9 @@ export async function onRequest(context) {
   if (env.EDGE_TTS_ENABLED && text.length <= 500) {
     try {
       const audio = await synthesizeEdge(text, voice);
-      return new Response(audio, { status: 200, headers: AUDIO_HEADERS });
+      const out = new Response(audio, { status: 200, headers: AUDIO_HEADERS });
+      await ttsCachePut(cacheReq, out, context);
+      return out;
     } catch (e) {
       console.error('Edge TTS failed:', e.message);
       // 落入最终降级

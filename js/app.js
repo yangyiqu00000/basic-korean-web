@@ -136,10 +136,15 @@ function renderStatsContent() {
   var trainingDoneCount = Object.values(trainingDone).filter(function(v) { return v; }).length;
   var totalSentences = SENTENCES.length;
   var theme = document.documentElement.getAttribute("data-theme") === "dark" ? "暗色" : "亮色";
+  // P2-1 学习洞察：连续学习天数 + 本周新收藏（本地估算，登录后由 /api/stats 徽标补充云端聚合）
+  var streakDays = calcLocalStreak();
+  var weekCols = calcWeekCollections();
   return '' +
     '<div class="stats-modal">' +
       '<button class="stats-close" onclick="closeStats()">✕</button>' +
       '<h2>📊 学习统计</h2>' +
+      '<div class="stats-row stats-row-highlight"><span>🔥 连续学习</span><span class="stat-value" id="statStreak">' + streakDays + ' 天</span></div>' +
+      '<div class="stats-row"><span>🆕 本周新收藏</span><span class="stat-value" id="statWeek">' + weekCols + ' 条</span></div>' +
       '<div class="stats-row"><span>📝 抽丝训练</span><span class="stat-value" id="statTraining">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
       '<div class="stats-row"><span>🗓️ 润物表</span><span class="stat-value" id="statSchedule">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
       '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value" id="statAI">' + aiHistory.length + ' 次</span></div>' +
@@ -172,34 +177,66 @@ function renderStatsContent() {
     '</div>';
 }
 
+// P2-1 本地学习洞察计算：连续学习天数（以 AI/场景/收藏的活动日期为准，今天或昨天为锚点）
+function calcLocalStreak() {
+  var daySet = new Set();
+  function addDay(ts) {
+    if (!ts) return;
+    var d = new Date(ts);
+    daySet.add(d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate());
+  }
+  safeParse(localStorage.getItem("korean_ai_history"), []).forEach(function(h) { addDay(h.time); });
+  safeParse(localStorage.getItem("korean_scene_history"), []).forEach(function(h) { addDay(h.time); });
+  getCollections().forEach(function(c) { addDay(c.createdAt); });
+  if (daySet.size === 0) return 0;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var dayMs = 86400000;
+  var streak = 0;
+  var cur = new Date(today);
+  // 今天没学则从昨天起算（仍算连续）
+  if (!daySet.has(cur.getFullYear() + "-" + (cur.getMonth() + 1) + "-" + cur.getDate())) {
+    cur = new Date(cur.getTime() - dayMs);
+  }
+  while (daySet.has(cur.getFullYear() + "-" + (cur.getMonth() + 1) + "-" + cur.getDate())) {
+    streak++;
+    cur = new Date(cur.getTime() - dayMs);
+  }
+  return streak;
+}
+function calcWeekCollections() {
+  var weekAgo = Date.now() - 7 * 86400000;
+  return getCollections().filter(function(c) { return c.createdAt && c.createdAt >= weekAgo; }).length;
+}
+
 // 清空指定 localStorage 数据（带确认）
 function clearData(key, name) {
-  if (!confirm('确定将「' + name + '」清空？此操作不可恢复。')) return;
-  var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme"] : [key];
-  // Phase 2：词句表是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
-  var colSnapshot = (typeof syncCollectDelete === "function" && (key === "ALL" || key === "korean_collections")) ? getCollections() : [];
-  // Phase 3：场景记录级，重置前快照本地有 id 的条目（我的场景 + 对话记录镜像），清空后逐条删云端
-  var sceneSnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_custom_scenes"))
-    ? safeParse(localStorage.getItem("korean_custom_scenes"), []).filter(function(s) { return s.id; }) : [];
-  var historySnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_scene_history"))
-    ? safeParse(localStorage.getItem("korean_scene_history"), []).filter(function(h) { return h.id; }) : [];
-  keys.forEach(function(k) { localStorage.removeItem(k); });
-  // Phase 2：同步 key 必须写墓碑（clearedAt），否则另一设备拉取并集/合并会复活已清空的数据
-  keys.forEach(function(k) {
-    if (typeof syncClearBlob === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
-      syncClearBlob(k);
-      syncPut(k, SYNC_TYPES[SYNC_BLOB_MAP[k]] === "map" ? {} : []);
-    }
+  bkConfirm('确定将「' + name + '」清空？此操作不可恢复。', function() {
+    var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme"] : [key];
+    // Phase 2：词句表是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
+    var colSnapshot = (typeof syncCollectDelete === "function" && (key === "ALL" || key === "korean_collections")) ? getCollections() : [];
+    // Phase 3：场景记录级，重置前快照本地有 id 的条目（我的场景 + 对话记录镜像），清空后逐条删云端
+    var sceneSnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_custom_scenes"))
+      ? safeParse(localStorage.getItem("korean_custom_scenes"), []).filter(function(s) { return s.id; }) : [];
+    var historySnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_scene_history"))
+      ? safeParse(localStorage.getItem("korean_scene_history"), []).filter(function(h) { return h.id; }) : [];
+    keys.forEach(function(k) { localStorage.removeItem(k); });
+    // Phase 2：同步 key 必须写墓碑（clearedAt），否则另一设备拉取并集/合并会复活已清空的数据
+    keys.forEach(function(k) {
+      if (typeof syncClearBlob === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
+        syncClearBlob(k);
+        syncPut(k, SYNC_TYPES[SYNC_BLOB_MAP[k]] === "map" ? {} : []);
+      }
+    });
+    colSnapshot.forEach(function(c) { syncCollectDelete(c.id, c.type, c.text); });
+    sceneSnapshot.forEach(function(s) { syncSceneDelete(s.id); });
+    historySnapshot.forEach(function(h) { syncSceneDelete(h.id); });
+    // 重置模块级变量
+    if (key === "ALL" || key === "korean_training_done") { trainingDone = {}; }
+    if (key === "ALL" || key === "korean_ai_history") { aiHistory = []; }
+    closeStats();
+    setTimeout(function() { refreshCurrentPage(); }, 100);
+    showToast('已清空「' + name + '」');
   });
-  colSnapshot.forEach(function(c) { syncCollectDelete(c.id, c.type, c.text); });
-  sceneSnapshot.forEach(function(s) { syncSceneDelete(s.id); });
-  historySnapshot.forEach(function(h) { syncSceneDelete(h.id); });
-  // 重置模块级变量
-  if (key === "ALL" || key === "korean_training_done") { trainingDone = {}; }
-  if (key === "ALL" || key === "korean_ai_history") { aiHistory = []; }
-  closeStats();
-  setTimeout(function() { refreshCurrentPage(); }, 100);
-  showToast('已清空「' + name + '」');
 }
 
 // 导出全部学习数据为 JSON 备份文件
@@ -230,19 +267,24 @@ function importAllData(input) {
   reader.onload = function(e) {
     try {
       var data = JSON.parse(e.target.result);
-      if (!confirm("确定导入备份？此操作会覆盖当前所有学习数据。")) return;
-      var count = 0;
-      Object.keys(data).forEach(function(k) {
-        if (typeof syncPut === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
-          syncPut(k, data[k]); // 导入的同步 key 走 syncPut（本地 + 推送云端）
-        } else {
-          localStorage.setItem(k, PLAIN_STORAGE_KEYS.indexOf(k) !== -1 ? String(data[k]) : JSON.stringify(data[k]));
+      bkConfirm("确定导入备份？此操作会覆盖当前所有学习数据。", function() {
+        try {
+          var count = 0;
+          Object.keys(data).forEach(function(k) {
+            if (typeof syncPut === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
+              syncPut(k, data[k]); // 导入的同步 key 走 syncPut（本地 + 推送云端）
+            } else {
+              localStorage.setItem(k, PLAIN_STORAGE_KEYS.indexOf(k) !== -1 ? String(data[k]) : JSON.stringify(data[k]));
+            }
+            count++;
+          });
+          showToast("✅ 已导入 " + count + " 项数据，刷新页面后生效");
+          closeStats();
+          setTimeout(function() { location.reload(); }, 1000);
+        } catch (err2) {
+          showToast("❌ 导入失败：文件格式错误");
         }
-        count++;
       });
-      showToast("✅ 已导入 " + count + " 项数据，刷新页面后生效");
-      closeStats();
-      setTimeout(function() { location.reload(); }, 1000);
     } catch (err) {
       showToast("❌ 导入失败：文件格式错误");
     }
@@ -416,7 +458,7 @@ function renderWordList() {
     body = renderWordCard(filtered, wordListReviewIdx);
   } else {
     body = filtered.length === 0
-      ? '<p class="scene-empty">还没有收藏。在筑基 / 剥茧 / 抽丝 / 砥砺 / 临境 / 拾遗任意环节点击 ☆ 即可收藏。</p>'
+      ? '<p class="scene-empty">还没有收藏。在筑基 / 剥茧 / 抽丝 / 砥砺 / 临境 / 拾遗任意环节点击 ☆ 即可收藏。<br><button class="ai-suggest-btn" style="margin-top:8px;" onclick="navigate(\'skeleton\')">🏗️ 去筑基看看</button></p>'
       : '<div class="wordlist-grid">' + filtered.map(renderWordListCard).join("") + '</div>';
   }
 
@@ -466,13 +508,14 @@ function setCollectStatus(id, status) {
   rerenderWordList();
 }
 function deleteCollect(id) {
-  if (!confirm("确定删除这条收藏？")) return;
-  // 删除前先拿到该条目的 type/text（syncCollectDelete 需要它们记录删除墓碑，防止离线删除被服务端复活）
-  var target = getCollections().filter(function(c) { return c.id === id; })[0];
-  saveCollections(getCollections().filter(function(c) { return c.id !== id; }));
-  syncCollectDelete(id, target ? target.type : "", target ? target.text : "");
-  showToast("🗑 已删除");
-  rerenderWordList();
+  bkConfirm("确定删除这条收藏？", function() {
+    // 删除前先拿到该条目的 type/text（syncCollectDelete 需要它们记录删除墓碑，防止离线删除被服务端复活）
+    var target = getCollections().filter(function(c) { return c.id === id; })[0];
+    saveCollections(getCollections().filter(function(c) { return c.id !== id; }));
+    syncCollectDelete(id, target ? target.type : "", target ? target.text : "");
+    showToast("🗑 已删除");
+    rerenderWordList();
+  });
 }
 
 function renderWordListCard(c) {
@@ -519,7 +562,7 @@ function reviewMark(id, status) {
   nextWordCard();
 }
 function renderWordCard(list, idx) {
-  if (!list.length) return '<p class="scene-empty">没有可复习的收藏</p>';
+  if (!list.length) return '<p class="scene-empty">没有可复习的收藏<br><button class="ai-suggest-btn" style="margin-top:8px;" onclick="exitWordListReview()">← 返回列表</button></p>';
   var c = list[idx % list.length];
   return '<div class="flashcard-wrap">' +
     '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-bottom:8px;">第 ' + (idx + 1) + ' / ' + list.length + ' 条 · ' + (c.type === "word" ? "词" : "句") + '</div>' +
@@ -650,6 +693,7 @@ function ruleBadge(ruleNum) {
 // 音频缓存（已生成的就不重复请求）
 var audioCache = {};
 var ttsAvailable = null; // null=未检测, true=可用, false=不可用
+var TTS_CACHE_NAME = "bk-tts-v1"; // P1-9 前端持久缓存（Cache API，跨刷新仍命中）
 
 // 获取用户选择的 TTS 语音
 function getVoice() {
@@ -660,50 +704,61 @@ function setVoice(voice) {
   showToast("已切换语音，下次播放时生效");
 }
 
+function ttsRequestUrl(text) {
+  return (TTS_BASE || "") + "/tts?text=" + encodeURIComponent(text) + "&voice=" + encodeURIComponent(getVoice());
+}
+
+// P1-9：TTS 双层缓存——① 内存 audioCache ② Cache API 持久缓存（跨刷新）。
+// 不支持 Cache API 的旧浏览器回退为内存缓存 + 直连 Audio。
 function speakKorean(text) {
-  // 远程部署：尝试 TTS API，失败则走浏览器 Web Speech API
-  if (!TTS_BASE) {
-    var audio = new Audio("/tts?text=" + encodeURIComponent(text) + "&voice=" + encodeURIComponent(getVoice()));
-    audio.addEventListener("canplaythrough", function() { audio.play(); });
-    audio.addEventListener("error", function() {
-      if (window.speechSynthesis) {
-        var utter = new SpeechSynthesisUtterance(text);
-        utter.lang = "ko-KR";
-        utter.rate = 0.9;
-        speechSynthesis.speak(utter);
-      }
-    });
-    return;
-  }
+  if (!text) return;
+  var url = ttsRequestUrl(text);
+  var remote = !TTS_BASE; // 远程部署：降级时静默走 Web Speech（不打扰）
 
-  // 如果缓存里有，直接播
-  if (audioCache[text]) {
-    audioCache[text].play();
-    return;
-  }
-
-  // 尝试从本地 TTS 服务器获取（携带语音偏好）
-  var voice = getVoice();
-  var audio = new Audio(TTS_BASE + "/tts?text=" + encodeURIComponent(text) + "&voice=" + encodeURIComponent(voice));
-
-  audio.addEventListener("canplaythrough", function() {
-    ttsAvailable = true;
-  });
-
-  audio.addEventListener("error", function() {
-    // TTS 服务不可用，降级到浏览器 Web Speech API
+  function fallbackToSpeech() {
     if (ttsAvailable === null) ttsAvailable = false;
     if (window.speechSynthesis) {
       var utter = new SpeechSynthesisUtterance(text);
       utter.lang = "ko-KR";
       utter.rate = 0.9;
       speechSynthesis.speak(utter);
-      showToast("TTS 服务未启动，使用浏览器内置语音（音质较低）");
-    } else {
+      if (!remote) showToast("TTS 服务未启动，使用浏览器内置语音（音质较低）");
+    } else if (!remote) {
       showToast("⚠️ 无法播放音频，请启动 TTS 服务：node tts_server.js");
     }
-  });
+  }
 
+  // 内存缓存直接播
+  if (audioCache[text]) { audioCache[text].play(); return; }
+
+  // Cache API 持久缓存仅用于同源（生产部署）：fetch 跨域需 CORS，本地 dev 用直连 Audio 更稳。
+  // 命中→blob→objectURL 播放；未命中→fetch 并写入。
+  if (!TTS_BASE && window.caches && typeof caches.open === "function") {
+    caches.open(TTS_CACHE_NAME).then(function(cache) {
+      return cache.match(url).then(function(hit) {
+        if (hit && hit.ok) return hit;
+        return fetch(url).then(function(resp) {
+          if (resp && resp.ok) { try { cache.put(url, resp.clone()); } catch (e) {} }
+          return resp;
+        });
+      });
+    }).then(function(resp) {
+      if (!resp || !resp.ok) throw new Error("tts " + (resp && resp.status));
+      return resp.blob();
+    }).then(function(blob) {
+      var objUrl = URL.createObjectURL(blob);
+      var audio = new Audio(objUrl);
+      audio.play();
+      audioCache[text] = audio;
+      ttsAvailable = true;
+    }).catch(fallbackToSpeech);
+    return;
+  }
+
+  // 旧浏览器：内存缓存 + 直连 Audio
+  var audio = new Audio(url);
+  audio.addEventListener("canplaythrough", function() { ttsAvailable = true; });
+  audio.addEventListener("error", fallbackToSpeech);
   audioCache[text] = audio;
   audio.play();
 }
@@ -720,6 +775,50 @@ function showToast(msg) {
     toast.classList.remove("show");
     setTimeout(function() { toast.remove(); }, 300);
   }, 3000);
+}
+
+// P1-1 自定义确认框：替代原生 confirm()，样式与全站设计系统一致（stats-modal 复用）
+// 用法：bkConfirm(message, function() { /* 确定后的回调 */ })
+var bkConfirmShown = false;
+function bkConfirm(message, onOk) {
+  if (bkConfirmShown) return; // 防重复弹层
+  bkConfirmShown = true;
+  var overlay = document.createElement("div");
+  overlay.className = "stats-overlay";
+  overlay.id = "bkConfirmOverlay";
+  overlay.innerHTML =
+    '<div class="stats-modal bk-confirm-modal" role="alertdialog" aria-modal="true" aria-label="确认操作">' +
+      '<button class="stats-close" onclick="closeBkConfirm()" aria-label="取消">✕</button>' +
+      '<h2>⚠️ 确认操作</h2>' +
+      '<p class="bk-confirm-msg">' + escapeHtml(message) + '</p>' +
+      '<div class="bk-confirm-actions">' +
+        '<button class="ai-suggest-btn" onclick="closeBkConfirm()">取消</button>' +
+        '<button class="ai-submit-btn" id="bkConfirmOk" onclick="bkConfirmOk()">确定</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  window._bkConfirmOnOk = onOk || function() {};
+  // 默认聚焦「取消」：破坏性操作防误触（Enter 不会误确认）
+  var cancelBtn = overlay.querySelector(".bk-confirm-actions .ai-suggest-btn");
+  if (cancelBtn) cancelBtn.focus();
+  return overlay;
+}
+function closeBkConfirm() {
+  var el = document.getElementById("bkConfirmOverlay");
+  if (el) el.remove();
+  bkConfirmShown = false;
+  window._bkConfirmOnOk = null;
+}
+function bkConfirmOk() {
+  var cb = window._bkConfirmOnOk;
+  closeBkConfirm();
+  if (cb) cb();
+}
+// ESC 关闭确认框
+function initBkConfirmKey() {
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && document.getElementById("bkConfirmOverlay")) closeBkConfirm();
+  });
 }
 
 function playBtn(text, size) {
@@ -743,6 +842,9 @@ function navigate(page) {
   document.querySelectorAll(".nav-item").forEach(el => {
     var match = el.dataset.page === page || (page === "sceneChat" && el.dataset.page === "scene");
     el.classList.toggle("active", match);
+    // P1-5 可访问性：当前页导航项标记 aria-current
+    if (match) el.setAttribute("aria-current", "page");
+    else el.removeAttribute("aria-current");
   });
 
   // 如果 Vue 已激活，委托路由并异步执行页面副作用
@@ -929,6 +1031,7 @@ function renderHome() {
     </section>
     <div style="text-align:center;margin-top:20px;color:var(--text-light);font-size:13px;">
       <p>💡 建议顺序：筑基 → 抽丝 → 剥茧 → 砥砺 → 临境 → 润物 → 拾遗</p>
+      <p style="margin-top:6px;">⌨️ 快捷键：数字键 1-9 快速切换页面（输入框内不触发）</p>
     </div>
   `;
 }
@@ -1547,9 +1650,17 @@ function checkAIService() {
     });
 }
 
+// P1-2 轻量探测：只更新 aiServiceAvailable 标志位，供临境等非砥砺页面复用（不触碰砥砺页专属 DOM）
+function probeAIService() {
+  fetch(TTS_BASE + "/ai/status")
+    .then(function(r) { return r.json(); })
+    .then(function(d) { aiServiceAvailable = !!(d && d.configured); })
+    .catch(function() { aiServiceAvailable = false; });
+}
+
 // 构建练习历史列表 HTML（最近 6 条，含删除按钮）
 function buildAIHistoryHtml() {
-  if (!aiHistory.length) return '<p style="color:var(--text-light);font-size:13px;">还没有练习记录，试试输入一句中文吧</p>';
+  if (!aiHistory.length) return '<p style="color:var(--text-light);font-size:13px;">还没有练习记录，试试输入一句中文吧 <button class="ai-suggest-btn" style="font-size:12px;padding:2px 10px;margin-left:4px;" onclick="document.getElementById(\'aiInput\').focus()">✍️ 去试试</button></p>';
   return aiHistory.slice(-6).reverse().map(function(h) {
     return '<div class="ai-history-item" onclick="askAI(\'' + attrSafe(h.input || "") + '\')">' +
       '<span class="ai-history-input">' + escapeHtml(h.input || "") + '</span>' +
@@ -1829,6 +1940,8 @@ var sceneChatState = {
 function renderScene() {
   // 加载自定义场景
   var customScenes = safeParse(localStorage.getItem("korean_custom_scenes"), []);
+  // P1-2：进入临境页即探测 AI 可用性（用于「开始对话」前置引导黄条）
+  setTimeout(probeAIService, 0);
 
   var presetHtml = SCENE_PRESETS.map(function(s) {
     return '<div class="scene-card" onclick="startSceneChat(\'' + s.id + '\', \'' + attrSafe(s.title) + '\', \'' + attrSafe(s.prompt) + '\')">' +
@@ -1871,7 +1984,7 @@ function renderScene() {
     '</div>' +
     '<div class="scene-section">' +
       '<h3>🎯 我的场景</h3>' +
-      (customHtml ? '<div class="scene-grid">' + customHtml + '</div>' : '<p class="scene-empty">还没有自定义场景，在下方创建一个吧</p>') +
+      (customHtml ? '<div class="scene-grid">' + customHtml + '</div>' : '<p class="scene-empty">还没有自定义场景，在下方创建一个吧<br><button class="ai-suggest-btn" style="margin-top:8px;" onclick="document.getElementById(\'sceneTitleInput\').focus()">✍️ 去创建</button></p>') +
     '</div>' +
     '<div class="scene-create-card">' +
       '<h3>➕ 创建新场景</h3>' +
@@ -1924,6 +2037,7 @@ function startSceneChat(id, title, prompt) {
 // AI 发起第一条消息
 function startFirstMessage() {
   if (sceneChatState.loading) return;
+  if (aiServiceAvailable === false) { showToast("🤖 AI 暂未连接，请先配置 AI 服务"); return; }
   sceneChatState.loading = true;
   refreshChatUI();
 
@@ -2012,6 +2126,12 @@ function renderSceneChat() {
       '</div>' +
     '</div>' : '';
 
+  // P1-2：AI 不可用时在输入区上方显示常驻黄条并禁用发送
+  var aiOffline = aiServiceAvailable === false;
+  var aiWarnHtml = aiOffline
+    ? '<div class="ai-status-warn" style="margin:0 0 10px;">🤖 AI 暂未连接，可先创建场景 / 查看存档</div>'
+    : '';
+
   return '' +
     '<div class="chat-header">' +
       '<button class="chat-back-btn" onclick="exitSceneChat()">← 返回</button>' +
@@ -2022,16 +2142,17 @@ function renderSceneChat() {
       (sceneChatState.messages.length === 0 && !sceneChatState.loading ?
         '<div class="chat-start-overlay">' +
           '<div class="chat-start-icon">💬</div>' +
-          '<p>准备好了吗？点击开始，AI 会先向你说话</p>' +
-          '<button class="ai-submit-btn chat-start-btn" onclick="startFirstMessage()">🚀 开始对话</button>' +
+          '<p>' + (aiOffline ? '🤖 AI 暂未连接，暂时无法开始对话。可先返回创建场景。' : '准备好了吗？点击开始，AI 会先向你说话') + '</p>' +
+          (aiOffline ? '' : '<button class="ai-submit-btn chat-start-btn" onclick="startFirstMessage()">🚀 开始对话</button>') +
         '</div>' : '') +
       (sceneChatState.messages.length > 0 ? msgsHtml : '') +
       loadingHtml +
     '</div>' +
+    aiWarnHtml +
     '<div class="chat-input-bar">' +
       '<button class="chat-mute-btn" id="muteBtn" onclick="toggleSceneMute()" title="静音/取消静音">' + (sceneChatState.muted ? '🔇' : '🔊') + '</button>' +
-      '<input type="text" id="chatInput" class="ai-input" placeholder="输入中文或韩文回答…" onkeydown="if(event.key===\'Enter\') sendChatMessage()" />' +
-      '<button class="ai-submit-btn" onclick="sendChatMessage()" id="chatSendBtn">发送</button>' +
+      '<input type="text" id="chatInput" class="ai-input" placeholder="输入中文或韩文回答…"' + (aiOffline ? ' disabled' : '') + ' onkeydown="if(event.key===\'Enter\') sendChatMessage()" />' +
+      '<button class="ai-submit-btn" onclick="sendChatMessage()" id="chatSendBtn"' + (aiOffline ? ' disabled' : '') + '>发送</button>' +
     '</div>';
 }
 
@@ -2316,6 +2437,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("unhandledrejection", function(e) { showToast("⚠️ 请求异常，请检查 TTS+AI 服务是否正常运行。"); console.error(e); });
   initTheme();
   initCardGlow();
+  initBkConfirmKey(); // P1-1 ESC 关闭自定义确认框
   navigate("home");
   // 首次访问：显示新手引导
   if (!localStorage.getItem("korean_onboarded")) { setTimeout(showOnboarding, 300); }

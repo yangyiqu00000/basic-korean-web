@@ -3,13 +3,14 @@
 韩语"最小可行学习系统"：7 大骨架规则、断句训练、核心词干、两周日课表、Edge TTS 语音、AI 智能练句 / AI 情景对话。**纯原生 HTML/CSS/JS，零框架、零构建步骤。**
 
 ## 目录结构
-- `index.html` — 入口页，按顺序加载数据层脚本后加载 `js/app.js`
+- `index.html` — 入口页，按顺序加载数据层合并脚本（`data_core.js`/`data_ext.js`）后加载 `js/app.js`；Vue 3 已本地化到 `js/vendor/vue.global.prod.js`（P0-1）
 - `web_server.js` — 静态文件服务器（端口 **9999**，仅文件服务，无 API）
 - `tts_server.js` — TTS + AI 代理服务器（端口 **1234**）
 - `generate_audio.py` — 批量音频生成脚本（edge-tts）
 - `ai_config.example.json` — AI 配置模板；`ai_config.json` 需自行创建（已被 gitignore）
 - `css/style.css` — 全局样式 + 设计系统 + 动效（CSS 变量定义配色/字体）
-- `js/data.js` `rules_data.js` `stems_data.js` `sentences_data.js` `reference_data.js` — 数据层（全局变量，无模块）
+- `js/data.js` `rules_data.js` `stems_data.js` `sentences_data.js` `reference_data.js` `word_mnemonics_data.js` — 数据层源文件（全局变量，无模块；**合并产物**见下）
+- `js/data_core.js` `js/data_ext.js` — 数据层合并产物（P1-7 性能优化）：`data_core = data+rules+stems`，`data_ext = sentences+reference+word_mnemonics`。改数据源文件后重跑 `bash scripts/rebuild-data.sh` 再生成，勿手改合并产物
 - `js/app.js` — 主应用逻辑（导航 `navigate()`、各页 `renderXxx()`、AI、TTS、色彩系统）
 - `audio/` — TTS 音频缓存（md5(text).mp3，gitignore，勿提交）
 - `assets/` — 静态资源
@@ -21,7 +22,7 @@
 - **无测试、无 typecheck、无 lint**（项目仅用 Node 内置模块）。验证靠启动服务器后在浏览器加载。
 
 ## 架构边界（改动前必读）
-- **前端是全局脚本，不是 ES 模块。** `index.html` 按固定顺序加载：data.js → rules_data.js → stems_data.js → sentences_data.js → reference_data.js → app.js。**顺序敏感**（后面的脚本依赖前面定义的全局变量）。新增数据文件必须在 `index.html` 中按依赖顺序追加 `<script>`，**不要**加 `type="module"`、不要写 `import/export`，否则会破坏加载。
+- **前端是全局脚本，不是 ES 模块。** `index.html` 按固定顺序加载：`data_core.js` → `data_ext.js` → app.js（P1-7 合并后）。**顺序敏感**（后面的脚本依赖前面定义的全局变量）。新增数据文件必须在合并脚本 `scripts/rebuild-data.sh` 与 `index.html` 中按依赖顺序处理，**不要**加 `type="module"`、不要写 `import/export`，否则会破坏加载。
 - **两个独立 Node 进程**，不共享状态：web_server 只发静态文件；tts_server 提供 `/tts`、`/ai`、`/ai/chat`、`/ai/status`、`/health` 接口。改动接口时确认改的是 tts_server。
 - **AI Key 只在服务端**：`ai_config.json` 的 key 经 tts_server 代理转发，**永不可**出现在前端 JS 里。浏览器只请求 `localhost:1234`。
 - **TTS 走 Python CLI**：`tts_server.js` 用 `child_process.execFile('edge-tts', …)` 调用系统二进制，语音固定 `ko-KR-SunHiNeural`，音频按 `md5(text).mp3` 缓存到 `audio/`。TTS 并发上限为 3（`MAX_TTS_CONCURRENCY`），并对相同文本去重。服务仅绑定 `127.0.0.1`（仅本地访问）。

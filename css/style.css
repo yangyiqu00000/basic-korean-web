@@ -447,6 +447,8 @@ body {
 .stats-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .stats-row:last-child { border: none; }
 .stats-row .stat-value { font-weight: 700; color: var(--primary); }
+.stats-row-highlight { background: var(--primary-lighter); border-radius: 10px; padding: 12px 14px; margin: 4px -6px; border-bottom: none; }
+.stats-row-highlight .stat-value { font-size: 18px; color: var(--primary); }
 
 /* Vue transition: fade */
 .fade-enter-active,
@@ -1183,6 +1185,26 @@ body {
 .review-zh { font-size: 13px; color: var(--text-light); }
 .review-actions { display: flex; gap: 12px; justify-content: center; }
 
+/* ---- P1-5 可访问性：键盘焦点可见 + 动效降级 ---- */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* 键盘用户可感知焦点：输入框保留 border 高亮（有 :focus 样式），其余不再裸 outline:none */
+.ai-input:focus-visible, .chat-input:focus-visible {
+  border-color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .nav { display: none; }
@@ -1201,6 +1223,20 @@ body {
   .chat-content { max-width: 85%; }
   .chat-container { max-height: calc(100vh - 320px); }
   .review-actions { flex-direction: column; }
+}
+
+/* ---- P1-4 响应式中间断点（480-768px 小平板/大手机过渡）----
+   必须位于 max-width:768px 块之后：同优先级下靠后的规则胜出，否则会被上面的 1fr/单列覆盖。 */
+@media (min-width: 480px) and (max-width: 768px) {
+  .hero-cards { grid-template-columns: repeat(2, 1fr); }
+  .hero-cards .hero-card-wide, .hero-cards .hero-card[style*="span 2"] { grid-column: span 2; }
+  .ai-input-row { flex-direction: row; align-items: center; }
+  .ai-input-row .ai-input { flex: 1; }
+  .ai-input-row .ai-submit-btn { width: auto; min-width: 120px; }
+  .scene-grid { grid-template-columns: repeat(2, 1fr); }
+  .stem-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .schedule-grid { grid-template-columns: repeat(2, 1fr); }
+  .chat-content { max-width: 90%; }
 }
 
 /* ===== 卡片交互动效 ===== */
