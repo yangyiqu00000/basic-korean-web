@@ -6,12 +6,17 @@
     "start": "bash start.sh",
     "web": "node web_server.js",
     "tts": "node tts_server.js",
-    "dev": "node web_server.js & node tts_server.js"
+    "dev": "node web_server.js & node tts_server.js",
+    "audit": "node scripts/audit-vue-conflicts.js",
+    "audit:strict": "node scripts/audit-vue-conflicts.js --fail-on-warning",
+    "audit:selftest": "node scripts/audit-vue-conflicts.js --selftest",
+    "test:e2e:ci": "node tests/e2e/ci-run.js"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   },
   "devDependencies": {
+    "playwright": "^1.49.0",
     "wrangler": "^4.114.0"
   }
 }

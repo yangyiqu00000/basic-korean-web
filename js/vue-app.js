@@ -15,7 +15,9 @@
         currentPage: 'home',
         isMobileMenuOpen: false,
         isDarkTheme: document.documentElement.getAttribute('data-theme') === 'dark',
-        pageLoaded: {}
+        pageLoaded: {},
+        chatTick: 0,
+        pageTick: 0 // 任意页面强制重建计数：clearData/保存删除自定义场景等改数据后递增，使 :key 变化重建组件
       };
     },
     computed: {
@@ -29,20 +31,32 @@
           'scene': 'scene-page',
           'sceneChat': 'scene-page',
           'schedule': 'schedule-page',
-          'reference': 'reference-page'
+          'reference': 'reference-page',
+          'wordlist': 'wordlist-page'
         };
         return map[this.currentPage] || 'home-page';
       },
       pageKey: function() {
-        // 临境页面有双模式（列表/对话），用 key 强制重建组件
-        if (this.currentPage === 'sceneChat') return 'scene-chat';
-        return this.currentPage;
+        // 页面 key = 页面名 + 重建计数。递增 pageTick 可强制任意页面重建（清数据/保存自定义场景后刷新等）。
+        // 临境对话页额外叠加 chatTick：每条新消息递增 → key 变化 → 组件重建 → computed 重新求值渲染最新消息。
+        // （sceneChatState 等是非响应式全局对象，不能依赖 computed 缓存，必须靠 key 重建刷新）
+        if (this.currentPage === 'sceneChat') return 'scene-chat-' + this.chatTick + '-' + this.pageTick;
+        return this.currentPage + '-' + this.pageTick;
       }
     },
     methods: {
       navigate: function(page) {
         this.isMobileMenuOpen = false;
         this.currentPage = page;
+      },
+      // 强制重绘临境对话页：递增 chatTick 使 :key 变化 → 组件销毁重建 → 重新渲染最新消息
+      refreshSceneChat: function() {
+        this.chatTick++;
+      },
+      // 强制重绘当前页：递增 pageTick 使 :key 变化 → 组件销毁重建 → computed 重新求值
+      // （用于 clearData / saveCustomScene / deleteCustomScene 等修改数据后刷新页面）
+      refreshPage: function() {
+        this.pageTick++;
       }
     }
   });
@@ -57,7 +71,7 @@
     'scene-page': window.ScenePageComponent,
     'schedule-page': window.SchedulePageComponent,
     'reference-page': window.ReferencePageComponent,
-    'stats-panel': window.StatsPanelComponent
+    'wordlist-page': window.WordListPageComponent
   };
 
   Object.keys(allComponents).forEach(function(name) {

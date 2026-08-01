@@ -8,3 +8,16 @@ docs/
 tests/
 output/
 .playwright-cli/
+
+# 敏感文件与本地数据 —— 严禁部署到线上
+# ai_config.json 含真实 API Key；.freebuff/ 含本地对话数据库；其余为缓存/截图/系统文件
+ai_config.json
+.freebuff/
+__pycache__/
+.catpaw/
+gui-test-screenshots/
+.DS_Store
+Thumbs.db
+*.db
+*.db-shm
+*.db-wal

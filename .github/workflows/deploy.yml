@@ -10,7 +10,51 @@ permissions:
   deployments: write
 
 jobs:
+  # 部署前质量门：静态审计（Vue 模式冲突）+ E2E 回归，任一失败即拦截发布
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # 门 1：静态审计（检测 #vue-root/#mainContent 未防护写入、同页 navigate）
+      - name: Run Vue-conflict static audit (strict)
+        run: npm run audit:strict
+
+      # 门 2：E2E 回归（run-tests.sh 在 CI 下自动委托 tests/e2e/ci-run.js）
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start web server
+        run: |
+          node web_server.js > /tmp/web_server.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:9999/ >/dev/null && break
+            sleep 0.5
+          done
+          curl -sf http://localhost:9999/ >/dev/null
+
+      - name: Run E2E regression
+        run: bash tests/e2e/run-tests.sh
+
+      # 门 3：双设备云同步回归（wrangler pages dev 本地 D1 + 真实 API 三模式）
+      # 独立 mktemp persist 目录，不触碰本地 .wrangler/state；任一断言失败即 exit 非零拦截发布
+      - name: Run dual-device sync regression
+        run: bash tests/e2e/dual-device-ci.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 745842097cdb3bc9eab5597b6cf94292
+
   deploy:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

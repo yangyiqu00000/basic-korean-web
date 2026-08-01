@@ -8,13 +8,13 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Basic Korean 🇰🇷 - 韩语最小可行系统</title>
-	    <link rel="stylesheet" href="css/style.css?v=20260728">
+	    <link rel="stylesheet" href="css/style.css?v=20260801c">
     <!-- 预加载关键资源 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="dns-prefetch" href="https://unpkg.com">
-    <link rel="preload" href="css/style.css" as="style">
+    <link rel="preload" href="css/style.css?v=20260801c" as="style">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Vue 3 (CDN, 零构建渐进式) -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -53,10 +53,12 @@
                     <button class="nav-item" data-page="scene" onclick="navigate('scene')" title="临境 (按 6)">🎭 临境</button>
                     <button class="nav-item" data-page="schedule" onclick="navigate('schedule')" title="润物 (按 7)">🗓️ 润物</button>
                     <button class="nav-item" data-page="reference" onclick="navigate('reference')" title="拾遗 (按 8)">🏷️ 拾遗</button>
+                    <button class="nav-item" data-page="wordlist" onclick="navigate('wordlist')" title="词句表 (按 9)">📚 词句表</button>
                 </nav>
                 <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
                 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换暗色/亮色主题">🌙</button>
                 <button class="stats-toggle" onclick="openStats()" title="学习统计">📊</button>
+                <button class="auth-toggle" id="authBtn" onclick="openAuthModal()" title="登录 / 注册，云端同步学习数据">👤 登录</button>
             </div>
         </header>
 
@@ -66,11 +68,10 @@
         </main>
 
         <!-- 底部 -->
-<footer class="footer">
-	            <p>Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言</p>
-	        </footer>
-	        <stats-panel ref="statsPanel"></stats-panel>
-	    </div>
+        <footer class="footer">
+            <p>Basic Korean 启动包 V1.0 · 用最小系统启动一门新语言</p>
+        </footer>
+    </div>
 
     <!-- 数据层 - 按顺序加载 -->
     <script src="js/data.js"></script>
@@ -78,32 +79,33 @@
     <script src="js/stems_data.js"></script>
     <script src="js/sentences_data.js"></script>
     <script src="js/reference_data.js"></script>
-	    <!-- 老的 Service Worker 注册已移除，避免缓存干扰开发 -->
-		<script src="js/app.js?v=20260728"></script>
-		<!-- Vue 页面组件（容器 + 委托原始渲染） -->
-		<script src="js/components/HomePage.js?v=20260728"></script>
-		<script src="js/components/SkeletonPage.js?v=20260728"></script>
-		<script src="js/components/TrainingPage.js?v=20260728"></script>
-		<script src="js/components/StemsPage.js?v=20260728"></script>
-		<script src="js/components/AiPage.js?v=20260728"></script>
-		<script src="js/components/ScenePage.js?v=20260728"></script>
-		<script src="js/components/SchedulePage.js?v=20260728"></script>
-		<script src="js/components/ReferencePage.js?v=20260728"></script>
-		<!-- Vue 3：注册组件 + 接管路由 -->
-		<script src="js/vue-app.js?v=20260728"></script>
-	</body>
-
-    
+    <script src="js/word_mnemonics_data.js"></script>
+    <!-- 老的 Service Worker 注册已移除，避免缓存干扰开发 -->
+    <script src="js/app.js?v=20260801c"></script>
+    <!-- Phase 2 云同步层（依赖 safeParse/escapeHtml 等全局函数，须在 app.js 之后） -->
+    <script src="js/sync.js?v=20260801c"></script>
+    <!-- Vue 页面组件（容器 + 委托原始渲染） -->
+    <script src="js/components/HomePage.js?v=20260801c"></script>
+    <script src="js/components/SkeletonPage.js?v=20260801c"></script>
+    <script src="js/components/TrainingPage.js?v=20260801c"></script>
+    <script src="js/components/StemsPage.js?v=20260801c"></script>
+    <script src="js/components/AiPage.js?v=20260801c"></script>
+    <script src="js/components/ScenePage.js?v=20260801c"></script>
+    <script src="js/components/SchedulePage.js?v=20260801c"></script>
+    <script src="js/components/ReferencePage.js?v=20260801c"></script>
+    <script src="js/components/WordListPage.js?v=20260801c"></script>
+    <!-- Vue 3：注册组件 + 接管路由 -->
+    <script src="js/vue-app.js?v=20260801c"></script>
     <script>
-	  // 性能标记
-	  window.addEventListener('load', function() {
-    // 标记首屏渲染完成时间
-    var perf = performance.timing;
-    if (perf) {
-      var loadTime = perf.loadEventEnd - perf.navigationStart;
-      console.log('Page load time: ' + loadTime + 'ms');
-    }
-  });
-</script>
+      // 性能标记
+      window.addEventListener('load', function() {
+        // 标记首屏渲染完成时间
+        var perf = performance.timing;
+        if (perf) {
+          var loadTime = perf.loadEventEnd - perf.navigationStart;
+          console.log('Page load time: ' + loadTime + 'ms');
+        }
+      });
+    </script>
 </body>
 </html>

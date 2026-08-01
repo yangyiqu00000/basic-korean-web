@@ -10,6 +10,16 @@ var TTS_BASE = location.hostname === "127.0.0.1" || location.hostname === "local
 var APP_VERSION = "1.0.0";
 var APP_LAST_COMMIT = "78da555 feat: 交叉链接";
 
+// 安全解析 localStorage JSON：数据损坏/旧版残留时返回 fallback，避免整页崩溃
+// （此前模块顶层 JSON.parse 一旦抛错会触发全局 error toast 且后续逻辑失效）
+function safeParse(json, fallback) {
+  if (json === null || json === undefined || json === "") return fallback;
+  try { return JSON.parse(json); }
+  catch (e) { return fallback; }
+}
+// localStorage 中明文存储（非 JSON）的键，导出/导入时原样读写，避免 JSON.parse('dark') 抛错
+var PLAIN_STORAGE_KEYS = ["korean_theme","korean_voice","korean_onboarded"];
+
 // 主题初始化与切换（暗色/亮色，localStorage 持久化，首次跟随系统偏好）
 var THEME_KEY = "korean_theme";
 function initTheme() {
@@ -33,11 +43,11 @@ function toggleTheme() {
 }
 
 // 提示条关闭/显示管理（localStorage 持久化）
-function shouldShowTip(id) { return !(JSON.parse(localStorage.getItem("korean_dismissed_tips") || "{}")[id]); }
+function shouldShowTip(id) { return !(safeParse(localStorage.getItem("korean_dismissed_tips"), {})[id]); }
 function dismissTip(btn, id) {
-  var d = JSON.parse(localStorage.getItem("korean_dismissed_tips") || "{}");
+  var d = safeParse(localStorage.getItem("korean_dismissed_tips"), {});
   d[id] = true;
-  localStorage.setItem("korean_dismissed_tips", JSON.stringify(d));
+  syncPut("korean_dismissed_tips", d);
   var banner = btn.closest(".tip-banner");
   if (banner) banner.style.display = "none";
 }
@@ -50,6 +60,27 @@ function openStats() {
   overlay.onclick = function(e) { if (e.target === overlay) closeStats(); };
   overlay.innerHTML = renderStatsContent();
   document.body.appendChild(overlay);
+  // Phase 3：已登录 → 用服务端统计（跨设备聚合）替换本地数据
+  if (typeof isLoggedIn === "function" && isLoggedIn() && typeof apiFetch === "function") {
+    apiFetch("/api/stats").then(function(d) {
+      if (!d || !d.userId) return;
+      var set = function(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      set("statTraining", d.training_done + " / " + SENTENCES.length + " 句");
+      set("statSchedule", d.progress_done + " 项");
+      set("statAI", d.ai_history + " 次");
+      set("statScene", (d.scenes ? d.scenes.history : 0) + " 场");
+      set("statDays", d.learning_days + " 天");
+      set("statMsgs", d.messages + " 条");
+      // 云端徽标 + 收藏数
+      var badge = document.getElementById("statCloudBadge");
+      var cloudRow = document.getElementById("statCloudRow");
+      if (badge) badge.textContent = "☁️ 云端同步数据 · 收藏 " + (d.collections ? d.collections.total : 0) + " 条 · 自定义场景 " + (d.scenes ? d.scenes.custom : 0) + " 个";
+      if (cloudRow) cloudRow.style.display = "";
+    }).catch(function() {});
+  }
 }
 function closeStats() {
   var el = document.getElementById("statsOverlay");
@@ -96,10 +127,10 @@ function closeOnboarding() {
   }
 }
 function renderStatsContent() {
-  var progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
-  var trainingDone = JSON.parse(localStorage.getItem("korean_training_done") || "{}");
-  var aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
-  var sceneHistory = JSON.parse(localStorage.getItem("korean_scene_history") || "[]");
+  var progress = safeParse(localStorage.getItem("korean_progress"), {});
+  var trainingDone = safeParse(localStorage.getItem("korean_training_done"), {});
+  var aiHistory = safeParse(localStorage.getItem("korean_ai_history"), []);
+  var sceneHistory = safeParse(localStorage.getItem("korean_scene_history"), []);
   var scheduleTotal = SCHEDULE.reduce(function(s, d) { return s + d.tasks.length; }, 0);
   var scheduleDone = Object.values(progress).filter(function(v) { return v; }).length;
   var trainingDoneCount = Object.values(trainingDone).filter(function(v) { return v; }).length;
@@ -109,10 +140,13 @@ function renderStatsContent() {
     '<div class="stats-modal">' +
       '<button class="stats-close" onclick="closeStats()">✕</button>' +
       '<h2>📊 学习统计</h2>' +
-      '<div class="stats-row"><span>📝 抽丝训练</span><span class="stat-value">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
-      '<div class="stats-row"><span>🗓️ 润物表</span><span class="stat-value">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
-      '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value">' + aiHistory.length + ' 次</span></div>' +
-      '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value">' + sceneHistory.length + ' 场</span></div>' +
+      '<div class="stats-row"><span>📝 抽丝训练</span><span class="stat-value" id="statTraining">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
+      '<div class="stats-row"><span>🗓️ 润物表</span><span class="stat-value" id="statSchedule">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
+      '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value" id="statAI">' + aiHistory.length + ' 次</span></div>' +
+      '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value" id="statScene">' + sceneHistory.length + ' 场</span></div>' +
+      '<div class="stats-row"><span>📅 学习天数</span><span class="stat-value" id="statDays">' + (typeof isLoggedIn === "function" && isLoggedIn() ? "…" : "—") + '</span></div>' +
+      '<div class="stats-row"><span>💬 对话消息</span><span class="stat-value" id="statMsgs">' + (typeof isLoggedIn === "function" && isLoggedIn() ? "…" : "—") + '</span></div>' +
+      '<div class="stats-row" style="display:none" id="statCloudRow"><span>☁️ 云端</span><span class="stat-value" id="statCloudBadge"></span></div>' +
       '<div class="stats-row"><span>🎨 主题</span><span class="stat-value">' + theme + '</span></div>' +
       '<div class="stats-row"><span>🔊 TTS 语音</span><span class="stat-value"><select onchange="setVoice(this.value)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;">' +
         '<option value="ko-KR-SunHiNeural" ' + (getVoice() === "ko-KR-SunHiNeural" ? "selected" : "") + '>SunHi (女声)</option>' +
@@ -141,23 +175,42 @@ function renderStatsContent() {
 // 清空指定 localStorage 数据（带确认）
 function clearData(key, name) {
   if (!confirm('确定将「' + name + '」清空？此操作不可恢复。')) return;
-  var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_theme"] : [key];
+  var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme"] : [key];
+  // Phase 2：词句表是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
+  var colSnapshot = (typeof syncCollectDelete === "function" && (key === "ALL" || key === "korean_collections")) ? getCollections() : [];
+  // Phase 3：场景记录级，重置前快照本地有 id 的条目（我的场景 + 对话记录镜像），清空后逐条删云端
+  var sceneSnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_custom_scenes"))
+    ? safeParse(localStorage.getItem("korean_custom_scenes"), []).filter(function(s) { return s.id; }) : [];
+  var historySnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_scene_history"))
+    ? safeParse(localStorage.getItem("korean_scene_history"), []).filter(function(h) { return h.id; }) : [];
   keys.forEach(function(k) { localStorage.removeItem(k); });
+  // Phase 2：同步 key 必须写墓碑（clearedAt），否则另一设备拉取并集/合并会复活已清空的数据
+  keys.forEach(function(k) {
+    if (typeof syncClearBlob === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
+      syncClearBlob(k);
+      syncPut(k, SYNC_TYPES[SYNC_BLOB_MAP[k]] === "map" ? {} : []);
+    }
+  });
+  colSnapshot.forEach(function(c) { syncCollectDelete(c.id, c.type, c.text); });
+  sceneSnapshot.forEach(function(s) { syncSceneDelete(s.id); });
+  historySnapshot.forEach(function(h) { syncSceneDelete(h.id); });
   // 重置模块级变量
   if (key === "ALL" || key === "korean_training_done") { trainingDone = {}; }
   if (key === "ALL" || key === "korean_ai_history") { aiHistory = []; }
   closeStats();
-  setTimeout(function() { navigate(currentPage); }, 100);
+  setTimeout(function() { refreshCurrentPage(); }, 100);
   showToast('已清空「' + name + '」');
 }
 
 // 导出全部学习数据为 JSON 备份文件
 function exportAllData() {
-  var keys = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_custom_scenes","korean_dismissed_tips","korean_theme","korean_voice","korean_onboarded"];
+  var keys = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_custom_scenes","korean_collections","korean_dismissed_tips","korean_theme","korean_voice","korean_onboarded"];
   var data = {};
   keys.forEach(function(k) {
     var v = localStorage.getItem(k);
-    if (v !== null) data[k] = JSON.parse(v);
+    if (v === null) return;
+    // 明文键原样导出（避免 JSON.parse('dark') 抛错），其余安全解析
+    data[k] = PLAIN_STORAGE_KEYS.indexOf(k) !== -1 ? v : safeParse(v, null);
   });
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
   var url = URL.createObjectURL(blob);
@@ -180,7 +233,11 @@ function importAllData(input) {
       if (!confirm("确定导入备份？此操作会覆盖当前所有学习数据。")) return;
       var count = 0;
       Object.keys(data).forEach(function(k) {
-        localStorage.setItem(k, JSON.stringify(data[k]));
+        if (typeof syncPut === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
+          syncPut(k, data[k]); // 导入的同步 key 走 syncPut（本地 + 推送云端）
+        } else {
+          localStorage.setItem(k, PLAIN_STORAGE_KEYS.indexOf(k) !== -1 ? String(data[k]) : JSON.stringify(data[k]));
+        }
         count++;
       });
       showToast("✅ 已导入 " + count + " 项数据，刷新页面后生效");
@@ -198,7 +255,7 @@ function importAllData(input) {
 var aiServiceAvailable = true;
 
 // 抽丝训练"已掌握"状态（localStorage 持久化）
-var trainingDone = JSON.parse(localStorage.getItem("korean_training_done") || "{}");
+var trainingDone = safeParse(localStorage.getItem("korean_training_done"), {});
 
 var ELEM_COLORS = [
   { cls: "elem-stem",               label: "词干/词根", desc: "名词、动词词干" },
@@ -279,6 +336,259 @@ function renderColorLegend() {
     return '<span class="color-legend-item"><span class="color-legend-swatch ' + e.cls + '">' + e.label + '</span><span>' + e.desc + '</span></span>';
   }).join("");
   return '<div class="color-legend">' + items + '</div>';
+}
+
+// ============================================
+// 词句表（收藏本）- 用户收藏的词与句（localStorage 先行，Phase 2 上云）
+// ============================================
+var COLLECTIONS_KEY = "korean_collections";
+
+function getCollections() {
+  return safeParse(localStorage.getItem(COLLECTIONS_KEY), []);
+}
+function saveCollections(list) {
+  localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(list));
+}
+function isCollected(type, text) {
+  return getCollections().some(function(c) { return c.type === type && c.text === text; });
+}
+// 收藏按钮（去重：同 type+text 幂等）
+function collectBtn(type, text, meaning, source, sourceRef) {
+  var collected = isCollected(type, text);
+  var star = collected ? "★" : "☆";
+  return '<button class="collect-btn' + (collected ? " collected" : "") + '" title="收藏到词句表" onclick="event.stopPropagation(); collectItem(this, \'' + type + '\', \'' + attrSafe(text) + '\', \'' + attrSafe(meaning || "") + '\', \'' + source + '\', \'' + attrSafe(sourceRef || "") + '\')">' + star + '</button>';
+}
+function collectItem(btn, type, text, meaning, source, sourceRef) {
+  var list = getCollections();
+  var dup = list.some(function(c) { return c.type === type && c.text === text; });
+  if (dup) { showToast("⭐ 已在词句表中"); return; }
+  var now = Date.now();
+  var item = {
+    id: "c_" + now + "_" + Math.random().toString(36).slice(2, 8),
+    userId: null,
+    type: type,
+    text: text,
+    meaning: meaning || "",
+    source: source || "manual",
+    sourceRef: sourceRef || "",
+    status: "new",
+    note: "",
+    createdAt: now,
+    updatedAt: now
+  };
+  list.push(item);
+  saveCollections(list);
+  syncCollect(item); // 已登录 → 推送到云端
+  showToast("⭐ 已收藏到词句表");
+  if (btn) { btn.classList.add("collected"); btn.textContent = "★"; }
+}
+
+// 词句表页面状态
+var wordListTab = "word";           // word | sentence
+var wordListFilter = "all";         // all | new | learning | mastered
+var wordListReviewMode = false;     // 抽认卡复习模式
+var wordListReviewIdx = 0;          // 当前卡片下标
+
+var SOURCE_LABELS = { skeleton: "筑基", training: "抽丝", stems: "剥茧", ai: "砥砺", scene: "临境", reference: "拾遗", manual: "手动" };
+
+function renderWordList() {
+  var list = getCollections();
+  var wordCount = list.filter(function(c) { return c.type === "word"; }).length;
+  var sentCount = list.filter(function(c) { return c.type === "sentence"; }).length;
+
+  var tabBar =
+    '<div class="filter-bar">' +
+      '<button class="filter-btn' + (wordListTab === "word" ? " active" : "") + '" onclick="switchWordListTab(\'word\')">词 <span class="badge badge-red">' + wordCount + '</span></button>' +
+      '<button class="filter-btn' + (wordListTab === "sentence" ? " active" : "") + '" onclick="switchWordListTab(\'sentence\')">句 <span class="badge badge-green">' + sentCount + '</span></button>' +
+    '</div>';
+
+  var statusBar =
+    '<div class="filter-bar" style="margin-top:8px;">' +
+      '<button class="filter-btn' + (wordListFilter === "all" ? " active" : "") + '" onclick="setWordListFilter(\'all\')">全部</button>' +
+      '<button class="filter-btn' + (wordListFilter === "new" ? " active" : "") + '" onclick="setWordListFilter(\'new\')">🆕 新收藏</button>' +
+      '<button class="filter-btn' + (wordListFilter === "learning" ? " active" : "") + '" onclick="setWordListFilter(\'learning\')">🔄 学习中</button>' +
+      '<button class="filter-btn' + (wordListFilter === "mastered" ? " active" : "") + '" onclick="setWordListFilter(\'mastered\')">✅ 已掌握</button>' +
+    '</div>';
+
+  var filtered = getWordListFiltered();
+  var body;
+  if (wordListReviewMode && filtered.length > 0) {
+    body = renderWordCard(filtered, wordListReviewIdx);
+  } else {
+    body = filtered.length === 0
+      ? '<p class="scene-empty">还没有收藏。在筑基 / 剥茧 / 抽丝 / 砥砺 / 临境 / 拾遗任意环节点击 ☆ 即可收藏。</p>'
+      : '<div class="wordlist-grid">' + filtered.map(renderWordListCard).join("") + '</div>';
+  }
+
+  return '' +
+    '<div class="page-title"><h2>📚 词句表</h2><p>学习时收藏的词与句，学后查漏补缺。点卡片状态按钮流转：新收藏 → 学习中 → 已掌握。</p></div>' +
+    tabBar + statusBar +
+    '<div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+      '<button class="ai-submit-btn" onclick="startWordListReview()">🎴 复习模式</button>' +
+      '<button class="ai-suggest-btn" onclick="exportWordList()">📤 导出</button>' +
+      '<span style="font-size:12px;color:var(--text-light);">共 ' + list.length + ' 条收藏</span>' +
+    '</div>' +
+    body;
+}
+
+function rerenderWordList() {
+  // Vue 模式下只重绘词句表组件自己的根节点（.wordlist-page-vue），绝不能覆盖 #mainContent
+  // —— 那会连同 #vue-root（Vue 挂载点）一起被删除，导致导航全部失效。
+  var root = document.querySelector("#mainContent .wordlist-page-vue");
+  var main = root || document.getElementById("mainContent");
+  main.innerHTML = renderWordList();
+  main.classList.remove("page-enter");
+  void main.offsetWidth;
+  main.classList.add("page-enter");
+  initRevealObserver();
+}
+
+function switchWordListTab(tab) { wordListTab = tab; wordListReviewMode = false; wordListReviewIdx = 0; rerenderWordList(); }
+function setWordListFilter(f) { wordListFilter = f; wordListReviewMode = false; wordListReviewIdx = 0; rerenderWordList(); }
+
+function getWordListFiltered() {
+  return getCollections().filter(function(c) {
+    if (c.type !== wordListTab) return false;
+    if (wordListFilter === "all") return true;
+    return c.status === wordListFilter;
+  });
+}
+
+function setCollectStatus(id, status) {
+  var list = getCollections();
+  var hit = false;
+  list.forEach(function(c) { if (c.id === id) { c.status = status; c.updatedAt = Date.now(); hit = true; } });
+  if (hit) {
+    saveCollections(list);
+    syncCollectStatus(id, status);
+    showToast(status === "mastered" ? "✅ 已掌握" : status === "learning" ? "🔄 学习中" : "🆕 新收藏");
+  }
+  rerenderWordList();
+}
+function deleteCollect(id) {
+  if (!confirm("确定删除这条收藏？")) return;
+  // 删除前先拿到该条目的 type/text（syncCollectDelete 需要它们记录删除墓碑，防止离线删除被服务端复活）
+  var target = getCollections().filter(function(c) { return c.id === id; })[0];
+  saveCollections(getCollections().filter(function(c) { return c.id !== id; }));
+  syncCollectDelete(id, target ? target.type : "", target ? target.text : "");
+  showToast("🗑 已删除");
+  rerenderWordList();
+}
+
+function renderWordListCard(c) {
+  var statusLabel = c.status === "mastered" ? "✅ 已掌握" : c.status === "learning" ? "🔄 学习中" : "🆕 新收藏";
+  var sourceLabel = SOURCE_LABELS[c.source] || c.source;
+  return '<div class="wordlist-card">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+      '<span class="wl-badge ' + (c.type === "word" ? "wl-badge-word" : "wl-badge-sentence") + '">' + (c.type === "word" ? "词" : "句") + '</span>' +
+      '<span style="font-size:11px;color:var(--text-light);">' + escapeHtml(sourceLabel) + (c.sourceRef ? " · " + escapeHtml(c.sourceRef) : "") + '</span>' +
+    '</div>' +
+    '<div class="wl-text">' + escapeHtml(c.text) + '</div>' +
+    (c.meaning ? '<div class="wl-mean">' + escapeHtml(c.meaning) + '</div>' : "") +
+    '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">' +
+      '<button class="ai-suggest-btn" style="font-size:11px;padding:2px 8px;" onclick="setCollectStatus(\'' + c.id + '\',\'learning\')">🔄 学习中</button>' +
+      '<button class="ai-suggest-btn" style="font-size:11px;padding:2px 8px;" onclick="setCollectStatus(\'' + c.id + '\',\'mastered\')">✅ 掌握</button>' +
+      '<button class="ai-suggest-btn" style="font-size:11px;padding:2px 8px;color:var(--error);border-color:var(--error);" onclick="deleteCollect(\'' + c.id + '\')">🗑 删除</button>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text-light);margin-top:6px;">' + statusLabel + '</div>' +
+  '</div>';
+}
+
+function startWordListReview() {
+  var list = getWordListFiltered();
+  if (!list.length) { showToast("没有可复习的收藏"); return; }
+  wordListReviewMode = true; wordListReviewIdx = 0;
+  rerenderWordList();
+}
+function exitWordListReview() { wordListReviewMode = false; wordListReviewIdx = 0; rerenderWordList(); }
+function nextWordCard() {
+  var list = getWordListFiltered();
+  if (!list.length) { exitWordListReview(); showToast("没有可复习的收藏"); return; }
+  wordListReviewIdx = (wordListReviewIdx + 1) % list.length;
+  rerenderWordList();
+}
+function prevWordCard() {
+  var list = getWordListFiltered();
+  if (!list.length) return;
+  wordListReviewIdx = (wordListReviewIdx - 1 + list.length) % list.length;
+  rerenderWordList();
+}
+function flipWordCard(card) { card.classList.toggle("flipped"); }
+function reviewMark(id, status) {
+  setCollectStatus(id, status);
+  nextWordCard();
+}
+function renderWordCard(list, idx) {
+  if (!list.length) return '<p class="scene-empty">没有可复习的收藏</p>';
+  var c = list[idx % list.length];
+  return '<div class="flashcard-wrap">' +
+    '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-bottom:8px;">第 ' + (idx + 1) + ' / ' + list.length + ' 条 · ' + (c.type === "word" ? "词" : "句") + '</div>' +
+    '<div class="flashcard" onclick="flipWordCard(this)">' +
+      '<div class="flashcard-inner">' +
+        '<div class="flashcard-face flashcard-front">' +
+          '<div style="font-size:24px;font-weight:500;font-family:\'Noto Sans KR\',sans-serif;padding:20px;text-align:center;word-break:break-all;">' + escapeHtml(c.text) + '</div>' +
+          '<div style="position:absolute;bottom:10px;width:100%;text-align:center;font-size:11px;color:var(--text-light);">👆 点击翻面看含义</div>' +
+        '</div>' +
+        '<div class="flashcard-face flashcard-back">' +
+          '<div style="font-size:18px;padding:20px;text-align:center;">' + escapeHtml(c.meaning || "（无含义）") + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;">' +
+      '<button class="ai-suggest-btn" onclick="reviewMark(\'' + c.id + '\',\'learning\')">🔄 学习中</button>' +
+      '<button class="ai-suggest-btn" onclick="reviewMark(\'' + c.id + '\',\'mastered\')">✅ 已掌握</button>' +
+      '<button class="ai-suggest-btn" onclick="prevWordCard()">← 上一张</button>' +
+      '<button class="ai-submit-btn" onclick="nextWordCard()">下一张 →</button>' +
+      '<button class="ai-suggest-btn" onclick="exitWordListReview()">退出</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function exportWordList() {
+  var list = getCollections();
+  var blob = new Blob([JSON.stringify(list, null, 2)], { type: "application/json;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = "korean_wordlist_" + Date.now() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast("✅ 已导出 " + list.length + " 条收藏");
+}
+
+// 拾遗表 / 词的助记 共用表格行渲染（同一数据源，避免两处漂移）
+function refLevelBadge(lv) {
+  var cls = lv === "核心" ? "level-badge-core" : lv === "常用" ? "level-badge-common" : "level-badge-optional";
+  return '<span class="' + cls + '">' + lv + '</span>';
+}
+function refEndingCls(e) {
+  var m = e.meaning || "", t = e.type || "";
+  if (m.includes("过去") || m.includes("未来") || m.includes("正在")) return "elem-ending-tense";
+  if (t.includes("连接")) return "elem-ending-connective";
+  if (t.includes("命令") || t.includes("提议") || t.includes("疑问") || t.includes("确认") || t.includes("请求") || t.includes("征求") || t.includes("感慨")) return "elem-mood";
+  return "elem-ending-terminal";
+}
+function refParticleRow(p, src) {
+  return '<tr class="ref-row">' +
+    '<td><span class="elem-tag elem-particle" style="font-size:14px;padding:2px 10px;border-radius:99px;">' + p.tag + '</span></td>' +
+    '<td>' + p.type + '</td><td>' + p.meaning + '</td><td>' + refLevelBadge(p.level) + '</td>' +
+    '<td style="font-size:13px;color:var(--text-light);">' + p.example + playBtn(p.example, "small") + '</td>' +
+    (src ? '<td>' + collectBtn("word", p.tag, p.type + "：" + p.meaning, src, "particle:" + p.tag) + '</td>' : '') +
+  '</tr>';
+}
+function refEndingRow(e, src) {
+  return '<tr class="ref-row">' +
+    '<td><span class="elem-tag ' + refEndingCls(e) + '" style="font-size:14px;padding:2px 10px;border-radius:99px;">' + e.tag + '</span></td>' +
+    '<td>' + e.type + '</td><td>' + e.meaning + '</td><td>' + refLevelBadge(e.level) + '</td>' +
+    '<td style="font-size:13px;color:var(--text-light);">' + e.example + playBtn(e.example, "small") + '</td>' +
+    (src ? '<td>' + collectBtn("word", e.tag, e.type + "：" + e.meaning, src, "ending:" + e.tag) + '</td>' : '') +
+  '</tr>';
+}
+function refQwordChip(q, src) {
+  return '<span class="ref-qword" style="display:inline-block;padding:6px 14px;background:var(--bg);border-radius:8px;margin:4px;border:1px solid var(--border);">' +
+    '<strong style="font-size:18px;font-family:\'Noto Sans KR\',sans-serif;">' + q.word + '</strong>' + playBtn(q.word, "small") +
+    '<span style="color:var(--text-light);margin-left:6px;font-size:13px;">= ' + q.meaning + '</span>' +
+    (src ? collectBtn("word", q.word, "疑问词：" + q.meaning, src, "qword:" + q.word) : '') +
+  '</span>';
 }
 
 // ============================================
@@ -515,6 +825,17 @@ function navigate(page) {
   }, 150);
 }
 
+// 强制刷新当前页面（改数据后调用）：Vue 模式递增 pageTick 使 :key 变化 → 组件重建 → 重新渲染；
+// 传统模式回退为 navigate(currentPage)。
+// ⚠️ 不能用 navigate(当前页)：currentPage 值不变时 Vue 不会重渲染（clearData/保存删除自定义场景后界面不更新）。
+function refreshCurrentPage() {
+  if (window.vueApp && typeof window.vueApp.refreshPage === 'function') {
+    window.vueApp.refreshPage();
+    return;
+  }
+  navigate(currentPage);
+}
+
 function initRevealObserver() {
   if (revealObserver) revealObserver.disconnect();
   revealObserver = new IntersectionObserver(function(entries) {
@@ -553,6 +874,7 @@ function renderPage(page) {
     stems: renderStems,
     schedule: renderSchedule,
     reference: renderReference,
+    wordlist: renderWordList,
     ai: renderAI,
     scene: renderScene,
     sceneChat: renderSceneChat
@@ -613,10 +935,58 @@ function renderHome() {
 
 // 骨架规则跳转（从断句/AI 结果点击规则编号直达骨架页并展开）
 var pendingRule = null;
-function jumpToRule(n) { pendingRule = n; navigate("skeleton"); }
+function jumpToRule(n) { pendingRule = n; skeletonTab = "rules"; navigate("skeleton"); }
 
 // === SKELETON PAGE ===
+var skeletonTab = "rules"; // rules=句的助记, words=词的助记
+
+// 筑基页 = 句的助记（7 大语法规则）+ 词的助记（助词/词尾/疑问词）
 function renderSkeleton() {
+  var tabBar = '<div class="filter-bar skeleton-tabs">' +
+    '<button class="filter-btn' + (skeletonTab === "rules" ? " active" : "") + '" onclick="switchSkeletonTab(\'rules\')">① 句的助记</button>' +
+    '<button class="filter-btn' + (skeletonTab === "words" ? " active" : "") + '" onclick="switchSkeletonTab(\'words\')">② 词的助记</button>' +
+    '</div>';
+  return tabBar + (skeletonTab === "rules" ? renderSkeletonRules() : renderWordMnemonics());
+}
+
+function switchSkeletonTab(tab) {
+  skeletonTab = tab;
+  // Vue 模式下只重绘骨架页组件自己的根节点（.skeleton-page-vue），绝不能覆盖 #mainContent
+  var root = document.querySelector("#mainContent .skeleton-page-vue");
+  var main = root || document.getElementById("mainContent");
+  main.innerHTML = renderSkeleton();
+  main.classList.remove("page-enter");
+  void main.offsetWidth;
+  main.classList.add("page-enter");
+  initRevealObserver();
+}
+
+// 词的助记：助词/词尾/疑问词 表格（与拾遗共用 ref* 行渲染 + 数据源）
+function renderWordMnemonics() {
+  var particlesHtml = WORD_MNEMONICS.particles.map(function(p) { return refParticleRow(p, "skeleton"); }).join("");
+  var endingsHtml = WORD_MNEMONICS.endings.map(function(e) { return refEndingRow(e, "skeleton"); }).join("");
+  var qwordsHtml = WORD_MNEMONICS.questionWords.map(function(q) { return refQwordChip(q, "skeleton"); }).join("");
+  return '' +
+    '<div class="page-title">' +
+      '<h2>🏗️ 词的助记</h2>' +
+      '<p>词级基础知识：助词 / 词尾 / 疑问词。先记零件，再套句的助记规则。</p>' +
+    '</div>' +
+    '<div class="tip-banner"><strong>🎯 目标：</strong>认识这些"零件"——看到助词知道角色、看到词尾知道时态语气。与「句的助记」规则 ②③⑤⑦ 对照学习，行尾 ☆ 可收藏到词句表。</div>' +
+    '<div class="card ref-section">' +
+      '<div class="card-title">🔴 助词 <span class="badge badge-red">' + WORD_MNEMONICS.particles.length + ' 个</span></div>' +
+      '<table class="ref-table"><thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead><tbody>' + particlesHtml + '</tbody></table>' +
+    '</div>' +
+    '<div class="card ref-section">' +
+      '<div class="card-title">🟠 词尾 <span class="badge badge-orange">' + WORD_MNEMONICS.endings.length + ' 个</span></div>' +
+      '<table class="ref-table"><thead><tr><th>词尾</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead><tbody>' + endingsHtml + '</tbody></table>' +
+    '</div>' +
+    '<div class="card ref-section">' +
+      '<div class="card-title">❓ 疑问词 <span class="badge badge-green">' + WORD_MNEMONICS.questionWords.length + ' 个</span></div>' +
+      '<div>' + qwordsHtml + '</div>' +
+    '</div>';
+}
+
+function renderSkeletonRules() {
   let rulesHtml = RULES.map((rule, idx) => {
     let examplesHtml = rule.examples.map(ex => {
       let breakdownHtml = ex.breakdown.map(b => {
@@ -735,6 +1105,7 @@ function renderTraining() {
       <div class="sentence-card ${done ? "mastered" : ""}" onclick="toggleBreakdown(this)">
         <div class="sentence-top">
           <div class="sentence-num">#${s.id} · ${s.group}</div>
+          ${collectBtn("sentence", s.kr, s.full, "training", "sentence:" + s.id)}
           <button class="master-btn ${done ? "mastered" : ""}" onclick="event.stopPropagation(); toggleMastered(${s.id}, this)" title="标记为已掌握">${done ? "✓ 已掌握" : "○ 标记掌握"}</button>
         </div>
         <div class="kr">${s.kr}${playBtn(s.kr, "small")}</div>
@@ -777,7 +1148,10 @@ function setTrainingFilter(group) {
   document.querySelectorAll(".filter-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.group === group);
   });
-  var main = document.getElementById("mainContent");
+  // Vue 模式下只重绘训练页组件自己的根节点（.training-page-vue），
+  // 绝不能覆盖 #mainContent —— 那会连同 #vue-root（Vue 挂载点）一起被删除，导致导航全部失效。
+  var root = document.querySelector("#mainContent .training-page-vue");
+  var main = root || document.getElementById("mainContent");
   main.innerHTML = renderTraining();
   main.classList.remove("page-enter");
   void main.offsetWidth;
@@ -792,7 +1166,8 @@ function setTrainingFilter(group) {
 // 标记/取消"已掌握"，持久化并刷新计数（不整页重渲染以保留滚动与展开态）
 function toggleMastered(id, btn) {
   trainingDone[id] = !trainingDone[id];
-  localStorage.setItem("korean_training_done", JSON.stringify(trainingDone));
+  if (!trainingDone[id]) syncMarkDeleted("korean_training_done", id); // 取消勾选 = 墓碑，防止并集复活
+  syncPut("korean_training_done", trainingDone);
   var card = btn.closest(".sentence-card");
   if (card) card.classList.toggle("mastered", trainingDone[id]);
   btn.classList.toggle("mastered", trainingDone[id]);
@@ -883,7 +1258,7 @@ function renderStems() {
       let irregBadge = s.irreg ? '<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:#f5edf7;color:#7b3a9e;margin-left:4px;font-weight:600;">' + s.irreg + '</span>' : '';
       return `
       <div class="stem-item">
-        <div class="stem">${s.stem}${playBtn(s.stem, "small")}${irregBadge}</div>
+        <div class="stem">${s.stem}${playBtn(s.stem, "small")}${irregBadge}${collectBtn("word", s.stem, s.meaning + " (" + s.proto + ")", "stems", "stem:" + s.proto)}</div>
         <div class="mean">${s.meaning} <span style="color:var(--border);">|</span> <span style="color:var(--text-light);font-size:12px;">${s.proto}</span></div>
         <div class="example">${s.example}${playBtn(s.example, "small")}</div>
       </div>`;
@@ -968,7 +1343,7 @@ var SCHEDULE = [
 
 function renderSchedule() {
 
-  let progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
+  let progress = safeParse(localStorage.getItem("korean_progress"), {});
 
   let cardsHtml = SCHEDULE.map(d => `
     <div class="day-card">
@@ -1004,9 +1379,10 @@ function renderSchedule() {
 function toggleCheck(el) {
   el.classList.toggle("done");
   let key = el.getAttribute("data-key");
-  let progress = JSON.parse(localStorage.getItem("korean_progress") || "{}");
+  let progress = safeParse(localStorage.getItem("korean_progress"), {});
   progress[key] = el.classList.contains("done");
-  localStorage.setItem("korean_progress", JSON.stringify(progress));
+  if (!progress[key]) syncMarkDeleted("korean_progress", key); // 取消勾选 = 墓碑
+  syncPut("korean_progress", progress);
   // 更新进度条
   let schedulePage = document.getElementById("mainContent");
   if (schedulePage.querySelector(".schedule-grid")) {
@@ -1021,44 +1397,10 @@ function toggleCheck(el) {
 
 // === REFERENCE PAGE ===
 function renderReference() {
-  function endingCls(e) {
-    var m = e.meaning || "", t = e.type || "";
-    if (m.includes("过去") || m.includes("未来") || m.includes("正在")) return "elem-ending-tense";
-    if (t.includes("连接")) return "elem-ending-connective";
-    if (t.includes("命令") || t.includes("提议") || t.includes("疑问") || t.includes("确认") || t.includes("请求") || t.includes("征求") || t.includes("感慨")) return "elem-mood";
-    return "elem-ending-terminal";
-  }
-  function levelBadge(lv) {
-    var cls = lv === "核心" ? "level-badge-core" : lv === "常用" ? "level-badge-common" : "level-badge-optional";
-    return '<span class="' + cls + '">' + lv + '</span>';
-  }
-
-  let particlesHtml = REFERENCE.particles.map(p => `
-    <tr class="ref-row">
-      <td><span class="elem-tag elem-particle" style="font-size:14px;padding:2px 10px;border-radius:99px;">${p.tag}</span></td>
-      <td>${p.type}</td>
-      <td>${p.meaning}</td>
-      <td>${levelBadge(p.level)}</td>
-      <td style="font-size:13px;color:var(--text-light);">${p.example}${playBtn(p.example, "small")}</td>
-    </tr>
-  `).join("");
-
-  let endingsHtml = REFERENCE.endings.map(e => `
-    <tr class="ref-row">
-      <td><span class="elem-tag ${endingCls(e)}" style="font-size:14px;padding:2px 10px;border-radius:99px;">${e.tag}</span></td>
-      <td>${e.type}</td>
-      <td>${e.meaning}</td>
-      <td>${levelBadge(e.level)}</td>
-      <td style="font-size:13px;color:var(--text-light);">${e.example}${playBtn(e.example, "small")}</td>
-    </tr>
-  `).join("");
-
-  let qwordsHtml = REFERENCE.questionWords.map(q => `
-    <span class="ref-qword" style="display:inline-block;padding:6px 14px;background:var(--bg);border-radius:8px;margin:4px;border:1px solid var(--border);">
-      <strong style="font-size:18px;font-family:'Noto Sans KR',sans-serif;">${q.word}</strong>${playBtn(q.word, "small")}
-      <span style="color:var(--text-light);margin-left:6px;font-size:13px;">= ${q.meaning}</span>
-    </span>
-  `).join("");
+  // 与「词的助记」共用 ref* 行渲染（同一数据源 + 收藏列）
+  let particlesHtml = REFERENCE.particles.map(p => refParticleRow(p, "reference")).join("");
+  let endingsHtml = REFERENCE.endings.map(e => refEndingRow(e, "reference")).join("");
+  let qwordsHtml = REFERENCE.questionWords.map(q => refQwordChip(q, "reference")).join("");
 
   return `
     <div class="page-title">
@@ -1075,7 +1417,7 @@ function renderReference() {
     <div class="card ref-section">
       <div class="card-title">🔴 助词 <span class="badge badge-red">${REFERENCE.particles.length} 个</span></div>
       <table class="ref-table">
-        <thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th></tr></thead>
+        <thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead>
         <tbody>${particlesHtml}</tbody>
       </table>
     </div>
@@ -1083,7 +1425,7 @@ function renderReference() {
     <div class="card ref-section">
       <div class="card-title">🟠 词尾 <span class="badge badge-orange">${REFERENCE.endings.length} 个</span></div>
       <table class="ref-table">
-        <thead><tr><th>词尾</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th></tr></thead>
+        <thead><tr><th>词尾</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead>
         <tbody>${endingsHtml}</tbody>
       </table>
     </div>
@@ -1123,7 +1465,7 @@ var aiHistory = [];
 
 function renderAI() {
   // 加载历史记录
-  aiHistory = JSON.parse(localStorage.getItem("korean_ai_history") || "[]");
+  aiHistory = safeParse(localStorage.getItem("korean_ai_history"), []);
   // 为历史项补齐稳定 id（旧数据可能缺 id），供删除定位
   aiHistory.forEach(function(h, i) { if (!h.id) h.id = "h" + i + "-" + (h.time || 0); });
   // 渲染后探测 AI 可用性（DOM 就绪后再查，避免拿不到输入框）
@@ -1209,7 +1551,7 @@ function checkAIService() {
 function buildAIHistoryHtml() {
   if (!aiHistory.length) return '<p style="color:var(--text-light);font-size:13px;">还没有练习记录，试试输入一句中文吧</p>';
   return aiHistory.slice(-6).reverse().map(function(h) {
-    return '<div class="ai-history-item" onclick="askAI(\'' + (h.input || "").replace(/'/g, "\\'") + '\')">' +
+    return '<div class="ai-history-item" onclick="askAI(\'' + attrSafe(h.input || "") + '\')">' +
       '<span class="ai-history-input">' + escapeHtml(h.input || "") + '</span>' +
       '<span class="ai-history-kr">' + escapeHtml(h.kr || "") + '</span>' +
       '<button class="ai-history-del" onclick="event.stopPropagation(); deleteAIHistory(\'' + h.id + '\')" title="删除">✕</button>' +
@@ -1219,7 +1561,8 @@ function buildAIHistoryHtml() {
 
 function deleteAIHistory(id) {
   aiHistory = aiHistory.filter(function(h) { return h.id !== id; });
-  localStorage.setItem("korean_ai_history", JSON.stringify(aiHistory));
+  syncMarkDeleted("korean_ai_history", id); // 墓碑
+  syncPut("korean_ai_history", aiHistory);
   var list = document.querySelector(".ai-history-list");
   if (list) list.innerHTML = buildAIHistoryHtml();
   var cnt = document.getElementById("aiHistoryCount");
@@ -1229,7 +1572,8 @@ function deleteAIHistory(id) {
 function clearAIHistory() {
   if (!aiHistory.length) { showToast("练习历史已为空"); return; }
   aiHistory = [];
-  localStorage.setItem("korean_ai_history", JSON.stringify(aiHistory));
+  syncClearBlob("korean_ai_history"); // 整体清空墓碑
+  syncPut("korean_ai_history", aiHistory);
   var list = document.querySelector(".ai-history-list");
   if (list) list.innerHTML = buildAIHistoryHtml();
   var cnt = document.getElementById("aiHistoryCount");
@@ -1298,7 +1642,7 @@ function askAI(presetText) {
     // 保存到历史（带稳定 id，供删除定位）
     aiHistory.push({ id: "h" + Date.now() + "_" + Math.random().toString(36).slice(2, 7), input: input, kr: data.kr, full: data.full, data: data, time: Date.now() });
     if (aiHistory.length > 30) aiHistory.shift();
-    localStorage.setItem("korean_ai_history", JSON.stringify(aiHistory));
+    syncPut("korean_ai_history", aiHistory);
 
     // 渲染结果
     renderAIResult(data, resultDiv);
@@ -1393,7 +1737,7 @@ function renderAIResult(data, container) {
       </div>
       <div class="sentence-card ai-result-sentence">
         <div class="ai-result-kr">
-          ${escapeHtml(data.kr)}${playBtn(data.kr, "small")}<button class="korean-copy-btn" onclick="event.stopPropagation(); navigator.clipboard.writeText('${data.kr.replace(/'/g, "\\'")}').then(function(){showToast('已复制韩语句子')}).catch(function(){showToast('复制失败，请手动选中')})" title="复制韩语句子">📋</button>
+          ${escapeHtml(data.kr)}${playBtn(data.kr, "small")}${collectBtn("sentence", data.kr, data.full, "ai", "ai:" + (data.kr || "").slice(0, 20))}<button class="korean-copy-btn" onclick="event.stopPropagation(); navigator.clipboard.writeText('${attrSafe(data.kr)}').then(function(){showToast('已复制韩语句子')}).catch(function(){showToast('复制失败，请手动选中')})" title="复制韩语句子">📋</button>
         </div>
         <div class="breakdown show ai-result-breakdown">
           <div class="breakdown-label">🔍 逐词拆解</div>
@@ -1473,6 +1817,7 @@ var SCENE_PRESETS = [
 // 当前对话状态
 var sceneChatState = {
   active: false,
+  reviewing: false, // 结束对话后进入复习模式（Vue 组件据此渲染复习页）
   sceneTitle: "",
   scenePrompt: "",
   messages: [],     // {role: 'user'|'assistant', kr, zh, breakdown}
@@ -1483,10 +1828,10 @@ var sceneChatState = {
 
 function renderScene() {
   // 加载自定义场景
-  var customScenes = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
+  var customScenes = safeParse(localStorage.getItem("korean_custom_scenes"), []);
 
   var presetHtml = SCENE_PRESETS.map(function(s) {
-    return '<div class="scene-card" onclick="startSceneChat(\'' + s.id + '\', \'' + s.title.replace(/'/g, "\\'") + '\', \'' + s.prompt.replace(/'/g, "\\'") + '\')">' +
+    return '<div class="scene-card" onclick="startSceneChat(\'' + s.id + '\', \'' + attrSafe(s.title) + '\', \'' + attrSafe(s.prompt) + '\')">' +
       '<div class="scene-icon">' + s.icon + '</div>' +
       '<div class="scene-info">' +
         '<div class="scene-title">' + s.title + '</div>' +
@@ -1499,7 +1844,7 @@ function renderScene() {
   var customHtml = "";
   if (customScenes.length > 0) {
     customHtml = customScenes.map(function(s, i) {
-      return '<div class="scene-card scene-card-custom" onclick="startSceneChat(\'custom-' + i + '\', \'' + s.title.replace(/'/g, "\\'") + '\', \'' + s.prompt.replace(/'/g, "\\'") + '\')">' +
+      return '<div class="scene-card scene-card-custom" onclick="startSceneChat(\'custom-' + i + '\', \'' + attrSafe(s.title) + '\', \'' + attrSafe(s.prompt) + '\')">' +
         '<div class="scene-icon">' + (s.icon || '🎯') + '</div>' +
         '<div class="scene-info">' +
           '<div class="scene-title">' + s.title + '</div>' +
@@ -1542,24 +1887,31 @@ function saveCustomScene() {
   if (!title) { showToast("请输入场景名称"); return; }
   if (!prompt) { showToast("请输入场景描述"); return; }
 
-  var custom = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
-  custom.push({ title: title, prompt: prompt, icon: "🎯", desc: prompt.substring(0, 40) + "..." });
+  var custom = safeParse(localStorage.getItem("korean_custom_scenes"), []);
+  // Phase 3：记录级同步——本地先写（离线缓存），已登录则创建云端场景并回写 id
+  var item = { title: title, prompt: prompt, icon: "🎯", desc: prompt.substring(0, 40) + "..." };
+  custom.push(item);
   localStorage.setItem("korean_custom_scenes", JSON.stringify(custom));
+  syncSceneCreate(item);
   showToast("场景已保存！");
-  navigate("scene");
+  refreshCurrentPage();
 }
 
 function deleteCustomScene(idx) {
-  var custom = JSON.parse(localStorage.getItem("korean_custom_scenes") || "[]");
+  var custom = safeParse(localStorage.getItem("korean_custom_scenes"), []);
+  var removed = custom[idx];
   custom.splice(idx, 1);
   localStorage.setItem("korean_custom_scenes", JSON.stringify(custom));
+  // Phase 3：已登录则删除云端场景（有服务端 id 才能命中；无 id 的旧本地条目仅删本地）
+  if (removed && removed.id) syncSceneDelete(removed.id);
   showToast("已删除");
-  navigate("scene");
+  refreshCurrentPage();
 }
 
 // === 对话界面 ===
 function startSceneChat(id, title, prompt) {
   sceneChatState.active = true;
+  sceneChatState.reviewing = false;
   sceneChatState.sceneTitle = title;
   sceneChatState.scenePrompt = prompt;
   sceneChatState.messages = [];
@@ -1643,7 +1995,7 @@ function renderSceneChat() {
       '<div class="chat-avatar">🤖</div>' +
       '<div class="chat-content">' +
         '<div class="chat-bubble chat-bubble-ai">' +
-          '<div class="chat-kr">' + escapeHtml(m.kr || '') + playBtn(m.kr || '', "small") + '</div>' +
+          '<div class="chat-kr">' + escapeHtml(m.kr || '') + playBtn(m.kr || '', "small") + collectBtn("sentence", m.kr || '', m.zh || '', "scene", "scene:" + sceneChatState.sceneTitle) + '</div>' +
           '<div class="chat-zh">' + escapeHtml(m.zh || '') + '</div>' +
           (breakdownHtml ? '<button class="chat-toggle-btn" onclick="toggleChatBreakdown(' + i + ')">📖 拆解</button>' : '') +
         '</div>' +
@@ -1696,6 +2048,16 @@ function toggleSceneMute() {
 
 function escapeHtml(s) {
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// 把文本安全嵌入 HTML 属性内的 JS 单引号字符串（onclick 等）:
+// 双引号转 HTML 实体（避免截断属性），单引号/反斜杠/换行转义或清除，防止注入
+function attrSafe(s) {
+  return String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/"/g, "&quot;")
+    .replace(/\r?\n/g, " ");
 }
 
 // 发送用户消息 → 获取 AI 回复
@@ -1757,9 +2119,20 @@ function sendChatMessage() {
 }
 
 function refreshChatUI() {
-  // Vue 激活时：触发场景组件重新渲染（通过重新导航）
-  if (window.vueApp && typeof window.vueApp.navigate === 'function') {
-    window.vueApp.navigate("sceneChat");
+  // Vue 激活时：递增 chatTick 使 :key 变化 → 组件销毁重建 → computed 重新求值 → 渲染最新消息。
+  // ⚠️ 不能 navigate("sceneChat")：已在 sceneChat 页时 currentPage 值不变，Vue 不会重渲染（已实测复现）。
+  // ⚠️ 不用手工 innerHTML：sceneChatState 是非响应式全局，Vue 的 v-html 绑定仍持有旧缓存串，
+  //    组件因其他原因重渲染时会用旧缓存覆盖新内容。tick 重建让 Vue 全程掌控渲染，无此风险。
+  var hadFocus = document.activeElement && document.activeElement.id === "chatInput";
+  if (window.vueApp && typeof window.vueApp.refreshSceneChat === 'function') {
+    window.vueApp.refreshSceneChat();
+    // Vue 重建是异步的（nextTick），且输入框是新建节点，恢复焦点便于连续输入
+    if (hadFocus) {
+      setTimeout(function() {
+        var inp = document.getElementById("chatInput");
+        if (inp) inp.focus();
+      }, 50);
+    }
     return;
   }
   // 传统模式：直接替换内容
@@ -1768,15 +2141,23 @@ function refreshChatUI() {
   main.classList.remove("page-enter");
   void main.offsetWidth;
   main.classList.add("page-enter");
+  if (hadFocus) {
+    var inp = document.getElementById("chatInput");
+    if (inp) inp.focus();
+  }
 }
 
 function scrollChatToBottom() {
-  var container = document.getElementById("chatContainer");
-  if (container) container.scrollTop = container.scrollHeight;
+  // Vue 模式下重绘是异步的（nextTick），延迟执行确保新 DOM 已挂载
+  setTimeout(function() {
+    var container = document.getElementById("chatContainer");
+    if (container) container.scrollTop = container.scrollHeight;
+  }, 60);
 }
 
 function exitSceneChat() {
   sceneChatState.active = false;
+  sceneChatState.reviewing = false;
   sceneChatState.messages = [];
   navigate("scene");
 }
@@ -1788,18 +2169,21 @@ function finishSceneChat() {
     return;
   }
 
-  // 保存对话记录
-  var history = JSON.parse(localStorage.getItem("korean_scene_history") || "[]");
-  history.push({
+  // 保存对话记录（本地镜像 + Phase 3 云端存档到记录级 scene_messages）
+  var history = safeParse(localStorage.getItem("korean_scene_history"), []);
+  var historyEntry = {
     title: sceneChatState.sceneTitle,
     time: Date.now(),
     messages: sceneChatState.messages
-  });
+  };
+  history.push(historyEntry);
   if (history.length > 20) history.shift();
   localStorage.setItem("korean_scene_history", JSON.stringify(history));
+  syncSceneArchive(sceneChatState.sceneTitle, sceneChatState.messages, historyEntry);
 
-  // 渲染复习界面
-  renderSceneReview();
+  // 进入复习模式（Vue 用 tick 重建渲染，避免覆盖 #vue-root 导致导航失效）
+  sceneChatState.reviewing = true;
+  refreshSceneReviewUI();
 }
 
 function renderSceneReview() {
@@ -1818,8 +2202,8 @@ function renderSceneReview() {
     '</div>';
   }).join("");
 
-  var main = document.getElementById("mainContent");
-  main.innerHTML = '' +
+  // 纯渲染函数：只返回 HTML，由调用方决定写入方式（Vue tick 重建 / 传统 innerHTML）
+  return '' +
     '<div class="page-title">' +
       '<h2>📖 对话复习</h2>' +
       '<p>场景：' + escapeHtml(sceneChatState.sceneTitle) + ' &nbsp;|&nbsp; 共 ' + sceneChatState.messages.length + ' 条 &nbsp;|&nbsp; 重点句 <span id="sceneKeyCount">' + sceneChatState.keySet.size + '</span></p>' +
@@ -1831,7 +2215,18 @@ function renderSceneReview() {
       '<button class="ai-suggest-btn" onclick="replayKeySceneAudio()">🔁 重练重点句</button>' +
       '<button class="ai-suggest-btn" onclick="exportSceneTxt()">📤 导出</button>' +
     '</div>';
+}
 
+// 渲染复习界面：Vue 模式递增 chatTick 强制组件重建（页面停留在 sceneChat，key 变化触发重渲染），
+// 传统模式直接 innerHTML。⚠️ 绝不能直接写 #mainContent —— 会连同 #vue-root（Vue 挂载点）删除，导航全部失效。
+function refreshSceneReviewUI() {
+  if (window.vueApp && typeof window.vueApp.refreshSceneChat === 'function') {
+    window.vueApp.refreshSceneChat();
+    return;
+  }
+  // 传统模式：直接替换内容
+  var main = document.getElementById("mainContent");
+  main.innerHTML = renderSceneReview();
   main.classList.remove("page-enter");
   void main.offsetWidth;
   main.classList.add("page-enter");
@@ -1932,7 +2327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   // 全局键盘快捷键 1-8 切换页面（输入框内/带修饰键时不触发，避免误触）
-  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"ai", "6":"scene", "7":"schedule", "8":"reference" };
+  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"ai", "6":"scene", "7":"schedule", "8":"reference", "9":"wordlist" };
   document.addEventListener("keydown", function(e) {
     var t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;

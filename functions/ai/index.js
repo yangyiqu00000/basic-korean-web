@@ -5,7 +5,6 @@ export async function onRequestPost(context) {
   try {
     const body = await request.json();
     const text = body.text;
-    const rules = body.rules;
 
     if (!text) {
       return new Response(JSON.stringify({ error: "Missing text" }), {
@@ -32,16 +31,18 @@ export async function onRequestPost(context) {
   "kr": "韩语翻译（-요 体，命令用 -세요）",
   "full": "完整中文翻译",
   "breakdown": [
-    { "part": "单词/词缀", "tag": "词性(词干/助词/终结词尾/连接词尾/时态词尾/否定/语气)", "meaning": "含义", "label": "细化标签" }
+    { "part": "单词/词缀", "tag": "词干|助词|词尾", "meaning": "含义", "label": "角色标签(主题/主语/宾语/时间/场所/方向/伴随/起点/终点/连接/条件/终结/进行/否定/命令/提议/疑问/敬语/感慨，可省略)" }
   ],
   "rules": [1,2,3,4,5,6,7],
   "tip": "一句话学习建议",
   "examples": [
-    { "kr": "例句1", "zh": "翻译1" },
-    { "kr": "例句2", "zh": "翻译2" }
+    { "kr": "例句1", "full": "翻译1", "breakdown": [{ "part": "...", "tag": "词干|助词|词尾", "meaning": "...", "label": "..." }] },
+    { "kr": "例句2", "full": "翻译2", "breakdown": [] }
   ]
 }
 
+【词性标签】只有三种：词干、助词、词尾（与本地 tts_server 一致）
+【角色标签】主题、主语、宾语、时间、场所、方向、伴随、起点、终点、连接、条件、终结、进行、否定、命令、提议、疑问、敬语、感慨
 规则编号含义：
 1=主宾谓结构，2=助词系统，3=时态词尾，4=敬语(-요体)，5=连接词尾(-고/-서/-지만)，6=否定(안/못/-지 않다)，7=疑问/命令/提议
 敬语用 -요 体（命令用 -세요）。只返回 JSON，不要包裹 markdown 代码块。`;
@@ -91,8 +92,8 @@ export async function onRequestPost(context) {
         headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
-      return new Response(JSON.stringify({ error: "Failed to parse AI response", raw: content }), {
-        status: 502,
+      return new Response(JSON.stringify({ error: "AI response parse failed", raw: content }), {
+        status: 200,
         headers: { "Content-Type": "application/json" }
       });
     }

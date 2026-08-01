@@ -2,12 +2,25 @@
 node_modules/
 package-lock.json
 
+# Cloudflare 本地状态（wrangler pages dev 的 D1/cache/账号缓存，不要提交！）
+.wrangler/
+
+# Freebuff 桌面端本地数据库（含对话记录，不要提交！）
+.freebuff/
+
+# 备份文件
+*.bak
+
 # 音频缓存（由 edge-tts 自动生成，不需要提交）
 audio/*.mp3
 audio/*.json
 
 # AI 配置（包含 API Key，不要提交！）
 ai_config.json
+
+# 本地开发环境变量（邮箱验证 Resend Key 等，不要提交！）
+.dev.vars
+.dev.vars.example
 
 # 系统文件
 .DS_Store
@@ -26,6 +39,9 @@ Thumbs.db
 
 # 日志
 *.log
+
+# 测试产物（playwright 报告等）
+output/
 
 # Python 缓存
 __pycache__/

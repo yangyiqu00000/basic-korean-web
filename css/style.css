@@ -179,6 +179,8 @@ body {
 .theme-toggle:hover { background: var(--primary-lighter); }
 .stats-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px 8px; border-radius: 8px; transition: background 0.2s var(--ease); }
 .stats-toggle:hover { background: var(--primary-lighter); }
+.auth-toggle { background: var(--primary); border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #fff; padding: 5px 12px; border-radius: 999px; transition: background 0.2s var(--ease), transform 0.15s var(--ease); margin-left: 4px; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.auth-toggle:hover { background: var(--primary-dark, var(--primary)); transform: translateY(-1px); }
 
 /* ---- Main ---- */
 .main {
@@ -445,97 +447,6 @@ body {
 .stats-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .stats-row:last-child { border: none; }
 .stats-row .stat-value { font-weight: 700; color: var(--primary); }
-
-/* ---- StatsPanel Vue Component ---- */
-.stats-panel {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 0;
-  max-width: 420px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: var(--shadow-hover);
-}
-.stats-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.stats-header h3 {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0;
-}
-.stats-header .stats-close {
-  position: static;
-  font-size: 18px;
-  padding: 6px 10px;
-}
-.stats-body {
-  padding: 16px 24px 24px;
-}
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-}
-.stat-item:last-of-type {
-  border-bottom: none;
-}
-.stat-label {
-  color: var(--text);
-  font-weight: 500;
-}
-.stat-version {
-  font-size: 11px;
-  color: var(--text-light);
-  text-align: center;
-  padding: 12px 0 8px;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-}
-.stat-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-.stat-btn {
-  flex: 1;
-  min-width: calc(50% - 4px);
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s var(--ease);
-  font-family: inherit;
-  color: var(--text);
-  text-align: center;
-}
-.stat-btn:hover {
-  border-color: var(--primary);
-  background: var(--primary-lighter);
-  color: var(--primary);
-}
-.stat-btn-danger {
-  border-color: rgba(208,87,58,0.3);
-  color: var(--error);
-}
-.stat-btn-danger:hover {
-  border-color: var(--error);
-  background: rgba(208,87,58,0.08);
-  color: var(--error);
-}
 
 /* Vue transition: fade */
 .fade-enter-active,
@@ -1387,38 +1298,6 @@ body {
   }
 }
 
-/* ===== Design System 组件样式 ===== */
-.bk-btn {
-  display: inline-flex; align-items: center; gap: var(--space-xs, 4px);
-  border: none; border-radius: var(--radius-sm, 12px); cursor: pointer;
-  font-family: inherit; font-weight: 500;
-  transition: all var(--transition-fast, 150ms ease);
-}
-.bk-btn:active { transform: scale(0.96); }
-.bk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.bk-btn-primary { background: var(--primary); color: #fff; }
-.bk-btn-secondary { background: var(--border); color: var(--text); }
-.bk-btn-danger { background: var(--error); color: #fff; }
-.bk-btn-sm { padding: var(--space-xs) var(--space-sm); font-size: var(--text-sm); }
-.bk-btn-md { padding: var(--space-sm) var(--space-md); font-size: var(--text-base); }
-.bk-btn-lg { padding: var(--space-md) var(--space-lg); font-size: var(--text-lg); }
-
-.bk-card { background: var(--card-bg); border-radius: var(--radius, 20px); border: 1px solid var(--border, #e4ddd4); }
-.bk-card-hoverable { transition: transform var(--transition-base, 250ms), box-shadow var(--transition-base, 250ms); }
-.bk-card-hoverable:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
-
-.bk-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: var(--text-xs, 0.75rem); font-weight: 500; }
-.bk-badge-primary { background: var(--primary-lighter); color: var(--primary); }
-.bk-badge-success { background: var(--success); color: #fff; }
-.bk-badge-warning { background: var(--warning); color: #fff; }
-
-.bk-modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
-.bk-modal { background: var(--card-bg); border-radius: var(--radius, 20px); max-width: 480px; width: 90%; box-shadow: var(--shadow-hover); }
-.bk-modal-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--border, #e4ddd4); }
-.bk-modal-header h3 { margin: 0; }
-.bk-modal-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-light); }
-.bk-modal-body { padding: var(--space-lg); }
-
 /* ===== 骨架规则页 Vue 过渡 ===== */
 .slide-down-enter-active,
 .slide-down-leave-active {
@@ -1435,4 +1314,124 @@ body {
 .slide-down-leave-from {
   opacity: 1;
   max-height: 2000px;
+}
+
+/* ===== 筑基 Tab（句的助记 / 词的助记）===== */
+.skeleton-tabs {
+  margin: 4px 0 18px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== 词句表收藏按钮 ===== */
+.collect-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: all 0.2s var(--ease, ease);
+}
+.collect-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+.collect-btn.collected {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: #c46a29;
+}
+
+/* ===== 词句表页面 ===== */
+.wordlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.wordlist-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  transition: all 0.2s var(--ease, ease);
+}
+.wordlist-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+  border-color: rgba(226, 140, 81, 0.3);
+}
+.wordlist-card .wl-text {
+  font-size: 19px;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  margin: 4px 0;
+}
+.wordlist-card .wl-mean {
+  font-size: 13px;
+  color: var(--text-light);
+}
+.wl-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.wl-badge-word {
+  background: #fef0ec;
+  color: #c0392b;
+}
+.wl-badge-sentence {
+  background: #edf7ed;
+  color: #2e7d32;
+}
+
+/* ===== 抽认卡复习模式 ===== */
+.flashcard-wrap {
+  max-width: 520px;
+  margin: 8px auto;
+}
+.flashcard {
+  perspective: 1000px;
+  cursor: pointer;
+  user-select: none;
+}
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  transition: transform 0.5s var(--ease, ease);
+  transform-style: preserve-3d;
+}
+.flashcard.flipped .flashcard-inner {
+  transform: rotateY(180deg);
+}
+.flashcard-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+}
+.flashcard-back {
+  transform: rotateY(180deg);
+  background: var(--accent-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-inner { transition: none; }
 }

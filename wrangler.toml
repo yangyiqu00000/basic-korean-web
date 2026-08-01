@@ -2,5 +2,22 @@ name = "basic-korean"
 pages_build_output_dir = "."
 compatibility_date = "2026-07-26"
 
+# 邮箱验证（Resend）：生产用 `wrangler pages secret put RESEND_API_KEY`（Pages Secret 全局生效，无需在此重复声明）；
+# 本地开发在项目根放 .dev.vars（已 gitignore）写入 RESEND_API_KEY=...（可选，缺省时验证码在响应里回显供测试）
+[vars]
+RESEND_FROM = "Basic Korean <onboarding@resend.dev>"
+
+[[d1_databases]]
+binding = "basic_korean_db"
+database_name = "basic-korean-db"
+database_id = "274d23a7-9ecd-4299-a5fb-35643f877a7b"
+
 [env.production]
 name = "basic-korean"
+# ⚠️ Pages 环境配置不继承顶层绑定/变量，生产环境必须重复声明（否则生产 Worker 拿不到 basic_korean_db / RESEND_FROM）
+[[env.production.d1_databases]]
+binding = "basic_korean_db"
+database_name = "basic-korean-db"
+database_id = "274d23a7-9ecd-4299-a5fb-35643f877a7b"
+[env.production.vars]
+RESEND_FROM = "Basic Korean <onboarding@resend.dev>"

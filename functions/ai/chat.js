@@ -5,10 +5,11 @@ export async function onRequestPost(context) {
   try {
     const body = await request.json();
     const messages = body.messages;
-    const scenePrompt = body.scenePrompt;
+    // 前端 app.js 发送的是 { scene, messages }（与本地 tts_server /ai/chat 一致），不是 scenePrompt
+    const scenePrompt = body.scene || body.scenePrompt;
 
     if (!messages || !scenePrompt) {
-      return new Response(JSON.stringify({ error: "Missing messages or scenePrompt" }), {
+      return new Response(JSON.stringify({ error: "Missing messages or scene" }), {
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
@@ -81,8 +82,14 @@ export async function onRequestPost(context) {
         headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
-      return new Response(JSON.stringify({ error: "Failed to parse AI response", raw: content }), {
-        status: 502,
+      // 如果 AI 没返回 JSON，把原文包装成基本格式
+      return new Response(JSON.stringify({
+        kr: content.trim(),
+        zh: "",
+        breakdown: [],
+        tips: ""
+      }), {
+        status: 200,
         headers: { "Content-Type": "application/json" }
       });
     }
