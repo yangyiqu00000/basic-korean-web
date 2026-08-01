@@ -1,0 +1,4 @@
+# Block removed experimental Edge TTS routes (functions/tts-edge, tts-edge-debug deleted)
+# Explicit 404 to prevent SPA fallback from masking route absence with 200/index.html
+/tts-edge* /404.html 404
+/tts-edge-debug* /404.html 404
