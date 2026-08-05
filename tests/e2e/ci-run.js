@@ -19,6 +19,7 @@
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const http = require('http');
+const https = require('https');
 
 const BASE = process.env.E2E_BASE || 'http://localhost:9999';
 const PASS = [];
@@ -34,8 +35,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function probe(url, tries = 40) {
   return new Promise((resolve) => {
     let n = 0;
+    const lib = url.startsWith('https:') ? https : http; // E2E_BASE 支持 https 生产域名
     const tryOnce = () => {
-      const req = http.get(url, (res) => { res.resume(); resolve(true); });
+      const req = lib.get(url, (res) => { res.resume(); resolve(true); });
       req.on('error', () => {
         if (++n >= tries) resolve(false);
         else setTimeout(tryOnce, 250);
@@ -172,8 +174,11 @@ async function main() {
       window.trainingDone = { '1': true, '2': true };
       localStorage.setItem('korean_training_done', JSON.stringify(window.trainingDone));
       const k3 = window.vueApp.pageKey;
-      window.confirm = function () { return true; };
+      // P1-1 改造：clearData 不再用原生 confirm()，改走 bkConfirm 自定义模态（默认聚焦取消）——
+      // 测试须模拟「点击确定」即调用 window.bkConfirmOk() 才能触发清空回调（与 run-tests.sh 一致）。
       window.clearData('korean_training_done', '抽丝训练进度');
+      await new Promise((r) => setTimeout(r, 200));
+      if (typeof window.bkConfirmOk === 'function') window.bkConfirmOk();
       await new Promise((r) => setTimeout(r, 500));
       return window.vueApp.pageKey !== k3;
     });

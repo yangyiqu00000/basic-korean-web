@@ -83,6 +83,57 @@ bash start.sh
 
 启动后访问 http://localhost:9999 即可开始学习。
 
+## 🌐 生产部署（Cloudflare Pages）
+
+项目部署在 Cloudflare Pages，`scripts/deploy-prod.sh` 一键完成「检测 → 部署 → 验证」全流程，内置验证矩阵兜底，避免再次踩「部署到 Preview、Secrets 不生效」的坑。
+
+### 前置条件
+
+- 本地已装 `wrangler`（devDependencies，`npm install` 即可）
+- 已设置 `CLOUDFLARE_API_TOKEN` 环境变量（或 `CLOUDFLARE_API_KEY`）；**两者皆缺时自动回退本机 wrangler OAuth 登录**（先 `npx wrangler login` 一次），无需额外配置
+
+### 用法
+
+```bash
+# 标准流程：自动检测生产分支 → 部署到生产 → 跑验证矩阵
+bash scripts/deploy-prod.sh
+
+# 验证自定义域名（不测默认的 *.pages.dev）
+DEPLOY_URL=https://your.domain bash scripts/deploy-prod.sh
+
+# 只跑验证矩阵，线上复查不部署（无需凭据）
+SKIP_DEPLOY=1 bash scripts/deploy-prod.sh
+
+# 覆盖部署分支（默认自动检测 = CI 同款 main，不推荐改）
+BRANCH=my-branch bash scripts/deploy-prod.sh
+```
+
+生产分支**自动检测**：优先从 `.github/workflows/deploy.yml` 提取 deploy 步骤的 `--branch`（现为 `main`）与 `--project-name`、`accountId`；workflow 缺失时兜底 `git origin/HEAD` → `main`。
+
+### ⚠️ 为什么必须带 `--branch`（Preview 无 Secrets 的坑）
+
+Cloudflare Pages 的 Secrets（`AI_API_KEY` / `EDGE_TTS_ENABLED` 等）**只挂在生产环境**。不带 `--branch` 部署时，wrangler 默认用当前 git 分支 → 部署落到 **Preview 环境**：
+
+- `/ai/status` 返回 `configured:false`，AI 功能不可用
+- `/tts` 走不到 Edge 免费回退，直接 503，浏览器降级为 Web Speech API
+- 表现是「在线但功能缺失」，且 Preview 与正式域名分离（`<hash>.basic-korean.pages.dev`），极难察觉
+
+本脚本强制 `wrangler pages deploy . --branch main`，确保命中生产 Secrets。
+
+### ✅ 验证矩阵判定标准
+
+部署完成后脚本对线上依次检查 5 项，全部 PASS 才退出码 0：
+
+| # | 检查项 | 判定标准 | 失败含义 |
+|---|--------|---------|---------|
+| ① | 首页可达 | HTTP 200（最多 30 次 × 3s 重试等 CDN 传播） | 部署失败 / CDN 未传播 |
+| ② | 首页无 unpkg | 首页 HTML 不含 `unpkg.com` 引用 | Vue 本地化回退 CDN（页面会拉公共 CDN，离线/性能受损） |
+| ③ | 版本戳一致 | 线上首页 `?v=` 戳 = 本地 `index.html` 的 `?v=` 戳 | 命中旧 CDN 缓存 / 部署错目录 / 未部署到最新 |
+| ④ | AI Secrets 生效 | `/ai/status` 重试至 200 且 JSON 含 `"configured": true` | **部署到 Preview 空环境 / Secrets 缺失**（Secrets 生效的权威证据） |
+| ⑤ | TTS 链路可用 | `/tts?text=…` 返回 200 且 `Content-Type: audio/mpeg`（最多 5 次 × 45s，首次冷启动慢） | `EDGE_TTS_ENABLED` 未生效 / Edge 端点故障（非 503 浏览器降级） |
+
+> 首页不可达（①失败）时，②③ 会跳过内容断言而非误报 PASS；仅 ④/⑤ 独立于首页继续。验证失败会打印 FAIL 项并退出码 1，常见原因：Preview 空环境、CDN 缓存未刷新、Secrets 缺失。
+
 ## 📖 使用指南
 
 ### 学习顺序
@@ -122,6 +173,12 @@ basic-korean-web/
 ├── requirements.txt        # Python 依赖
 ├── package.json            # Node.js 项目信息
 ├── AGENTS.md               # 工作区指令（ZCode agent 使用）
+├── scripts/
+│   ├── deploy-prod.sh          # 一键部署到 Cloudflare Pages 生产 + 验证矩阵
+│   ├── rebuild-data.sh         # 重新合并数据层（data_core.js / data_ext.js）
+│   ├── audit-vue-conflicts.js  # 审计 Vue 全局变量冲突
+│   ├── test-tolerant-parse.js  # AI 容错 JSON 解析单测（17 用例，加载 tts_server.js 真实函数）
+│   └── tts-server.launchd.plist # macOS launchd 常驻 tts_server（可选，含本机路径需按环境调整）
 ├── css/
 │   └── style.css           # 全局样式 + 设计系统 + 动效 + 暗色主题
 ├── js/
