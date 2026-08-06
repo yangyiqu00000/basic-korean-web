@@ -1,4 +1,4 @@
-// js/components/WordListPage.js — 词句表页（Vue 容器 + 原始渲染）
+// js/components/WordListPage.js — 拾遗页（Vue 容器 + 原始渲染）
 ;(function() {
   'use strict';
   if (typeof Vue === 'undefined') return;

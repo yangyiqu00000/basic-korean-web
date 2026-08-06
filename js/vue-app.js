@@ -30,9 +30,8 @@
           'ai': 'ai-page',
           'scene': 'scene-page',
           'sceneChat': 'scene-page',
-          'schedule': 'schedule-page',
-          'reference': 'reference-page',
-          'wordlist': 'wordlist-page'
+'schedule': 'schedule-page',
+	          'wordlist': 'wordlist-page'
         };
         return map[this.currentPage] || 'home-page';
       },
@@ -69,9 +68,8 @@
     'stems-page': window.StemsPageComponent,
     'ai-page': window.AiPageComponent,
     'scene-page': window.ScenePageComponent,
-    'schedule-page': window.SchedulePageComponent,
-    'reference-page': window.ReferencePageComponent,
-    'wordlist-page': window.WordListPageComponent
+'schedule-page': window.SchedulePageComponent,
+	    'wordlist-page': window.WordListPageComponent
   };
 
   Object.keys(allComponents).forEach(function(name) {

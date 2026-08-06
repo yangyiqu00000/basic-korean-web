@@ -11,7 +11,7 @@
 - `css/style.css` — 全局样式 + 设计系统 + 动效（CSS 变量定义配色/字体）
 - `js/data.js` `rules_data.js` `stems_data.js` `sentences_data.js` `reference_data.js` `word_mnemonics_data.js` — 数据层源文件（全局变量，无模块；**合并产物**见下）
 - `js/data_core.js` `js/data_ext.js` — 数据层合并产物（P1-7 性能优化）：`data_core = data+rules+stems`，`data_ext = sentences+reference+word_mnemonics`。改数据源文件后重跑 `bash scripts/rebuild-data.sh` 再生成，勿手改合并产物
-- `js/app.js` — 主应用逻辑（导航 `navigate()`、各页 `renderXxx()`、AI、TTS、色彩系统）
+- `js/app.js` — 主应用逻辑（导航 `navigate()`、各页 `renderXxx()`、AI、TTS、色彩系统、拾遗收藏本）
 - `audio/` — TTS 音频缓存（md5(text).mp3，gitignore，勿提交）
 - `assets/` — 静态资源
 

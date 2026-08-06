@@ -519,7 +519,7 @@ function syncCollect(item) {
           var list = getCollections();
           list.forEach(function(c) { if (c.type === item.type && c.text === item.text) c.id = res.item.id; });
           saveCollections(list);
-          // 只在词句表页面当前显示时安全重绘（.wordlist-page-vue 根节点），绝不整页刷新
+          // 只在拾遗页当前显示时安全重绘（.wordlist-page-vue 根节点），绝不整页刷新
           // —— 收藏动作可能发生在 AI/临境等有进行中状态的页面，无条件 refreshCurrentPage 会打断它们
           if (typeof currentPage === "string" && currentPage === "wordlist" && typeof rerenderWordList === "function") {
             rerenderWordList();
@@ -676,7 +676,7 @@ function openAuthModal() {
         '<button class="ai-submit-btn" onclick="syncPullAll(); showToast(\'🔄 已手动同步\')">🔄 立即同步</button>' +
         '<button class="ai-suggest-btn" style="color:var(--error);border-color:var(--error);" onclick="doLogout()">🚪 退出登录</button>' +
       '</div>' +
-      '<p style="margin-top:14px;font-size:12px;color:var(--text-light);">学习进度 / 词句表 / AI 历史 / 情景对话 将自动云端同步。</p>'
+      '<p style="margin-top:14px;font-size:12px;color:var(--text-light);">学习进度 / 拾遗 / AI 历史 / 情景对话 将自动云端同步。</p>'
     : '<h2>👤 登录 / 注册</h2>' +
       '<div class="filter-bar" style="margin-bottom:10px;">' +
         '<button class="filter-btn active" id="authTabLogin" onclick="switchAuthTab(\'login\')">登录</button>' +

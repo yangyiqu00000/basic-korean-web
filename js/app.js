@@ -212,7 +212,7 @@ function calcWeekCollections() {
 function clearData(key, name) {
   bkConfirm('确定将「' + name + '」清空？此操作不可恢复。', function() {
     var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme"] : [key];
-    // Phase 2：词句表是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
+    // Phase 2：拾遗（收藏本）是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
     var colSnapshot = (typeof syncCollectDelete === "function" && (key === "ALL" || key === "korean_collections")) ? getCollections() : [];
     // Phase 3：场景记录级，重置前快照本地有 id 的条目（我的场景 + 对话记录镜像），清空后逐条删云端
     var sceneSnapshot = (typeof syncSceneDelete === "function" && (key === "ALL" || key === "korean_custom_scenes"))
@@ -381,7 +381,7 @@ function renderColorLegend() {
 }
 
 // ============================================
-// 词句表（收藏本）- 用户收藏的词与句（localStorage 先行，Phase 2 上云）
+// 拾遗（收藏本）- 用户收藏的词与句（localStorage 先行，Phase 2 上云）
 // ============================================
 var COLLECTIONS_KEY = "korean_collections";
 
@@ -398,12 +398,12 @@ function isCollected(type, text) {
 function collectBtn(type, text, meaning, source, sourceRef) {
   var collected = isCollected(type, text);
   var star = collected ? "★" : "☆";
-  return '<button class="collect-btn' + (collected ? " collected" : "") + '" title="收藏到词句表" onclick="event.stopPropagation(); collectItem(this, \'' + type + '\', \'' + attrSafe(text) + '\', \'' + attrSafe(meaning || "") + '\', \'' + source + '\', \'' + attrSafe(sourceRef || "") + '\')">' + star + '</button>';
+  return '<button class="collect-btn' + (collected ? " collected" : "") + '" title="收藏到拾遗本" onclick="event.stopPropagation(); collectItem(this, \'' + type + '\', \'' + attrSafe(text) + '\', \'' + attrSafe(meaning || "") + '\', \'' + source + '\', \'' + attrSafe(sourceRef || "") + '\')">' + star + '</button>';
 }
 function collectItem(btn, type, text, meaning, source, sourceRef) {
   var list = getCollections();
   var dup = list.some(function(c) { return c.type === type && c.text === text; });
-  if (dup) { showToast("⭐ 已在词句表中"); return; }
+  if (dup) { showToast("⭐ 已在拾遗中"); return; }
   var now = Date.now();
   var item = {
     id: "c_" + now + "_" + Math.random().toString(36).slice(2, 8),
@@ -421,17 +421,17 @@ function collectItem(btn, type, text, meaning, source, sourceRef) {
   list.push(item);
   saveCollections(list);
   syncCollect(item); // 已登录 → 推送到云端
-  showToast("⭐ 已收藏到词句表");
+  showToast("⭐ 已收藏到拾遗");
   if (btn) { btn.classList.add("collected"); btn.textContent = "★"; }
 }
 
-// 词句表页面状态
+// 拾遗页面状态
 var wordListTab = "word";           // word | sentence
 var wordListFilter = "all";         // all | new | learning | mastered
 var wordListReviewMode = false;     // 抽认卡复习模式
 var wordListReviewIdx = 0;          // 当前卡片下标
 
-var SOURCE_LABELS = { skeleton: "筑基", training: "抽丝", stems: "剥茧", ai: "砥砺", scene: "临境", reference: "拾遗", manual: "手动" };
+var SOURCE_LABELS = { skeleton: "筑基", training: "抽丝", stems: "剥茧", ai: "砥砺", scene: "临境", reference: "筑基", manual: "手动" };
 
 function renderWordList() {
   var list = getCollections();
@@ -458,12 +458,12 @@ function renderWordList() {
     body = renderWordCard(filtered, wordListReviewIdx);
   } else {
     body = filtered.length === 0
-      ? '<p class="scene-empty">还没有收藏。在筑基 / 剥茧 / 抽丝 / 砥砺 / 临境 / 拾遗任意环节点击 ☆ 即可收藏。<br><button class="ai-suggest-btn" style="margin-top:8px;" onclick="navigate(\'skeleton\')">🏗️ 去筑基看看</button></p>'
+      ? '<p class="scene-empty">还没有收藏。在筑基 / 剥茧 / 抽丝 / 砥砺 / 临境 任意环节点击 ☆ 即可收藏。<br><button class="ai-suggest-btn" style="margin-top:8px;" onclick="navigate(\'skeleton\')">🏗️ 去筑基看看</button></p>'
       : '<div class="wordlist-grid">' + filtered.map(renderWordListCard).join("") + '</div>';
   }
 
   return '' +
-    '<div class="page-title"><h2>📚 词句表</h2><p>学习时收藏的词与句，学后查漏补缺。点卡片状态按钮流转：新收藏 → 学习中 → 已掌握。</p></div>' +
+    '<div class="page-title"><h2>🏷️ 拾遗</h2><p>学习时收藏的词与句，学后查漏补缺。点卡片状态按钮流转：新收藏 → 学习中 → 已掌握。</p></div>' +
     tabBar + statusBar +
     '<div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
       '<button class="ai-submit-btn" onclick="startWordListReview()">🎴 复习模式</button>' +
@@ -474,7 +474,7 @@ function renderWordList() {
 }
 
 function rerenderWordList() {
-  // Vue 模式下只重绘词句表组件自己的根节点（.wordlist-page-vue），绝不能覆盖 #mainContent
+  // Vue 模式下只重绘拾遗页组件自己的根节点（.wordlist-page-vue），绝不能覆盖 #mainContent
   // —— 那会连同 #vue-root（Vue 挂载点）一起被删除，导致导航全部失效。
   var root = document.querySelector("#mainContent .wordlist-page-vue");
   var main = root || document.getElementById("mainContent");
@@ -598,7 +598,7 @@ function exportWordList() {
   showToast("✅ 已导出 " + list.length + " 条收藏");
 }
 
-// 拾遗表 / 词的助记 共用表格行渲染（同一数据源，避免两处漂移）
+// 筑基·词的助记 / 表格行渲染（与 REFERENCE 数据源共用，避免两处漂移）
 function refLevelBadge(lv) {
   var cls = lv === "核心" ? "level-badge-core" : lv === "常用" ? "level-badge-common" : "level-badge-optional";
   return '<span class="' + cls + '">' + lv + '</span>';
@@ -975,7 +975,6 @@ function renderPage(page) {
     training: renderTraining,
     stems: renderStems,
     schedule: renderSchedule,
-    reference: renderReference,
     wordlist: renderWordList,
     ai: renderAI,
     scene: renderScene,
@@ -1022,16 +1021,16 @@ function renderHome() {
           <h3>两周润物表</h3>
           <p>每天 20 分钟，从零到能造简单句子</p>
         </div>
-        <div class="hero-card" onclick="navigate('reference')">
-          <div class="icon">🏷️</div>
-          <h3>标签拾遗表</h3>
-          <p>助词、词尾、疑问词一览，快速查找</p>
-        </div>
-      </div>
-    </section>
-    <div style="text-align:center;margin-top:20px;color:var(--text-light);font-size:13px;">
-      <p>💡 建议顺序：筑基 → 抽丝 → 剥茧 → 砥砺 → 临境 → 润物 → 拾遗</p>
-      <p style="margin-top:6px;">⌨️ 快捷键：数字键 1-9 快速切换页面（输入框内不触发）</p>
+<div class="hero-card" onclick="navigate('wordlist')">
+	          <div class="icon">🏷️</div>
+	          <h3>拾遗</h3>
+	          <p>收藏的词与句，查漏补缺，复习巩固</p>
+	        </div>
+	      </div>
+	    </section>
+	    <div style="text-align:center;margin-top:20px;color:var(--text-light);font-size:13px;">
+	      <p>💡 建议顺序：筑基 → 抽丝 → 剥茧 → 砥砺 → 临境 → 润物 → 拾遗</p>
+      <p style="margin-top:6px;">⌨️ 快捷键：数字键 1-8 快速切换页面（输入框内不触发）</p>
     </div>
   `;
 }
@@ -1074,7 +1073,7 @@ function renderWordMnemonics() {
       '<h2>🏗️ 词的助记</h2>' +
       '<p>词级基础知识：助词 / 词尾 / 疑问词。先记零件，再套句的助记规则。</p>' +
     '</div>' +
-    '<div class="tip-banner"><strong>🎯 目标：</strong>认识这些"零件"——看到助词知道角色、看到词尾知道时态语气。与「句的助记」规则 ②③⑤⑦ 对照学习，行尾 ☆ 可收藏到词句表。</div>' +
+    '<div class="tip-banner"><strong>🎯 目标：</strong>认识这些"零件"——看到助词知道角色、看到词尾知道时态语气。与「句的助记」规则 ②③⑤⑦ 对照学习，行尾 ☆ 可收藏到拾遗。</div>' +
     '<div class="card ref-section">' +
       '<div class="card-title">🔴 助词 <span class="badge badge-red">' + WORD_MNEMONICS.particles.length + ' 个</span></div>' +
       '<table class="ref-table"><thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead><tbody>' + particlesHtml + '</tbody></table>' +
@@ -1428,13 +1427,13 @@ function playAllStems() {
 
 // === SCHEDULE PAGE ===
 var SCHEDULE = [
-  { day: 1, title: "通读筑基地图", tasks: ["读 7 大筑基规则", "读拾遗表", "找一段韩语歌词，试着找出 은/는/을/를/에/요"] },
+  { day: 1, title: "通读筑基地图", tasks: ["读 7 大筑基规则", "读筑基·词的助记", "找一段韩语歌词，试着找出 은/는/을/를/에/요"] },
   { day: 2, title: "助词识别训练", tasks: ["复习助词表", "做抽丝训练 #1-5 自我介绍（三遍法）", "学动词词干 1-10 号"] },
   { day: 3, title: "时态识别训练", tasks: ["复习时态词尾", "做抽丝训练 #6-10 日常动作+描述", "学动词词干 11-20 号"] },
   { day: 4, title: "描述与否定", tasks: ["复习规则 ①②③⑥", "做抽丝训练 #11-15 否定句+疑问命令", "学形容词词干 1-10 号"] },
   { day: 5, title: "连接词尾", tasks: ["复习规则 ⑤", "做抽丝训练 #16-20 连接词尾", "学动词词干 21-35 号"] },
   { day: 6, title: "购物点餐场景", tasks: ["做抽丝训练 #21-24 购物点餐", "练习点餐对话：이거 얼마예요? / 주세요", "学动词词干 36-52 号"] },
-  { day: 7, title: "第一周总复习", tasks: ["不看标注尝试断句 #1-20", "遮住拾遗表说含义", "自造 3 个简单句子"] },
+  { day: 7, title: "第一周总复习", tasks: ["不看标注尝试断句 #1-20", "遮住筑基·词的助记说含义", "自造 3 个简单句子"] },
   { day: 8, title: "问路交通场景", tasks: ["做抽丝训练 #25-28 问路交通", "练习问路对话：어디에 있어요? / 오른쪽으로", "复习形容词词干 1-20 号"] },
   { day: 9, title: "时间计划场景", tasks: ["做抽丝训练 #29-32 时间计划", "练习约会对话：몇 시에 만날까요?", "学形容词词干 21-32 号"] },
   { day: 10, title: "请求感谢场景", tasks: ["做抽丝训练 #33-36 请求感谢", "练习请求对话：주세요 / 좀 부탁해요", "复习全部动词词干"] },
@@ -1496,70 +1495,6 @@ function toggleCheck(el) {
     let progressText = schedulePage.querySelector("strong");
     if (progressText) progressText.nextSibling.textContent = ` ${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)`;
   }
-}
-
-// === REFERENCE PAGE ===
-function renderReference() {
-  // 与「词的助记」共用 ref* 行渲染（同一数据源 + 收藏列）
-  let particlesHtml = REFERENCE.particles.map(p => refParticleRow(p, "reference")).join("");
-  let endingsHtml = REFERENCE.endings.map(e => refEndingRow(e, "reference")).join("");
-  let qwordsHtml = REFERENCE.questionWords.map(q => refQwordChip(q, "reference")).join("");
-
-  return `
-    <div class="page-title">
-      <h2>🏷️ 标签拾遗表</h2>
-      <p>看到以下标签立刻知道"前面这个词是什么角色"。建议截图或打印。</p>
-    </div>
-
-    ${renderColorLegend()}
-
-    <div style="margin-bottom:16px;">
-      <input id="refSearch" class="ai-input" style="width:100%;box-sizing:border-box;" placeholder="🔍 搜索助词 / 词尾 / 疑问词（如：主题、과거、뭐）" oninput="filterReference(this.value)" />
-    </div>
-
-    <div class="card ref-section">
-      <div class="card-title">🔴 助词 <span class="badge badge-red">${REFERENCE.particles.length} 个</span></div>
-      <table class="ref-table">
-        <thead><tr><th>助词</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead>
-        <tbody>${particlesHtml}</tbody>
-      </table>
-    </div>
-
-    <div class="card ref-section">
-      <div class="card-title">🟠 词尾 <span class="badge badge-orange">${REFERENCE.endings.length} 个</span></div>
-      <table class="ref-table">
-        <thead><tr><th>词尾</th><th>类型</th><th>含义</th><th>优先级</th><th>例句</th><th></th></tr></thead>
-        <tbody>${endingsHtml}</tbody>
-      </table>
-    </div>
-
-    <div class="card ref-section">
-      <div class="card-title">❓ 疑问词 <span class="badge badge-green">${REFERENCE.questionWords.length} 个</span></div>
-      <div>${qwordsHtml}</div>
-    </div>
-
-    <div style="margin-top:20px;padding:16px;background:var(--accent-light);border-radius:var(--radius-sm);font-size:14px;">
-      <strong>⚡ 速查口诀</strong><br>
-      看到 은/는 → 主题来了<br>
-      看到 을/를 → 宾语来了<br>
-      看到 에/에서 → 地点来了<br>
-      看到 어요/어요? → 句子结束/疑问<br>
-      看到 고/서/지만 → 句子未完！
-    </div>
-  `;
-}
-
-// 参考页实时搜索：按文本过滤行，并隐藏无命中分组
-function filterReference(q) {
-  q = (q || "").trim().toLowerCase();
-  document.querySelectorAll("#mainContent .ref-row, #mainContent .ref-qword").forEach(function(el) {
-    var hit = !q || el.textContent.toLowerCase().includes(q);
-    el.classList.toggle("ref-hidden", !hit);
-  });
-  document.querySelectorAll("#mainContent .ref-section").forEach(function(sec) {
-    var any = sec.querySelector(".ref-row:not(.ref-hidden), .ref-qword:not(.ref-hidden)");
-    sec.style.display = any ? "" : "none";
-  });
 }
 
 // === AI PAGE ===
@@ -2449,7 +2384,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   // 全局键盘快捷键 1-8 切换页面（输入框内/带修饰键时不触发，避免误触）
-  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"ai", "6":"scene", "7":"schedule", "8":"reference", "9":"wordlist" };
+  var KEY_PAGE_MAP = { "1":"home", "2":"skeleton", "3":"training", "4":"stems", "5":"ai", "6":"scene", "7":"schedule", "8":"wordlist", "9":"wordlist" };
   document.addEventListener("keydown", function(e) {
     var t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
