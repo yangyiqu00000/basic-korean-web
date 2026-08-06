@@ -136,7 +136,7 @@ function pushDirtyBlobs() {
         saveSyncMeta(m2);
       }
     })
-    .catch(function() {})
+    .catch(function(err) { console.warn('[sync] pushDirtyBlobs failed:', err && err.message); })
     .finally(function() {
       _pushInFlight = false;
       // 竞态修复：推送期间可能产生新脏数据（lastPushed 未更新）→ 重新调度
@@ -168,7 +168,7 @@ function apiFetch(path, opts) {
   }).then(function(res) {
     if (res.status === 401) { clearSession(); return null; }
     if (res.status === 204) return { ok: true };
-    return res.json().catch(function() { return null; });
+    return res.json().catch(function(err) { console.warn('[sync] apiFetch non-JSON response:', err && err.message); return null; });
   });
 }
 
@@ -348,12 +348,12 @@ function syncSceneCreate(item) {
       localStorage.setItem("korean_custom_scenes", JSON.stringify(local));
     }
     return res;
-  }).catch(function() { return null; });
+  }).catch(function(err) { console.warn('[sync] scene create failed:', err && err.message); return null; });
 }
 // 删除自定义场景（删除时调用）
 function syncSceneDelete(id) {
   if (!isLoggedIn()) return;
-  apiFetch("/api/scenes/" + encodeURIComponent(id), { method: "DELETE" }).catch(function() {});
+  apiFetch("/api/scenes/" + encodeURIComponent(id), { method: "DELETE" }).catch(function(err) { console.warn('[sync] scene delete failed:', err && err.message); });
 }
 // 对话存档（finishSceneChat 调用）：kind=history 场景 + 批量消息一次入库；回写服务端 id 到本地条目（供 clearData 删云端）
 function syncSceneArchive(title, messages, entry) {
@@ -371,7 +371,7 @@ function syncSceneArchive(title, messages, entry) {
       local.forEach(function(h) { if (h === entry || (h.title === entry.title && h.time === entry.time)) h.id = res.scene.id; });
       localStorage.setItem("korean_scene_history", JSON.stringify(local));
     }
-  }).catch(function() {});
+  }).catch(function(err) { console.warn('[sync] scene archive failed:', err && err.message); });
 }
 // 旧本地场景上云：本地有而云端没有的 custom 场景逐条创建、无云端 history 时整包存档
 function pushLocalScenesIfMissing(data) {
@@ -458,9 +458,9 @@ function mergeCollectionsFromServer(serverItems) {
           .then(function(res) {
             if (res && res.ok) clearCollTombstone(k); // 服务端确认删除 → 清墓碑
           })
-          .catch(function() {});
-      }
-      return; // 跳过该服务端条目（不复活）
+.catch(function(err) { console.warn('[sync] collection tombstone cleanup failed:', err && err.message); });
+	      }
+	      return; // 跳过该服务端条目（不复活）
     }
     if (tb) {
       // 服务端条目更新晚于墓碑（删除后被重新收藏/编辑）→ 后写胜出，复活并清墓碑
@@ -499,11 +499,11 @@ function pushCollectionsDirty() {
             localStorage.setItem("korean_collections_pushed", JSON.stringify(pushedIds));
           }
         })
-        .catch(function() {});
-    }
-  });
-}
-// 收藏（collectItem 内调用）
+.catch(function(err) { console.warn('[sync] push collections dirty failed:', err && err.message); });
+	    }
+	  });
+	}
+	// 收藏（collectItem 内调用）
 function syncCollect(item) {
   if (!isLoggedIn()) return;
   apiFetch("/api/collections", { method: "POST", body: JSON.stringify({ item: item }) })
@@ -527,7 +527,7 @@ function syncCollect(item) {
         }
       }
     })
-    .catch(function() {});
+    .catch(function(err) { console.warn('[sync] collect failed:', err && err.message); });
 }
 // 状态流转（setCollectStatus 内调用）
 function syncCollectStatus(id, status) {
@@ -535,7 +535,7 @@ function syncCollectStatus(id, status) {
   var c = getCollections().filter(function(x) { return x.id === id; })[0];
   if (!c) return;
   apiFetch("/api/collections", { method: "POST", body: JSON.stringify({ item: Object.assign({}, c, { status: status, updatedAt: Date.now() }) }) })
-    .catch(function() {});
+    .catch(function(err) { console.warn('[sync] status update failed:', err && err.message); });
 }
 // 删除（deleteCollect 内调用）——先记墓碑再发 DELETE：
 // 即使离线（DELETE 失败），墓碑也保证下次拉取不复活该条目（v0.5 修复离线删除不生效）
@@ -551,7 +551,7 @@ function syncCollectDelete(id, type, text) {
     .then(function(res) {
       if (res && res.ok && k) clearCollTombstone(k); // 在线删除成功 → 立即清墓碑
     })
-    .catch(function() {}); // 离线失败：墓碑保留，下次拉取自愈
+    .catch(function(err) { console.warn('[sync] delete failed (tombstone kept):', err && err.message); }); // 离线失败：墓碑保留，下次拉取自愈
 }
 
 // ============================================================
@@ -633,7 +633,7 @@ function submitReset() {
 }
 function doLogout() {
   var s = getSession();
-  if (s) apiFetch("/api/logout", { method: "POST" }).catch(function() {});
+  if (s) apiFetch("/api/logout", { method: "POST" }).catch(function(err) { console.warn('[sync] logout failed:', err && err.message); });
   clearSession();
   showToast("已退出登录，数据保留在本地");
 }

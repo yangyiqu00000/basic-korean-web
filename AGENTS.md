@@ -28,7 +28,7 @@
 - **TTS 走 Python CLI**：`tts_server.js` 用 `child_process.execFile('edge-tts', …)` 调用系统二进制，语音固定 `ko-KR-SunHiNeural`，音频按 `md5(text).mp3` 缓存到 `audio/`。TTS 并发上限为 3（`MAX_TTS_CONCURRENCY`），并对相同文本去重。服务仅绑定 `127.0.0.1`（仅本地访问）。
 
 ## 编码约定
-- **词性色彩系统**：`js/app.js` 顶部 `ELEM_COLORS` + `getElemClass()` 定义 7 种词性 → CSS class 映射（词干/助词/终结词尾/连接词尾/时态词尾/否定/语气），必须与 `css/style.css` 中 `elem-*` class 保持一致。**注意两套解析**：骨架/词干页用 `getElemClassFromMeaning`（breakdown 是 `[text, meaning]` 数组），AI 页用 `getElemClass`（breakdown 是 `{part, tag, meaning, label}` 对象）。勿混用。
+- **词性色彩系统**：`js/app.js` 顶部 `ELEM_COLORS` + `getElemClass()` 定义 7 种词性 → CSS class 映射（词干/助词/终结词尾/连接词尾/时态词尾/否定/语气），必须与 `css/style.css` 中 `elem-*` class 保持一致。**注意两套解析**：骨架/词干页用 `getElemClassFromMeaning`（breakdown 是 `[text, meaning]` 数组），AI 页用 `getElemClass`（breakdown 是 `{part, tag, meaning, label}` 对象）。勿混用。两套函数的判断逻辑和参数结构不同，修改任一函数的分类规则时需同步更新另一函数，否则相同词性在不同页面会显示不同颜色。
 - **AI 输出契约**：`tts_server.js` 的 prompt 要求模型只返回严格 JSON（`kr/full/breakdown[rules]/tip/examples`），服务端会剥离可能的 markdown 代码块包裹。改 AI 输出结构时，需同时更新 prompt 与 `app.js` 的 `renderAIResult` / 情景对话渲染。
 - **7 大骨架规则**编号为 ①②③④⑤⑥⑦；AI 返回的 `rules` 字段引用这些数字，`tts_server.js` 中的 prompt 有完整定义。
 - **敬语规范**：AI 始终用 `-요` 体（命令用 `-세요`），prompt 中已锁定。
@@ -44,3 +44,4 @@
 - 字体来自 Google Fonts（Plus Jakarta Sans / Noto Sans KR / Noto Sans SC），需联网；离线时字体回退。
 - AI 未配置 `ai_config.json` 时，其余功能正常，仅 `/ai`、`/ai/chat` 不可用（前端应据此禁用相关 UI）。
 - `generate_audio.py` 不再改写 `app.js` 源码（历史上它会把播放逻辑改成读本地 `audio_map.json`，有副作用）；现仅生成音频与 `audio_map.json` 作为可选离线缓存，播放仍走 TTS 服务器。
+- **同步层静默错误**：`js/sync.js` 中的 `apiFetch` 调用在失败时仅 `console.warn` 而非弹 Toast，避免频繁打断用户。调试同步问题时请打开浏览器 DevTools Console 查看 `[sync]` 前缀日志。
