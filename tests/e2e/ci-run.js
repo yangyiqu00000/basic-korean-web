@@ -84,7 +84,7 @@ async function main() {
     // --- T2: Vue 路由导航（逐页 currentPage 切换 + 页面专属 wrapper 渲染） ---
     // 断言页面专属 class（如 .training-page-vue）存在，避免组件注册失败时 Vue 把
     // 未知元素原样渲染导致 children.length>0 的假通过
-    const pages = ['skeleton', 'training', 'stems', 'ai', 'scene', 'schedule', 'reference', 'wordlist'];
+    const pages = ['skeleton', 'training', 'stems', 'ai', 'scene', 'schedule', 'wordlist'];
     for (const p of pages) {
       const ok = await ev(async (pg) => {
         window.navigate(pg);

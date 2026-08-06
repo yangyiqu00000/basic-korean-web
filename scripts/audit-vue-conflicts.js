@@ -39,7 +39,7 @@ const DEFAULT_FILES = [
 ];
 
 // 页面关键字（用于同页导航启发式：函数名含该关键字且 navigate 到同名页）
-const PAGE_KEYWORDS = ['scene', 'training', 'home', 'skeleton', 'stems', 'ai', 'schedule', 'reference'];
+const PAGE_KEYWORDS = ['scene', 'training', 'home', 'skeleton', 'stems', 'ai', 'schedule'];
 
 /* ---------------- 代码掩码：注释掩空，字符串/模板保留但标记非代码区 ---------------- */
 
