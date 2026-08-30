@@ -47,3 +47,6 @@ output/
 __pycache__/
 .worktrees/
 .playwright-cli/
+
+# 自检产物（截图 + 报告，本地生成）
+tests/e2e/_selfcheck/

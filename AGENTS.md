@@ -33,7 +33,8 @@
 - `npm run audit:assets:strict` —— 资产完整性：index.html 引用的本地文件必须存在 + `js/components/` 无孤儿文件
 - `npm run audit:contrast` —— 设计系统色彩对比度（WCAG AA 4.5:1），解析 CSS 变量校验亮暗两主题
 - `npm run test:e2e:ci` —— 便携式 E2E（导航/动效/筛选/pageTick 机制）。本地免下载浏览器：`PW_CHANNEL=chrome npm run test:e2e:ci`
-- `npm run test:viewport` —— 响应式断点（375/480/600/769）。测生产：`E2E_BASE=https://xxx.pages.dev npm run test:viewport`
+- `npm run test:viewport` —— 响应式断点（375/480/600/769）。测生产：`E2E_BASE=https://basic-korean.pages.dev npm run test:viewport`
+- `npm run test:selfcheck` —— 浏览器自检扫描器（控制台异常/请求失败/溢出/交互流程）。测生产：`npm run test:selfcheck:prod`
 - `bash tests/e2e/dual-device-ci.sh` —— 双设备云同步回归（需 CF 凭据）
 - 无 typecheck / 无 lint（项目仅用 Node 内置模块，无 TS）。
 

@@ -14,7 +14,9 @@
     "audit:assets:strict": "node scripts/asset-integrity.js --strict",
     "audit:contrast": "node scripts/contrast-audit.js",
     "test:e2e:ci": "node tests/e2e/ci-run.js",
-    "test:viewport": "node tests/e2e/viewport-480.js"
+    "test:viewport": "node tests/e2e/viewport-480.js",
+    "test:selfcheck": "node tests/e2e/self-check.js",
+    "test:selfcheck:prod": "E2E_BASE=https://basic-korean.pages.dev node tests/e2e/self-check.js"
   },
   "engines": {
     "node": ">=18"
