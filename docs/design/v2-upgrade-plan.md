@@ -447,7 +447,7 @@ CREATE INDEX idx_email_codes_lookup ON email_codes(email, purpose, created_at);
 - [ ] 4.1 前端接入 `/api/stats`：学习统计仪表盘（学习天数 / 完成率 / 收藏数 / 对话量），登录用户跨设备一致展示（统计弹窗已消费 `/api/stats`，仪表盘化待做）
 - [ ] 4.2 跨设备实时同步：登录后定时轮询 `/api/sync`（?since 增量）+ 标签页可见性触发拉取，冲突提示 UI
 - [ ] 4.3 词句表导出/导入完善 + 复习进度统计（抽认卡次数 / 掌握曲线 / 每日提醒）
-- [ ] 4.4 （可选）OAuth 快捷登录：`users` 表加 `oauth_provider` / `oauth_id` 可空列，GitHub/Google
+- ~~4.4 （可选）OAuth 快捷登录~~ —— **已砍掉（2026-08-30 决策）**：当前是邮箱+密码+验证码已跑通的自用/小众学习工具，OAuth 收益低于维护成本（需维护 provider 回调、state 校验、账号合并与解绑流程）。若将来用户规模上来再单独立项，届时需给 `users` 表加 `oauth_provider` / `oauth_id` 可空列。
 
 > ✅ 风险已消解：Phase 2 前的 1 天 spike（D1 绑定打通 + 单个 blob 同步跑通）已完成，不再阻塞。
 

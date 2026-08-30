@@ -1,12 +1,18 @@
 // sw.js — 版本化安全 Service Worker（P2-2）
 // 目标：拿回 PWA 离线能力，同时彻底规避「缓存不更新」的老问题。
 // 核心规则：
-//   1. 只缓存带 ?v= 版本戳的静态资源（JS/CSS）——版本戳变化 = 新 URL = 天然缓存隔离
+//   1. 只缓存带 ?v= 版本戳的静态资源（JS/CSS）
 //   2. 绝不缓存 HTML（/、/index.html）与 /api/*、/ai、/tts 动态接口——永远走网络
 //   3. 更新策略：新 SW 安装后 skipWaiting 立即接管 + 删除旧版本缓存
-// 由 index.html 注册。版本戳 v20260801d 起引入，升级时改 CACHE_VERSION。
-var CACHE_VERSION = "bk-v1";
-var CACHE_NAME = CACHE_VERSION + "-v20260801d";
+//   4. ⚠️ 取缓存策略 = network-first（网络优先，失败才回落缓存），不是 cache-first。
+//      历史教训：原实现是先查缓存命中就直接返回，导致 index.html 的 ?v= 版本戳
+//      忘记 bump 时，回访用户会一直拿到旧的 JS/CSS——修好的 bug 在用户端「没生效」。
+//      实测案例：app.js / style.css 于 2026-08-30 修改，而版本戳仍是 20260806a。
+//      改为网络优先后，在线永远拿最新，缓存只在离线（或网络失败）时兜底，
+//      彻底消除「版本戳忘了改」这一整类事故。CDN 与浏览器 HTTP 缓存已足够快。
+// 由 index.html 注册。
+var CACHE_VERSION = "bk-v2";
+var CACHE_NAME = CACHE_VERSION + "-v20260830a";
 
 self.addEventListener("install", function (event) {
   self.skipWaiting(); // 新版本立即激活，不等旧页面关闭
@@ -40,16 +46,17 @@ self.addEventListener("fetch", function (event) {
   // 只缓存带版本戳的静态资源
   if (!url.search || url.search.indexOf("v=") === -1) return;
 
+  // 网络优先：在线永远取最新内容并顺带刷新缓存；仅当网络失败（离线）时才用缓存兜底。
   event.respondWith(
-    caches.match(req).then(function (hit) {
-      if (hit) return hit; // 命中缓存直接返回
-      return fetch(req).then(function (res) {
-        if (res && res.ok && res.status === 200) {
-          var clone = res.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(req, clone); });
-        }
-        return res;
-      }).catch(function () { return hit; }); // 离线且有缓存 → 兜底
+    fetch(req).then(function (res) {
+      if (res && res.ok && res.status === 200) {
+        var clone = res.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(req, clone); });
+      }
+      return res;
+    }).catch(function () {
+      // 离线或网络失败 → 回落缓存；缓存也没有则让请求自然失败
+      return caches.match(req).then(function (hit) { return hit || Response.error(); });
     })
   );
 });

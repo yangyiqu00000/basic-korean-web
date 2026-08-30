@@ -12,8 +12,27 @@
 //
 // 注：Chromium 会把 repeat(auto-fit, …) 计算为具体轨道值，故按解析轨道数断言。
 const { chromium } = require("playwright");
+const { spawn } = require("child_process");
+const http = require("http");
+const https = require("https");
 
 const BASE = process.argv[2] || process.env.E2E_BASE || "http://localhost:9999";
+
+// 探测服务是否可达：本地默认目标由本脚本按需拉起 web_server.js（幂等）
+function probe(url, tries = 40) {
+  return new Promise((resolve) => {
+    let n = 0;
+    const lib = url.startsWith("https:") ? https : http;
+    const tryOnce = () => {
+      const req = lib.get(url, (res) => { res.resume(); resolve(true); });
+      req.on("error", () => {
+        if (++n >= tries) resolve(false);
+        else setTimeout(tryOnce, 250);
+      });
+    };
+    tryOnce();
+  });
+}
 
 // 解析 grid-template-columns 实际轨道数：
 //   "repeat(2, 1fr)"        → 2
@@ -31,7 +50,19 @@ function cols(gridTemplateColumns) {
   return 1;
 }
 
+let serverProc = null;
+
 (async () => {
+  // 目标不可达时自动拉起 web_server.js（默认本地目标）。测生产域名时不会触发。
+  // 只清理自己拉起的进程，绝不误杀外部已在运行的 9999 服务。
+  if (!(await probe(BASE))) {
+    serverProc = spawn(process.execPath, ["web_server.js"], { stdio: "ignore" });
+    if (!(await probe(BASE))) {
+      console.error("❌ Web server 无法启动：" + BASE);
+      process.exit(1);
+    }
+  }
+
   // PW_CHANNEL=chrome 时复用系统 Chrome（CI 由 workflow 装 chromium，本地可免下载）
   let browser;
   try {
@@ -41,6 +72,7 @@ function cols(gridTemplateColumns) {
   }
   const results = [];
 
+  try {
   for (const vp of [
     { name: "375px(手机窄)", width: 375, expectHero: 1, expectNavHidden: true },
     { name: "480px(中间断点)", width: 480, expectHero: 2, expectNavHidden: true },
@@ -79,8 +111,12 @@ function cols(gridTemplateColumns) {
     });
     await page.close();
   }
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+    if (serverProc) serverProc.kill();
+  }
 
-  console.log("=== 480px 断点生产实测 (" + BASE + ") ===");
+  console.log("=== 响应式断点实测 (" + BASE + ") ===");
   let allPass = true;
   for (const r of results) {
     console.log(

@@ -15,7 +15,7 @@
 - **🎨 暗色/亮色主题** — 支持系统偏好跟随或手动切换，持久化到本地
 - **⌨️ 全局快捷键** — 数字键 1-8 快速切换页面
 - **📊 学习统计** — 学习进度总览、数据管理（重置/导出/备份）
-- **📱 PWA 支持** — 可安装为应用（manifest.json）；离线缓存已停用（Service Worker 不再注册，避免缓存干扰开发）
+- **📱 PWA 支持** — 可安装为应用（manifest.json）；Service Worker 已启用离线缓存（**网络优先**策略：在线永远取最新内容，仅在离线时回落缓存；只缓存带 `?v=` 版本戳的静态资源，HTML 与 `/api/*`、`/ai`、`/tts` 永不缓存）
 - **🎉 成就感反馈** — 全部断句完成庆祝、掌握进度可视化
 
 ## 📋 环境要求
@@ -162,8 +162,9 @@ Cloudflare Pages 的 Secrets（`AI_API_KEY` / `EDGE_TTS_ENABLED` 等）**只挂�
 
 ```
 basic-korean-web/
-├── index.html              # 入口页面
+├── index.html              # 入口页面（脚本按固定顺序同步加载，顺序敏感）
 ├── manifest.json           # PWA 清单（可安装为应用）
+├── sw.js                   # Service Worker（网络优先，只缓存带 ?v= 的静态资源）
 ├── start.sh                # 一键启动脚本
 ├── web_server.js           # 静态文件服务器 (端口 9999，支持安全拦截)
 ├── tts_server.js           # TTS + AI 代理服务器 (端口 1234，支持多语音)
@@ -172,40 +173,58 @@ basic-korean-web/
 ├── ai_config.json          # AI 配置（需自行创建，已被 gitignore）
 ├── requirements.txt        # Python 依赖
 ├── package.json            # Node.js 项目信息
-├── AGENTS.md               # 工作区指令（ZCode agent 使用）
+├── schema.sql              # Cloudflare D1 建表语句
+├── wrangler.toml           # Pages + D1 绑定（生产环境需重复声明绑定）
+├── AGENTS.md               # 工作区指令（agent 使用，含架构边界与坑点）
+├── functions/              # Cloudflare Pages Functions（生产后端）
+│   ├── api/                #   D1 + PBKDF2 认证 + 同步 + 统计 + 邮箱验证
+│   ├── ai/                 #   AI 代理（/ai, /ai/chat, /ai/status）
+│   └── tts/                #   TTS 四级回退（Google → Azure → Edge → 503）
 ├── scripts/
 │   ├── deploy-prod.sh          # 一键部署到 Cloudflare Pages 生产 + 验证矩阵
 │   ├── rebuild-data.sh         # 重新合并数据层（data_core.js / data_ext.js）
 │   ├── audit-vue-conflicts.js  # 审计 Vue 全局变量冲突
-│   ├── test-tolerant-parse.js  # AI 容错 JSON 解析单测（17 用例，加载 tts_server.js 真实函数）
-│   └── tts-server.launchd.plist # macOS launchd 常驻 tts_server（可选，含本机路径需按环境调整）
+│   ├── asset-integrity.js      # 资产完整性（引用缺失 / 孤儿组件）
+│   ├── contrast-audit.js       # 色彩对比度（WCAG AA）
+│   ├── test-tolerant-parse.js  # AI 容错 JSON 解析单测（17 用例）
+│   └── tts-server.launchd.plist # macOS launchd 常驻 tts_server（可选）
+├── tests/e2e/              # E2E 回归 + 双设备同步 + 响应式断点
 ├── css/
 │   └── style.css           # 全局样式 + 设计系统 + 动效 + 暗色主题
 ├── js/
 │   ├── app.js              # 主应用逻辑（导航、渲染、AI、TTS、统计、主题…）
-│   ├── data.js             # 基础数据
-│   ├── rules_data.js       # 7大骨架规则数据
-│   ├── sentences_data.js   # 43条断句训练数据
-│   ├── stems_data.js       # 84个核心词干数据
-│   └── reference_data.js   # 助词/词尾/疑问词速查表
+│   ├── sync.js             # 云同步层（D1 方案 C：整包 + 智能合并 + 墓碑）
+│   ├── vue-app.js          # Vue 3 入口（注册组件 + 接管路由）
+│   ├── components/         # Vue 页面组件（薄壳：v-html 转发 renderXxx()）
+│   ├── vendor/             # 本地托管的 Vue 3（不依赖 unpkg CDN）
+│   ├── data_core.js        # 数据层合并产物（= data+rules+stems）
+│   ├── data_ext.js         # 数据层合并产物（= sentences+reference+word_mnemonics）
+│   ├── data.js             # 基础数据 ┐
+│   ├── rules_data.js       # 7大骨架规则数据 │
+│   ├── sentences_data.js   # 43条断句训练数据 ├ 源文件（改后需跑 rebuild-data.sh）
+│   ├── stems_data.js       # 84个核心词干数据 │
+│   └── word_mnemonics_data.js  # 助词/词尾/疑问词 ┘
 ├── audio/                  # TTS音频缓存（自动生成，gitignore）
 └── assets/                 # 静态资源（含 PWA 图标 SVG）
 ```
 
 ## ⚙️ 技术栈
 
-- **前端**：原生 HTML/CSS/JS，零框架，零构建步骤
+- **前端**：原生 HTML/CSS/JS，零构建步骤；**Vue 3 本地托管**仅作路由与 `:key` 重建的薄壳（各页面仍是老式 `renderXxx()` 字符串渲染，未真正组件化）
+- **后端**：Cloudflare Pages Functions + **D1**（SQLite）
+- **部署**：Cloudflare Pages（生产分支 `main`，Secrets 只挂生产环境）
 - **语音**：[edge-tts](https://pypi.org/project/edge-tts/)（微软 Edge TTS，免费）
 - **AI**：OpenAI 兼容 API（Chat Completions 接口）
 - **字体**：Google Fonts — Plus Jakarta Sans + Noto Sans KR + Noto Sans SC
-- **持久化**：LocalStorage（学习进度 + AI 练句历史）
+- **持久化**：LocalStorage（离线可用）+ Cloudflare D1（登录后跨设备同步）
 
 ## 🔒 安全说明
 
 - `ai_config.json` 已被 `.gitignore` 排除，API Key 不会提交到 GitHub
 - AI 请求通过本地 `tts_server.js` 代理转发，API Key 不暴露给浏览器前端
 - 静态服务器 `web_server.js` 已拦截 `ai_config.json`、点文件（`.git`/`.env` 等）及路径穿越攻击，返回 403
-- 所有数据存储在本地，不上传任何用户信息
+- 密码经 **PBKDF2**（Web Crypto）哈希存储，明文不落库；登录态为服务端签发的 token
+- 未登录时所有数据仅存本地；登录后才上传学习数据用于跨设备同步
 
 ## 📝 License
 
