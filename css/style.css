@@ -465,6 +465,35 @@ body {
 .stats-row-highlight { background: var(--primary-lighter); border-radius: 10px; padding: 12px 14px; margin: 4px -6px; border-bottom: none; }
 .stats-row-highlight .stat-value { font-size: 18px; color: var(--primary-ink); }
 
+/* ---- 学习统计仪表盘（Phase 4.1）---- */
+/* 核心指标四宫格：两列，窄屏自动塌成一列 */
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat-card {
+  background: var(--primary-lighter); border-radius: 12px; padding: 12px 10px; text-align: center;
+  /* 首个卡片（连续学习）用主色填充强调，其余保持浅底 */
+}
+.stat-card:first-child { background: var(--primary); }
+.stat-card:first-child .stat-card-num,
+.stat-card:first-child .stat-card-label,
+.stat-card:first-child .stat-card-unit { color: var(--on-primary); }
+.stat-card-icon { font-size: 18px; line-height: 1.2; }
+.stat-card-num { font-size: 22px; font-weight: 700; color: var(--primary-ink); line-height: 1.25; }
+.stat-card-label { font-size: 11px; color: var(--text-light); }
+.stat-card-unit { font-size: 10px; opacity: 0.8; }
+@media (max-width: 380px) { .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; } .stat-card-num { font-size: 18px; } }
+
+/* 完成度进度条 */
+.stats-progress { margin-bottom: 8px; }
+.stat-progress-row { padding: 8px 0 10px; }
+.stat-progress-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.stat-progress-value { font-weight: 700; color: var(--primary-ink); }
+.stat-bar { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+.stat-bar-fill {
+  height: 100%; background: var(--primary); border-radius: 99px;
+  transition: width 0.5s var(--ease); /* 云端数据到达后从本地值平滑过渡到聚合值 */
+}
+@media (prefers-reduced-motion: reduce) { .stat-bar-fill { transition: none; } }
+
 /* Vue transition: fade */
 .fade-enter-active,
 .fade-leave-active {
@@ -1402,6 +1431,46 @@ body {
 }
 
 /* ===== 词句表页面 ===== */
+
+/* ---- 拾遗复习统计面板（Phase 4.3）---- */
+/* 四宫格指标 + 近 7 天柱状图。视觉语言与统计弹窗的仪表盘保持一致（浅底 + primary-ink 数字）。 */
+.wordlist-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0 10px;
+}
+.wordlist-stat {
+  background: var(--primary-lighter);
+  border-radius: 10px;
+  padding: 10px 6px;
+  text-align: center;
+}
+.wordlist-stat-num { font-size: 20px; font-weight: 700; color: var(--primary-ink); line-height: 1.2; }
+.wordlist-stat-label { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+/* 近 7 天柱状图：柱子高度由 JS 内联给出（0-32px），容器靠 align-items:flex-end 底部对齐。
+   不设固定高度 —— 让最高的柱子自然撑开，空柱靠 min-height 保持可见。 */
+.mini-bar-chart { margin-bottom: 8px; }
+.mini-bar-chart-label { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+.mini-bar-chart-bars { display: flex; align-items: flex-end; gap: 6px; }
+.mini-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.mini-bar {
+  width: 100%;
+  max-width: 28px;
+  min-height: 2px; /* count=0 的日子也留一点底色，柱子不会凭空消失 */
+  background: var(--primary);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s var(--ease, ease);
+}
+.mini-bar-day { font-size: 10px; color: var(--text-light); margin-top: 4px; }
+.wordlist-today { font-size: 12px; color: var(--text-light); }
+@media (max-width: 420px) {
+  .wordlist-stats { grid-template-columns: repeat(2, 1fr); }
+  .wordlist-stat-num { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .mini-bar { transition: none; } }
+
 .wordlist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

@@ -443,11 +443,35 @@ CREATE INDEX idx_email_codes_lookup ON email_codes(email, purpose, created_at);
 - [x] 3.5.5 TTS 生产实测：Edge 免费回退生效，数据中心未被风控（§3.9）
 - [x] 验证：远程 curl 矩阵全绿 + 生产 `/tts` 200 MP3 + 双设备 CI 三模式 6/6 PASS
 
-### Phase 4：学习体验增强（下一步，v0.5 已铺路）
-- [ ] 4.1 前端接入 `/api/stats`：学习统计仪表盘（学习天数 / 完成率 / 收藏数 / 对话量），登录用户跨设备一致展示（统计弹窗已消费 `/api/stats`，仪表盘化待做）
-- [ ] 4.2 跨设备实时同步：登录后定时轮询 `/api/sync`（?since 增量）+ 标签页可见性触发拉取，冲突提示 UI
-- [ ] 4.3 词句表导出/导入完善 + 复习进度统计（抽认卡次数 / 掌握曲线 / 每日提醒）
+### Phase 4：学习体验增强 —— ✅ 已完成（2026-08-30）
+- [x] 4.1 学习统计仪表盘（`js/app.js` / `css/style.css`）
+
+  统计弹窗从「一行一个数字的列表」升级为仪表盘：**4 张指标卡（连续学习 / 本周新收藏 / 抽丝训练 / 润物表）+ 2 条完成度进度条**（抽丝、润物）。
+  - 进度条带 `role="progressbar"` + `aria-valuenow/valuemin/valuemax`，宽度百分比由 `setStatBar()` 单独更新；
+  - 云端 `/api/stats` 返回后走 `setStatBar()` 回填，**只改 DOM 不整块重渲染** —— 否则会把用户正在操作的 TTS 下拉重置掉；
+  - 百分比一律 clamp 到 0–100（`total` 为 0 时给 0%，不做除法避免 NaN）；
+  - 主题色走 `--primary` / `--primary-ink` / `--on-primary` 三分 token，首张卡片用主色填充、其余浅底。
+
+- [x] 4.2 跨设备实时同步（`js/sync.js`）
+
+  登录后启动 **60s 轮询 + `visibilitychange` 即时触发**，走 `/api/sync?since=<lastSyncAt>` 增量拉取，合并 blob / collections / scenes 三类数据。
+  - 2s 防抖（避免切标签页和定时器撞车重复打接口）；
+  - 401/403 视为会话过期 → 自动 `stopRealtimeSync()`，不再对失效 token 持续重试；
+  - 登出走 `clearSession()` → `stopRealtimeSync()`；
+  - **未登录不启动**（`startRealtimeSync` 首行 `isLoggedIn()` 守卫，E2E 有断言守住）。
+
+- [x] 4.3 拾遗导出/导入 + 复习进度统计（`js/app.js` / `css/style.css`）
+
+  - **统计面板**：累计复习 / 已掌握 / 近 7 天 / 连续天数 四宫格 + 近 7 天柱状图 + 今日是否复习；
+  - **记账口径**：**只在 `reviewMark()`（明确点了「学习中 / 已掌握」）记一次**，`nextWordCard()` 翻页不记 —— 「翻过」不等于「复习过」，否则连点下一张就能把统计刷满；
+  - **导出**：JSON（含 `reviewLog` 完整包）/ CSV（BOM 开头，否则 Excel 打开韩文乱码）；
+  - **导入**：JSON 与 CSV 双格式，按 **同 type + 同 text** 合并，且**只有导入数据比本地新才覆盖**（旧备份不该把本地最新的掌握状态打回去）；新增条目按上限推云端（后端是逐条 POST）；
+  - **复习日志只存本地**（`korean_wordlist_review_log`，保留 90 天）：它是派生数据，跨设备同步要动 D1 表结构 + 迁移，收益不抵成本；要搬运用 JSON 导出即可。
+
 - ~~4.4 （可选）OAuth 快捷登录~~ —— **已砍掉（2026-08-30 决策）**：当前是邮箱+密码+验证码已跑通的自用/小众学习工具，OAuth 收益低于维护成本（需维护 provider 回调、state 校验、账号合并与解绑流程）。若将来用户规模上来再单独立项，届时需给 `users` 表加 `oauth_provider` / `oauth_id` 可空列。
+
+> Phase 4 验证：静态审计 🔴0 / 资产完整性 ✅ / 对比度 16 组全过 / E2E **29 PASS** / 断点回归 4 全过。
+> 质量门新增：`scripts/asset-integrity.js`（1.5）、`scripts/contrast-audit.js`（1.6）、`tests/e2e/viewport-480.js`（2.5）。
 
 > ✅ 风险已消解：Phase 2 前的 1 天 spike（D1 绑定打通 + 单个 blob 同步跑通）已完成，不再阻塞。
 

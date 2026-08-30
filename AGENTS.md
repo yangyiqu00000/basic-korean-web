@@ -51,15 +51,19 @@
 - **7 大骨架规则**编号为 ①②③④⑤⑥⑦；AI 返回的 `rules` 字段引用这些数字，`tts_server.js` 中的 prompt 有完整定义。
 - **敬语规范**：AI 始终用 `-요` 体（命令用 `-세요`），prompt 中已锁定。
 - **持久化：LocalStorage + Cloudflare D1 双层。** 本地键：学习进度 `korean_progress`、断句训练"已掌握" `korean_training_done`、AI 练句历史 `korean_ai_history`、自定义情景 `korean_custom_scenes`、情景对话历史 `korean_scene_history`、收藏本 `korean_collections`。
+  - 纯本地、**不同步**的键：拾遗复习日志 `korean_wordlist_review_log`（派生数据，见「已知坑点」）、上次同步时间戳 `korean_sync_last_at`（每台设备各自的拉起点）。
   - 后端是 **Cloudflare D1**（`basic-korean-db`），经 `functions/api/*` 提供注册/登录/同步/统计；前端同步层在 `js/sync.js`（方案 C：整包同步 + 智能合并 + 删除墓碑）。
   - 情景对话的"场景"由用户自定义存于 localStorage 并同步上云，**不是**数据文件。
   - 完整后端设计与 Phase 状态见 `docs/design/v2-upgrade-plan.md`。
 
 ## 已知坑点
-- **`index.html` 的 `?v=` 版本戳**：改了 `js/`、`css/` 下任何文件后必须同步 bump（当前 `?v=20260830a`）。Service Worker 只对带 `?v=` 的 URL 做缓存，戳不变则旧缓存 URL 命中。
+- **`index.html` 的 `?v=` 版本戳**：改了 `js/`、`css/` 下任何文件后必须同步 bump（当前 `?v=20260830b`）。Service Worker 只对带 `?v=` 的 URL 做缓存，戳不变则旧缓存 URL 命中。
   - 缓解：`sw.js` 已改为 **network-first**（在线永远取最新，缓存仅离线兜底），所以忘记 bump 不再导致用户拿到旧代码。但 bump 仍是好习惯，能让 CDN 也正确失效。
 - **主色 token 三分，勿混用**：`--primary`（填充/背景）、`--on-primary`（压在其上的前景色）、`--primary-ink`（主色系文字，落浅底）。`--accent` **只能用于边框/装饰**，作文字色只有 2.37:1。写错会被 `npm run audit:contrast` 拦下。
 - **入场动效必须挂在 `.main` 上**：统一调 `retriggerPageEnter()`，不要手写 `classList.add("page-enter")`。CSS 选择器是 `.main.page-enter ...`，挂到 `.xxx-page-vue` 组件根节点上不生效（历史上踩过三次）。
+- **统计弹窗的云端回填不能整块重渲染**：`/api/stats` 到达后走 `setStatBar()` / `set(id, val)` 只改对应 DOM 节点。若改成 `overlay.innerHTML = renderStatsContent()`，会把用户正在操作的 TTS 语音下拉重置回默认项。
+- **复习记账只在 `reviewMark()` 里**：`nextWordCard()`（翻下一张）刻意不记 —— 「翻过」不等于「复习过」，让翻页也计数的话连点下一张就能把统计刷满。改这两处前先看 `docs/design/v2-upgrade-plan.md` §Phase 4.3 的口径说明。
+- **复习日志只存本地**（`korean_wordlist_review_log`，90 天窗口），不在 `SYNC_BLOB_MAP` 里。要跨设备同步得先给 D1 加表 + 写迁移，别直接往 `SYNC_BLOB_MAP` 塞——服务端没有对应 blob 列会静默丢弃。
 - `audio/*.mp3`、`audio/*.json`、`ai_config.json` 已被 gitignore——音频和密钥均不提交。
 - **静态服务器已做安全防护**：`web_server.js` 会拦截 `ai_config.json`、所有点文件（`.git`/`.env` 等）以及路径穿越（realpath 包含校验），返回 403。不要在静态目录下放置需保密的文件，也不要在此放开这些拦截。
 - **AI 返回内容已 HTML 转义**：所有 AI 拆解/对话字段渲染都经 `escapeHtml()`（app.js 内已有）处理。新增任何渲染 AI 字段（`b.part/b.label/b.meaning`、`data.kr/data.full/data.tip`、`ex.*`）的代码，务必用 `escapeHtml()` 包裹，避免 XSS。

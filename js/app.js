@@ -68,8 +68,11 @@ function openStats() {
         var el = document.getElementById(id);
         if (el) el.textContent = val;
       };
-      set("statTraining", d.training_done + " / " + SENTENCES.length + " 句");
-      set("statSchedule", d.progress_done + " 项");
+      var scheduleTotal = SCHEDULE.reduce(function(s, d2) { return s + d2.tasks.length; }, 0);
+      set("statTrainingCard", d.training_done + " / " + SENTENCES.length);
+      set("statScheduleCard", d.progress_done + " / " + scheduleTotal);
+      setStatBar("statTrainingBar", d.training_done, SENTENCES.length);
+      setStatBar("statScheduleBar", d.progress_done, scheduleTotal);
       set("statAI", d.ai_history + " 次");
       set("statScene", (d.scenes ? d.scenes.history : 0) + " 场");
       set("statDays", d.learning_days + " 天");
@@ -126,6 +129,45 @@ function closeOnboarding() {
     }, 300);
   }
 }
+// ---- 学习统计仪表盘（Phase 4.1）----
+// 三件套：卡片 / 进度条 / 云端回填。
+// 抽丝训练与润物表是「有总量、能算完成度」的两条主进度，做成「卡片看数字 + 进度条看比例」双重呈现；
+// 连续学习与本周收藏是纯计数指标，只做卡片。
+// ⚠️ 进度百分比一律 clamp 到 0-100：未开始时 total>0/done=0 得 0%，全部完成得 100%，
+// 不会出现 NaN（total 为 0 的边界）或负数。
+function statCard(icon, value, unit, label, id) {
+  return '<div class="stat-card">' +
+    '<div class="stat-card-icon">' + icon + '</div>' +
+    '<div class="stat-card-num"' + (id ? ' id="' + id + '"' : "") + '>' + value +
+      (unit ? ' <span class="stat-card-unit">' + unit + '</span>' : "") + '</div>' +
+    '<div class="stat-card-label">' + label + '</div>' +
+  '</div>';
+}
+function statBar(label, done, total, id) {
+  var pct = total > 0 ? Math.min(100, Math.round(done / total * 100)) : 0;
+  return '<div class="stat-progress-row">' +
+    '<div class="stat-progress-head"><span>' + label + '</span>' +
+      '<span class="stat-progress-value">' + done + ' / ' + total + '（' + pct + '%）</span></div>' +
+    '<div class="stat-bar" id="' + id + '" role="progressbar" aria-label="' + label + '"' +
+      ' aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100">' +
+      '<div class="stat-bar-fill" style="width:' + pct + '%"></div>' +
+    '</div>' +
+  '</div>';
+}
+// 云端 /api/stats 到达后回填：进度条宽度 + ARIA + 右侧文字一起更新，卡片数字单独 set。
+// 只改 DOM 不整块重渲染——避免把用户正在操作的 TTS 下拉重置掉。
+function setStatBar(id, done, total) {
+  var bar = document.getElementById(id);
+  if (!bar) return;
+  var pct = total > 0 ? Math.min(100, Math.round(done / total * 100)) : 0;
+  bar.setAttribute("aria-valuenow", String(pct));
+  var fill = bar.querySelector(".stat-bar-fill");
+  if (fill) fill.style.width = pct + "%";
+  // 进度条与右侧百分比文字同在 .stat-progress-row 下
+  var row = bar.closest ? bar.closest(".stat-progress-row") : bar.parentNode;
+  var head = row ? row.querySelector(".stat-progress-value") : null;
+  if (head) head.textContent = done + " / " + total + "（" + pct + "%）";
+}
 function renderStatsContent() {
   var progress = safeParse(localStorage.getItem("korean_progress"), {});
   var trainingDone = safeParse(localStorage.getItem("korean_training_done"), {});
@@ -139,18 +181,25 @@ function renderStatsContent() {
   // P2-1 学习洞察：连续学习天数 + 本周新收藏（本地估算，登录后由 /api/stats 徽标补充云端聚合）
   var streakDays = calcLocalStreak();
   var weekCols = calcWeekCollections();
+  var loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
   return '' +
     '<div class="stats-modal">' +
       '<button class="stats-close" onclick="closeStats()">✕</button>' +
       '<h2>📊 学习统计</h2>' +
-      '<div class="stats-row stats-row-highlight"><span>🔥 连续学习</span><span class="stat-value" id="statStreak">' + streakDays + ' 天</span></div>' +
-      '<div class="stats-row"><span>🆕 本周新收藏</span><span class="stat-value" id="statWeek">' + weekCols + ' 条</span></div>' +
-      '<div class="stats-row"><span>📝 抽丝训练</span><span class="stat-value" id="statTraining">' + trainingDoneCount + ' / ' + totalSentences + ' 句</span></div>' +
-      '<div class="stats-row"><span>🗓️ 润物表</span><span class="stat-value" id="statSchedule">' + scheduleDone + ' / ' + scheduleTotal + ' 项</span></div>' +
+      '<div class="stats-grid">' +
+        statCard("🔥", streakDays, "天", "连续学习") +
+        statCard("🆕", weekCols, "条", "本周新收藏") +
+        statCard("📝", trainingDoneCount + " / " + totalSentences, "", "抽丝训练", "statTrainingCard") +
+        statCard("🗓️", scheduleDone + " / " + scheduleTotal, "", "润物表", "statScheduleCard") +
+      '</div>' +
+      '<div class="stats-progress">' +
+        statBar("抽丝训练完成度", trainingDoneCount, totalSentences, "statTrainingBar") +
+        statBar("润物表完成度", scheduleDone, scheduleTotal, "statScheduleBar") +
+      '</div>' +
       '<div class="stats-row"><span>🤖 AI 练句</span><span class="stat-value" id="statAI">' + aiHistory.length + ' 次</span></div>' +
       '<div class="stats-row"><span>💬 情景对话</span><span class="stat-value" id="statScene">' + sceneHistory.length + ' 场</span></div>' +
-      '<div class="stats-row"><span>📅 学习天数</span><span class="stat-value" id="statDays">' + (typeof isLoggedIn === "function" && isLoggedIn() ? "…" : "—") + '</span></div>' +
-      '<div class="stats-row"><span>💬 对话消息</span><span class="stat-value" id="statMsgs">' + (typeof isLoggedIn === "function" && isLoggedIn() ? "…" : "—") + '</span></div>' +
+      '<div class="stats-row"><span>📅 学习天数</span><span class="stat-value" id="statDays">' + (loggedIn ? "…" : "—") + '</span></div>' +
+      '<div class="stats-row"><span>💬 对话消息</span><span class="stat-value" id="statMsgs">' + (loggedIn ? "…" : "—") + '</span></div>' +
       '<div class="stats-row" style="display:none" id="statCloudRow"><span>☁️ 云端</span><span class="stat-value" id="statCloudBadge"></span></div>' +
       '<div class="stats-row"><span>🎨 主题</span><span class="stat-value">' + theme + '</span></div>' +
       '<div class="stats-row"><span>🔊 TTS 语音</span><span class="stat-value"><select onchange="setVoice(this.value)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;">' +
@@ -437,6 +486,7 @@ function renderWordList() {
   var list = getCollections();
   var wordCount = list.filter(function(c) { return c.type === "word"; }).length;
   var sentCount = list.filter(function(c) { return c.type === "sentence"; }).length;
+  var stats = getWordListReviewStats();
 
   var tabBar =
     '<div class="filter-bar">' +
@@ -452,6 +502,40 @@ function renderWordList() {
       '<button class="filter-btn' + (wordListFilter === "mastered" ? " active" : "") + '" onclick="setWordListFilter(\'mastered\')">✅ 已掌握</button>' +
     '</div>';
 
+  // Phase 4.3 复习进度统计面板
+  var statsPanel =
+    '<div class="wordlist-stats">' +
+      '<div class="wordlist-stat">' +
+        '<div class="wordlist-stat-num">' + stats.total + '</div>' +
+        '<div class="wordlist-stat-label">累计复习</div>' +
+      '</div>' +
+      '<div class="wordlist-stat">' +
+        '<div class="wordlist-stat-num">' + stats.mastered + '</div>' +
+        '<div class="wordlist-stat-label">已掌握</div>' +
+      '</div>' +
+      '<div class="wordlist-stat">' +
+        '<div class="wordlist-stat-num">' + stats.recent7 + '</div>' +
+        '<div class="wordlist-stat-label">近 7 天</div>' +
+      '</div>' +
+      '<div class="wordlist-stat">' +
+        '<div class="wordlist-stat-num">' + stats.streak + '</div>' +
+        '<div class="wordlist-stat-label">连续复习</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="mini-bar-chart">' +
+      '<div class="mini-bar-chart-label">近 7 天复习量</div>' +
+      '<div class="mini-bar-chart-bars">' +
+        stats.daily.map(function(d) {
+          var h = stats.maxDaily > 0 ? Math.round(d.count / stats.maxDaily * 32) : 0;
+          return '<div class="mini-bar-wrap" title="' + d.label + '：' + d.count + '">' +
+            '<div class="mini-bar" style="height:' + h + 'px"></div>' +
+            '<div class="mini-bar-day">' + d.short + '</div>' +
+          '</div>';
+        }).join("") +
+      '</div>' +
+    '</div>' +
+    '<div class="wordlist-today">' + (stats.todayDone ? '✅ 今日已复习' : '📅 今日尚未复习') + '</div>';
+
   var filtered = getWordListFiltered();
   var body;
   if (wordListReviewMode && filtered.length > 0) {
@@ -465,9 +549,12 @@ function renderWordList() {
   return '' +
     '<div class="page-title"><h2>🏷️ 拾遗</h2><p>学习时收藏的词与句，学后查漏补缺。点卡片状态按钮流转：新收藏 → 学习中 → 已掌握。</p></div>' +
     tabBar + statusBar +
+    statsPanel +
     '<div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
       '<button class="ai-submit-btn" onclick="startWordListReview()">🎴 复习模式</button>' +
-      '<button class="ai-suggest-btn" onclick="exportWordList()">📤 导出</button>' +
+      '<button class="ai-suggest-btn" onclick="exportWordListJSON()">📤 导出 JSON</button>' +
+      '<button class="ai-suggest-btn" onclick="exportWordListCSV()">📤 导出 CSV</button>' +
+      '<button class="ai-suggest-btn" onclick="openWordListImport()">📥 导入</button>' +
       '<span style="font-size:12px;color:var(--text-light);">共 ' + list.length + ' 条收藏</span>' +
     '</div>' +
     body;
@@ -557,6 +644,9 @@ function prevWordCard() {
 function flipWordCard(card) { card.classList.toggle("flipped"); }
 function reviewMark(id, status) {
   setCollectStatus(id, status);
+  // Phase 4.3：记一次复习。只在这里记，nextWordCard（翻下一张）不记 ——
+  // 「翻过」不等于「复习过」，否则连点下一张就能把统计刷满，数字就没意义了。
+  recordWordListReview(id);
   nextWordCard();
 }
 function renderWordCard(list, idx) {
@@ -585,15 +675,331 @@ function renderWordCard(list, idx) {
   '</div>';
 }
 
-function exportWordList() {
+// ============================================
+// 拾遗 · 复习进度统计 + 导出导入（Phase 4.3）
+// ============================================
+// ⚠️ 复习日志刻意只存本地、不进 SYNC_BLOB_MAP：它是「复习行为流水」这类派生数据，
+// 不是核心学习资产。要跨设备同步得先给 D1 的 collections 侧加表 + 写迁移，收益配不上成本；
+// 真要搬运用下面的 JSON 导出/导入即可（导出的包里带 reviewLog）。
+var WORDLIST_REVIEW_LOG_KEY = "korean_wordlist_review_log";
+var WORDLIST_LOG_KEEP_DAYS = 90;
+// 单次导入最多往云端推多少条（后端是逐条 POST，防止一次导入打爆请求队列）
+var WORDLIST_IMPORT_PUSH_LIMIT = 50;
+
+function getWordListReviewLog() {
+  var raw = safeParse(localStorage.getItem(WORDLIST_REVIEW_LOG_KEY), []);
+  return Array.isArray(raw) ? raw : [];
+}
+// 记一次复习。只保留 90 天窗口，避免 localStorage 随时间无限膨胀。
+function recordWordListReview(id) {
+  if (!id) return;
+  var cutoff = Date.now() - WORDLIST_LOG_KEEP_DAYS * 86400000;
+  var log = getWordListReviewLog().filter(function(e) { return e && e.time >= cutoff; });
+  log.push({ id: id, time: Date.now() });
+  localStorage.setItem(WORDLIST_REVIEW_LOG_KEY, JSON.stringify(log));
+}
+// 本地日期键（用本地时区而非 UTC：学习行为按用户所在日历天算才符合直觉）
+function dayKeyOf(ts) {
+  var d = new Date(ts);
+  return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+// 复习统计：累计 / 已掌握 / 近 7 天 / 连续天数 / 近 7 天每日量 / 今日是否已复习
+function getWordListReviewStats() {
+  var log = getWordListReviewLog();
   var list = getCollections();
-  var blob = new Blob([JSON.stringify(list, null, 2)], { type: "application/json;charset=utf-8" });
+  var mastered = list.filter(function(c) { return c.status === "mastered"; }).length;
+  var DAY_MS = 86400000;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  // 近 7 天（含今天）每日计数，按时间正序：左旧 → 右新
+  var daily = [];
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(today.getTime() - i * DAY_MS);
+    daily.push({
+      key: dayKeyOf(d.getTime()),
+      label: (d.getMonth() + 1) + "月" + d.getDate() + "日",
+      short: "日一二三四五六".charAt(d.getDay()),
+      count: 0
+    });
+  }
+  var pos = {};
+  daily.forEach(function(x, i) { pos[x.key] = i; });
+  var recent7 = 0;
+  log.forEach(function(e) {
+    if (!e || !e.time) return;
+    var i = pos[dayKeyOf(e.time)];
+    if (i === undefined) return;
+    daily[i].count++;
+    recent7++;
+  });
+  var maxDaily = daily.reduce(function(m, x) { return Math.max(m, x.count); }, 0);
+  // 连续复习天数：今天还没复习就从昨天起算 —— 否则每到零点刚过时 streak 归零很打击人
+  var active = {};
+  log.forEach(function(e) { if (e && e.time) active[dayKeyOf(e.time)] = true; });
+  var streak = 0;
+  var cur = new Date(today);
+  if (!active[dayKeyOf(cur.getTime())]) cur = new Date(cur.getTime() - DAY_MS);
+  while (active[dayKeyOf(cur.getTime())]) {
+    streak++;
+    cur = new Date(cur.getTime() - DAY_MS);
+  }
+  return {
+    total: log.length,
+    mastered: mastered,
+    recent7: recent7,
+    streak: streak,
+    daily: daily,
+    maxDaily: maxDaily,
+    todayDone: !!active[dayKeyOf(today.getTime())]
+  };
+}
+
+// 通用下载：把内容包成 Blob 触发浏览器下载
+function downloadFile(content, filename, mime) {
+  var blob = new Blob([content], { type: mime });
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  a.href = url; a.download = "korean_wordlist_" + Date.now() + ".json";
-  document.body.appendChild(a); a.click(); a.remove();
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   URL.revokeObjectURL(url);
-  showToast("✅ 已导出 " + list.length + " 条收藏");
+}
+// 文件名时间戳：20260830-1905
+function fileStamp() {
+  var d = new Date();
+  function p(n) { return (n < 10 ? "0" : "") + n; }
+  return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+}
+function exportWordListJSON() {
+  var list = getCollections();
+  var payload = {
+    app: "basic-korean",
+    kind: "wordlist",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    reviewLog: getWordListReviewLog(),
+    items: list
+  };
+  downloadFile(JSON.stringify(payload, null, 2), "korean_wordlist_" + fileStamp() + ".json", "application/json;charset=utf-8");
+  showToast("✅ 已导出 " + list.length + " 条收藏（JSON）");
+}
+// CSV 单元格转义（RFC 4180）：含分隔符/引号/换行就加引号，内部引号翻倍
+function csvCell(v) {
+  var s = (v === null || v === undefined) ? "" : String(v);
+  if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function exportWordListCSV() {
+  var list = getCollections();
+  var head = ["type", "text", "meaning", "status", "source", "sourceRef", "note", "createdAt", "updatedAt", "createdAtISO"];
+  var rows = list.map(function(c) {
+    return [
+      c.type, c.text, c.meaning || "", c.status || "new", c.source || "", c.sourceRef || "",
+      c.note || "", c.createdAt || "", c.updatedAt || "",
+      c.createdAt ? new Date(c.createdAt).toISOString() : ""
+    ].map(csvCell).join(",");
+  });
+  // BOM 开头：没有它 Excel 会把韩文/中文识别成 ANSI 而乱码
+  var csv = "\ufeff" + head.join(",") + "\n" + rows.join("\n") + "\n";
+  downloadFile(csv, "korean_wordlist_" + fileStamp() + ".csv", "text/csv;charset=utf-8");
+  showToast("✅ 已导出 " + list.length + " 条收藏（CSV）");
+}
+
+function openWordListImport() {
+  var old = document.getElementById("wordlistImportOverlay");
+  if (old) old.remove();
+  var overlay = document.createElement("div");
+  overlay.className = "stats-overlay";
+  overlay.id = "wordlistImportOverlay";
+  overlay.onclick = function(e) { if (e.target === overlay) closeWordListImport(); };
+  overlay.innerHTML = '' +
+    '<div class="stats-modal">' +
+      '<button class="stats-close" onclick="closeWordListImport()">✕</button>' +
+      '<h2>📥 导入收藏</h2>' +
+      '<p style="font-size:13px;color:var(--text-light);line-height:1.6;margin:0 0 4px;">' +
+        '支持本页导出的 JSON（含复习记录）或 CSV。' +
+      '</p>' +
+      '<p style="font-size:13px;color:var(--text-light);line-height:1.6;margin:0;">' +
+        '合并口径：' +
+        '<strong>同类型 + 同文本</strong>视为同一条 —— 已存在则只在新数据更新时覆盖，不存在则新增。' +
+        '不会删除你现有的任何收藏。' +
+      '</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">' +
+        '<button class="ai-submit-btn" onclick="document.getElementById(\'wordlistImportFile\').click()">📂 选择文件</button>' +
+        '<button class="ai-suggest-btn" onclick="closeWordListImport()">取消</button>' +
+      '</div>' +
+      '<input type="file" id="wordlistImportFile" accept=".json,.csv,text/csv,application/json" style="display:none" onchange="importWordListFromFile(this)" />' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+function closeWordListImport() {
+  var el = document.getElementById("wordlistImportOverlay");
+  if (el) el.remove();
+}
+// 极简 CSV 解析器：支持引号包裹字段、字段内换行、"" 转义。
+// 够用于本页导出的 CSV 与 Excel 另存的常规 CSV；不做类型推断，全部按字符串处理。
+function parseCSV(text) {
+  var rows = [];
+  var row = [], cur = "", inQ = false;
+  text = String(text).replace(/^\ufeff/, "");
+  for (var i = 0; i < text.length; i++) {
+    var ch = text.charAt(i);
+    if (inQ) {
+      if (ch === '"') {
+        if (text.charAt(i + 1) === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ",") { row.push(cur); cur = ""; }
+    else if (ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (ch === "\r") { /* 跳过：统一由 \n 收行，兼容 CRLF */ }
+    else cur += ch;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  // 丢掉全空行（CSV 末尾换行会产生一个空行）
+  return rows.filter(function(r) {
+    return r.some(function(c) { return String(c).trim() !== ""; });
+  });
+}
+function importWordListFromFile(input) {
+  var file = input.files && input.files[0];
+  input.value = ""; // 清空：否则连续导入同一个文件不会再触发 change
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onerror = function() { showToast("❌ 文件读取失败"); };
+  reader.onload = function(e) {
+    var items = [], log = [];
+    try {
+      var text = String(e.target.result);
+      if (/\.json$/i.test(file.name)) {
+        var data = JSON.parse(text);
+        // 兼容两种形态：本页导出的完整包 {items:[...]}，或早期 exportWordList 导出的裸数组
+        items = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : null);
+        if (!items) throw new Error("JSON 里找不到收藏列表（缺 items 字段）");
+        if (!Array.isArray(data) && Array.isArray(data.reviewLog)) log = data.reviewLog;
+      } else {
+        var rows = parseCSV(text);
+        if (!rows.length) throw new Error("CSV 是空的");
+        var head = rows[0].map(function(h) { return String(h).trim(); });
+        if (head.indexOf("type") < 0 || head.indexOf("text") < 0) throw new Error("CSV 缺少 type / text 列");
+        items = rows.slice(1).map(function(r) {
+          function g(name, dft) {
+            var i = head.indexOf(name);
+            return (i < 0 || r[i] === undefined) ? dft : r[i];
+          }
+          var created = Number(g("createdAt", ""));
+          if (!created) {
+            var iso = String(g("createdAtISO", "")).trim();
+            var parsed = iso ? Date.parse(iso) : NaN;
+            created = isNaN(parsed) ? Date.now() : parsed;
+          }
+          return {
+            type: String(g("type", "word")).trim(),
+            text: String(g("text", "")).trim(),
+            meaning: String(g("meaning", "")),
+            status: String(g("status", "new")).trim(),
+            source: String(g("source", "manual")).trim() || "manual",
+            sourceRef: String(g("sourceRef", "")),
+            note: String(g("note", "")),
+            createdAt: created,
+            updatedAt: Number(g("updatedAt", "")) || created
+          };
+        });
+      }
+    } catch (err) {
+      showToast("❌ 导入失败：" + (err && err.message ? err.message : "文件解析出错"));
+      return;
+    }
+    // 归一化：type/status 只接受白名单值，脏数据一律落到安全默认
+    var VALID_STATUS = ["new", "learning", "mastered"];
+    items = items.map(function(it) {
+      return {
+        type: it.type === "sentence" ? "sentence" : "word",
+        text: String(it.text || "").trim(),
+        meaning: String(it.meaning || ""),
+        status: VALID_STATUS.indexOf(it.status) >= 0 ? it.status : "new",
+        source: String(it.source || "manual") || "manual",
+        sourceRef: String(it.sourceRef || ""),
+        note: String(it.note || ""),
+        createdAt: Number(it.createdAt) || Date.now(),
+        updatedAt: Number(it.updatedAt) || Number(it.createdAt) || Date.now()
+      };
+    }).filter(function(c) { return !!c.text; });
+
+    if (!items.length) { showToast("❌ 没有可导入的收藏"); return; }
+
+    // 合并：同 type+text 视为同一条（与 collectItem 的去重口径一致）
+    var cur = getCollections();
+    var byKey = {};
+    cur.forEach(function(c) { byKey[c.type + "\u0000" + c.text] = c; });
+    var added = [], updated = 0;
+    items.forEach(function(it) {
+      var key = it.type + "\u0000" + it.text;
+      var exist = byKey[key];
+      if (exist) {
+        // 已存在：导入的数据必须比本地新才覆盖 —— 一份旧备份不该把本地最新的掌握状态打回去
+        if (it.updatedAt <= (Number(exist.updatedAt) || 0)) return;
+        if (it.meaning) exist.meaning = it.meaning;
+        if (it.status) exist.status = it.status;
+        if (it.note) exist.note = it.note;
+        if (it.sourceRef) exist.sourceRef = it.sourceRef;
+        exist.updatedAt = it.updatedAt;
+        updated++;
+      } else {
+        var now = Date.now();
+        var item = {
+          id: "c_" + now + "_" + Math.random().toString(36).slice(2, 8),
+          userId: null,
+          type: it.type,
+          text: it.text,
+          meaning: it.meaning,
+          source: it.source,
+          sourceRef: it.sourceRef,
+          status: it.status,
+          note: it.note,
+          createdAt: it.createdAt,
+          updatedAt: it.updatedAt
+        };
+        cur.push(item);
+        byKey[key] = item;
+        added.push(item);
+      }
+    });
+    saveCollections(cur);
+
+    // 复习日志合并：按 id+time 去重，只补本地没有的
+    var logAdded = 0;
+    if (log.length) {
+      var curLog = getWordListReviewLog();
+      var seen = {};
+      curLog.forEach(function(x) { seen[x.id + "@" + x.time] = true; });
+      log.forEach(function(x) {
+        if (!x || !x.id || !x.time) return;
+        var k = x.id + "@" + x.time;
+        if (seen[k]) return;
+        seen[k] = true;
+        curLog.push({ id: x.id, time: Number(x.time) || Date.now() });
+        logAdded++;
+      });
+      if (logAdded) localStorage.setItem(WORDLIST_REVIEW_LOG_KEY, JSON.stringify(curLog));
+    }
+
+    // 已登录 → 把新增条目推上云端（服务端按 type+text 幂等，重复推无害）
+    var pushed = 0;
+    if (typeof isLoggedIn === "function" && isLoggedIn() && typeof syncCollect === "function") {
+      added.slice(0, WORDLIST_IMPORT_PUSH_LIMIT).forEach(function(item) { syncCollect(item); pushed++; });
+    }
+
+    closeWordListImport();
+    var msg = "✅ 导入完成：新增 " + added.length + " 条，更新 " + updated + " 条";
+    if (logAdded) msg += "，补录 " + logAdded + " 条复习记录";
+    if (pushed) msg += "（已推 " + pushed + " 条上云）";
+    else if (added.length > WORDLIST_IMPORT_PUSH_LIMIT) msg += "（新增过多，仅前 " + WORDLIST_IMPORT_PUSH_LIMIT + " 条上云）";
+    showToast(msg);
+    rerenderWordList();
+  };
+  reader.readAsText(file, "utf-8");
 }
 
 // 筑基·词的助记 / 表格行渲染（与 REFERENCE 数据源共用，避免两处漂移）

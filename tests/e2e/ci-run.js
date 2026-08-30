@@ -146,6 +146,111 @@ async function main() {
     });
     check('骨架 Tab 切换后 rule-item 入场动画运行中', tabAnimOk);
 
+    // --- T4: 统计仪表盘结构回归（Phase 4.1）---
+    // 统计弹窗已升级为仪表盘：4 个核心指标卡片 + 2 条完成度进度条 + ARIA 标注。
+    // 断言 openStats() 后这些结构在 DOM 中真实渲染。
+    const statsOpenOk = await ev(async () => {
+      window.openStats();
+      await new Promise((r) => setTimeout(r, 400));
+      return document.querySelectorAll('.stat-card').length === 4 &&
+        document.querySelectorAll('.stat-bar').length === 2 &&
+        document.querySelectorAll('.stat-progress-row').length === 2;
+    });
+    check('统计弹窗打开（4 卡片 + 2 进度条）', statsOpenOk);
+
+    const statsBarsOk = await ev(async () => {
+      const bar = document.querySelector('.stat-bar');
+      const fills = document.querySelectorAll('.stat-bar-fill');
+      if (!bar || fills.length !== 2) return false;
+      // 进度条有 aria 可访问标注
+      const ariaOk = bar.hasAttribute('aria-valuenow') && bar.hasAttribute('aria-valuemax');
+      // 进度条填充宽度百分比已设置（数值型，不是空字符串）
+      const widthsOk = Array.from(fills).every(function (f) {
+        // 宽度是整数百分比且必须落在 0-100 闭区间（0 / 1-99 / 100 三种形态）
+        return f.style.width && /^(0|100|[1-9]\d?)%$/.test(f.style.width);
+      });
+      return ariaOk && widthsOk;
+    });
+    check('统计进度条 ARIA + 宽度标注', statsBarsOk);
+
+    await ev(() => { window.closeStats(); return true; });
+
+    // --- T5: 拾遗复习统计 + 导出导入回归（Phase 4.3）---
+    // 面板结构、四个操作按钮、CSV 解析器、导入弹窗 —— 四者任一被重构掉都要在这里被拦住。
+    const wlPanelOk = await ev(async () => {
+      window.navigate('wordlist');
+      await new Promise((r) => setTimeout(r, 300));
+      return document.querySelectorAll('.wordlist-stat').length === 4 &&
+        document.querySelectorAll('.mini-bar-wrap').length === 7 &&
+        !!document.querySelector('.wordlist-today');
+    });
+    check('拾遗统计面板（4 指标 + 近 7 天柱状图）', wlPanelOk);
+
+    const wlButtonsOk = await ev(() => {
+      const txt = Array.from(document.querySelectorAll('#mainContent button'))
+        .map((b) => b.textContent || '').join('|');
+      return txt.includes('复习模式') && txt.includes('导出 JSON') &&
+        txt.includes('导出 CSV') && txt.includes('导入');
+    });
+    check('拾遗操作按钮齐备（复习/导出 JSON/导出 CSV/导入）', wlButtonsOk);
+
+    // CSV 解析器：引号包裹的逗号、字段内换行、"" 转义 —— 手写解析器最容易错的三处
+    const csvOk = await ev(() => {
+      const rows = window.parseCSV('type,text,meaning\nword,"a,b",뜻\nword,plain,"line1\nline2"\n');
+      return rows.length === 3 &&
+        rows[0][0] === 'type' &&
+        rows[1][1] === 'a,b' &&
+        rows[2][2] === 'line1\nline2';
+    });
+    check('CSV 解析（引号内逗号 / 字段内换行）', csvOk);
+
+    // 复习记账：标记一次状态 → 累计复习 0→1、今日状态翻转为已复习。
+    // 这条同时守住「reviewMark 必须调 recordWordListReview」这个易被误删的调用。
+    const wlReviewOk = await ev(async () => {
+      localStorage.setItem('korean_collections', JSON.stringify([{
+        id: 'c_e2e_1', userId: null, type: 'word', text: '테스트', meaning: '测试',
+        source: 'manual', sourceRef: '', status: 'new', note: '',
+        createdAt: Date.now(), updatedAt: Date.now()
+      }]));
+      localStorage.removeItem('korean_wordlist_review_log');
+      const before = window.getWordListReviewStats();
+      window.rerenderWordList();
+      window.startWordListReview();
+      window.reviewMark('c_e2e_1', 'learning');
+      await new Promise((r) => setTimeout(r, 200));
+      const after = window.getWordListReviewStats();
+      window.exitWordListReview();
+      // 现场还原，避免污染后续断言
+      localStorage.removeItem('korean_collections');
+      localStorage.removeItem('korean_wordlist_review_log');
+      return before.total === 0 && after.total === 1 && after.todayDone === true;
+    });
+    check('复习记账（标记一次 → 累计 +1 / 今日已复习）', wlReviewOk);
+
+    const wlImportOk = await ev(async () => {
+      window.openWordListImport();
+      await new Promise((r) => setTimeout(r, 200));
+      const opened = !!document.getElementById('wordlistImportOverlay');
+      window.closeWordListImport();
+      await new Promise((r) => setTimeout(r, 150));
+      return opened && !document.getElementById('wordlistImportOverlay');
+    });
+    check('拾遗导入弹窗可开可关', wlImportOk);
+
+    // --- T5b: 实时同步守卫（Phase 4.2）---
+    // 未登录时绝不能启动轮询 —— 否则每个游客都会对 /api/sync 持续打 401，
+    // 既污染服务端日志又会在离线时刷满控制台。这条守住 startRealtimeSync 的登录前置检查。
+    const rtGuardOk = await ev(async () => {
+      if (window.isLoggedIn && window.isLoggedIn()) return true; // 有登录态则跳过本断言
+      window.startRealtimeSync();
+      await new Promise((r) => setTimeout(r, 120));
+      const started = window.realtimeSyncTimer;
+      window.stopRealtimeSync();
+      window.stopRealtimeSync(); // 幂等：重复 stop 不抛错
+      return started === null && window.realtimeSyncTimer === null;
+    });
+    check('未登录不启动实时同步轮询（且 stop 幂等）', rtGuardOk);
+
     // --- T6: 断句训练筛选回归（#vue-root 存活 + 导航恢复） ---
     const vrootOk = await ev(async () => {
       window.navigate('training');

@@ -559,6 +559,7 @@ function syncCollectDelete(id, type, text) {
 // ============================================================
 function clearSession() {
   localStorage.removeItem(SESSION_KEY);
+  stopRealtimeSync(); // 登出后停止轮询，避免 401
   updateAuthUI();
 }
 function doLogin(email, password) {
@@ -567,7 +568,10 @@ function doLogin(email, password) {
       if (res && res.token) {
         saveSession({ token: res.token, userId: res.userId, email: res.email });
         updateAuthUI();
-        return syncPullAll();
+        return syncPullAll().then(function() {
+          setLastSyncAt(Date.now());
+          startRealtimeSync();
+        });
       }
       throw new Error((res && res.error) || "登录失败");
     });
@@ -580,7 +584,10 @@ function doRegister(email, password, code) {
         updateAuthUI();
         // 注册成功后把本地数据推上云
         markAllLocalDirty();
-        return syncPullAll();
+        return syncPullAll().then(function() {
+          setLastSyncAt(Date.now());
+          startRealtimeSync();
+        });
       }
       throw new Error((res && res.error) || "注册失败");
     });
@@ -631,6 +638,92 @@ function submitReset() {
     .catch(function() { errEl.textContent = "重置失败，请检查网络"; })
     .finally(function() { if (btn) { btn.disabled = false; btn.textContent = "重置密码"; } });
 }
+
+// ============================================================
+// 跨设备实时同步（Phase 4.2）
+// ============================================================
+// 设计：登录后启动轮询 + visibilitychange 触发；轮询走 /api/sync?since=lastSyncAt
+// 增量拉取，合并到本地。在线时 60s 一轮；切回标签页立即触发；收到更新后 toast 提示。
+// 登出/会话过期即停止，避免对未登录用户发 401。
+var REALTIME_PULL_INTERVAL_MS = 60000;
+var realtimeSyncTimer = null;
+var visibilityHandler = null;
+var realtimeLastPullAt = 0;
+var LAST_SYNC_AT_KEY = "korean_sync_last_at";
+
+function getLastSyncAt() {
+  var v = parseInt(localStorage.getItem(LAST_SYNC_AT_KEY), 10);
+  return isNaN(v) ? 0 : v;
+}
+function setLastSyncAt(ts) {
+  localStorage.setItem(LAST_SYNC_AT_KEY, String(ts));
+}
+
+function startRealtimeSync() {
+  if (!isLoggedIn()) return;
+  stopRealtimeSync(); // 防止重复启动
+  doRealtimePull();
+  realtimeSyncTimer = setInterval(doRealtimePull, REALTIME_PULL_INTERVAL_MS);
+  visibilityHandler = function() { if (!document.hidden) doRealtimePull(); };
+  document.addEventListener("visibilitychange", visibilityHandler);
+  console.log("[sync] realtime sync started");
+}
+
+function stopRealtimeSync() {
+  if (realtimeSyncTimer) { clearInterval(realtimeSyncTimer); realtimeSyncTimer = null; }
+  if (visibilityHandler) { document.removeEventListener("visibilitychange", visibilityHandler); visibilityHandler = null; }
+  realtimeLastPullAt = 0;
+  console.log("[sync] realtime sync stopped");
+}
+
+// 增量拉取并合并。注意：由于 mergeCollectionsFromServer / mergeScenesFromServer 内部
+// 已调用 refreshCurrentPage()，合并这些记录级数据时界面会自动刷新；blob 合并由本函数负责刷新。
+function doRealtimePull() {
+  if (!isLoggedIn()) { stopRealtimeSync(); return; }
+  var now = Date.now();
+  if (now - realtimeLastPullAt < 2000) return; // 2s 防抖
+  realtimeLastPullAt = now;
+
+  var since = getLastSyncAt();
+  apiFetch("/api/sync?since=" + since).then(function(data) {
+    if (!data) return;
+    var changed = false;
+    var maxTs = since;
+    function bumpTs(ts) { var t = Number(ts) || 0; if (t > maxTs) maxTs = t; }
+
+    (data.blobs || []).forEach(function(b) {
+      bumpTs(b.updated_at);
+      if (mergeBlobFromServer(b.key, b)) changed = true;
+    });
+
+    if (Array.isArray(data.collections) && data.collections.length) {
+      data.collections.forEach(function(c) { bumpTs(c.updated_at); });
+      mergeCollectionsFromServer(data.collections);
+      changed = true;
+    }
+
+    if (Array.isArray(data.scenes) && data.scenes.length) {
+      data.scenes.forEach(function(s) { bumpTs(s.updated_at); });
+      mergeScenesFromServer(data.scenes);
+      changed = true;
+    }
+
+    if (maxTs > since) setLastSyncAt(maxTs);
+    if (changed) {
+      // 集合/场景的合并函数内部已各自调用 refreshCurrentPage，只有 blob 变化需要这里补一次
+      var hasRecords = (Array.isArray(data.collections) && data.collections.length) ||
+        (Array.isArray(data.scenes) && data.scenes.length);
+      if (!hasRecords && typeof refreshCurrentPage === "function") refreshCurrentPage();
+      // 后台标签页不弹 toast：用户看不见，攒着只会在切回来时糊一屏
+      if (typeof showToast === "function" && !document.hidden) showToast("☁️ 已同步云端更新");
+    }
+  }).catch(function(err) {
+    console.warn("[sync] realtime pull failed:", err && err.message);
+    // 401 或 403 → 会话过期，停止轮询避免持续失败
+    if (err && (err.status === 401 || err.status === 403)) stopRealtimeSync();
+  });
+}
+
 function doLogout() {
   var s = getSession();
   if (s) apiFetch("/api/logout", { method: "POST" }).catch(function(err) { console.warn('[sync] logout failed:', err && err.message); });
@@ -758,6 +851,13 @@ function submitAuth() {
 document.addEventListener("DOMContentLoaded", function() {
   updateAuthUI();
   if (isLoggedIn()) {
-    setTimeout(function() { syncPullAll(); }, 500);
+    setTimeout(function() {
+      syncPullAll().then(function() {
+        setLastSyncAt(Date.now());
+        startRealtimeSync();
+      }).catch(function(err) {
+        console.warn("[sync] init pull failed:", err && err.message);
+      });
+    }, 500);
   }
 });
