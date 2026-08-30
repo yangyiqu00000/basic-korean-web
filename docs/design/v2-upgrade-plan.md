@@ -1,9 +1,11 @@
 # Basic Korean V2 升级设计文档：内容重构 + 云端同步
 
-> 状态：实施记录 v0.4（Phase 1–3 已完成并上线）｜ 日期：2026-08-01
+> 状态：实施记录 v0.5（Phase 1–3 + collections 删除墓碑 v0.5 + 部署卫生/TTS 生产实测已完成并上线）｜ 日期：2026-08-01
 > 决策基线（用户已确认）：
 > - 登录：D1 自建「邮箱+密码」（**PBKDF2** 哈希，Web Crypto，见 §3.3）+ **邮箱验证（Resend，§3.7）**，开放注册，后续可叠加 OAuth 快捷登录
-> - 同步：方案 C（整包同步 + 智能合并），**含删除/清空的墓碑机制**；scenes / messages 已于 Phase 3 迁为记录级（§3.6），collections 自 Phase 2 起记录级
+> - 同步：方案 C（整包同步 + 智能合并），**含删除/清空的墓碑机制**；scenes / messages 已于 Phase 3 迁为记录级（§3.6），collections 自 Phase 2 起记录级，**collections 删除墓碑 v0.5 已实施上线**（§3.4）
+> - TTS（v0.5 生产实测）：四级回退 Google→Azure→**Edge 免费（EDGE_TTS_ENABLED=1，数据中心 IP 未被风控）**→503 浏览器降级（§3.9）
+> - 部署卫生（v0.5）：实验路由已清理，`_redirects` + `404.html` 显式 404 收口，杜绝 SPA fallback 掩盖路由缺失（§3.8）
 > - 规模：当前 demo ≤100 人，但架构须可扩展至学生/更广泛群体
 > - 词句表：用户收藏的词与句，绑定用户状态，用于学后查漏补缺
 > - ✅ 已拍板：「时宜」= 一位用户（§5 问题 1）；筑基 Tab 默认「句的助记」（§5 问题 2）
@@ -266,7 +268,7 @@ CREATE INDEX idx_email_codes_lookup ON email_codes(email, purpose, created_at);
   ├─ 前置迁移钩子 migrateLegacySceneBlobs（§3.6.1，幂等，失败不阻断）
   ├─ 返回 4 个 blob（{key, data_json(含墓碑), updated_at}）+ collections + scenes（?since 增量）
   └─ 前端对每个 blob 执行带墓碑的合并 → 写回 localStorage → 触发页面 refreshPage()
-      ├─ collections：mergeCollectionsFromServer（(type,text) upsert、后写胜出、删除传播 + pushedIds 保护、**删除墓碑防离线复活 v0.5**——见下）
+      ├─ collections：mergeCollectionsFromServer（(type,text) upsert、后写胜出、删除传播 + pushedIds 保护、**删除墓碑防离线复活 v0.5**——见下；已实施上线，双设备 tomb 回归 8/8）
       └─ 删除墓碑（v0.5 补充，本地 `korean_collections_deleted` = { "type|text": {id, ts} }）：
            syncCollectDelete 先记墓碑再发 DELETE（离线失败墓碑保留）；拉取合并时服务端条目 updatedAt < 墓碑 ts
            → 视为本端已删（不复活）+ 用**服务端真实 id** 重发 DELETE 自愈（成功才清墓碑）；updatedAt > 墓碑 ts
@@ -377,6 +379,37 @@ CREATE INDEX idx_email_codes_lookup ON email_codes(email, purpose, created_at);
 - `POST /api/reset-password`：验证码 + 新密码，成功后 **DELETE 该用户全部会话**（旧 token 立即失效）；
 - 生产需 `wrangler pages secret put RESEND_API_KEY`（`RESEND_FROM` 已在 wrangler.toml `[env.production.vars]` 声明）。
 
+### 3.8 部署卫生：实验路由清理 + 404 收口（v0.5 已实施）
+
+**背景**：TTS 实验阶段遗留的 `functions/tts-edge/` 与 `functions/tts-edge-debug/`（Edge 协议逆向实验）曾随部署泄漏到生产，暴露 `/tts-edge`、`/tts-edge-debug` 两个公开路由（实测 400/200）。正式实现已合入 `functions/tts/index.js`（内联自包含，无 import 依赖）。
+
+**处理**：
+1. 删除两个实验目录（`node --check` + `audit:strict` 全绿，grep 无残留引用）；
+2. 新增 `_redirects`：`/tts-edge* /404.html 404`、`/tts-edge-debug* /404.html 404`（纯 ASCII 注释）；
+3. 新增 `404.html`（无脚本自定义 404 页）——**附带效果**：未匹配路径从「SPA fallback 200+index.html」变为**真 404**；
+4. **关键认知（CDN 缓存时序）**：首次部署后 `/tts-edge` 仍显示 200 是 Cloudflare Pages SPA fallback + 边缘缓存传播延迟所致，**用部署 URL 直测（绕过自定义域名缓存）即可确认函数已消失**；用 301 探针规则实证 `_redirects` 被 Pages 读取后移除探针。
+
+**最终生产实测**：`/tts-edge` 404、`/tts-edge-debug` 404、任意未匹配路径 404、正式 `/tts` 200 audio/mpeg、`/ai/status` configured、`/api/status` ok。
+
+### 3.9 TTS 四级回退生产实测（v0.5 已实施）
+
+`functions/tts/index.js` 的完整回退链（前端 `speakKorean` 零改动）：
+
+| 优先级 | 方案 | 触发条件 | 生产状态 |
+|---|---|---|---|
+| 1 | Google Cloud TTS | `GOOGLE_TTS_API_KEY` | 未配置（跳过） |
+| 2 | Azure TTS | `AZURE_TTS_KEY` + `AZURE_TTS_REGION` | 未配置（跳过） |
+| 3 | **Edge 免费 TTS** | `EDGE_TTS_ENABLED=1`（secret 已配置） | ✅ **生效**：数据中心 IP 实测未被微软风控，返回真实 MP3（LAME 3.10） |
+| 4 | 503 + 浏览器 Web Speech 降级 | 以上全失败 | 备选 |
+
+**Edge 分支两个关键技术点（逆向自 node-edge-tts，MIT）**：
+1. `new WebSocket()` 无法自定义握手头 → 必须用 `fetch(url, { headers: { Upgrade: "websocket", ... } })` 发起握手（携带 Origin/User-Agent）；
+2. fetch Upgrade 返回的是 WebSocketPair **server 端**：必须先 `ws.accept()` 才能收发，`open` 事件不触发（readyState 已为 1），须直接检查 readyState 发送。
+
+**嗓音映射**：`ko-KR-HyunsuMultilingualNeural` → `ko-KR-SunHiNeural`（Edge 无该嗓音，SunHi/InJoon 为 Edge 原生直接透传）。
+
+**已知局限**：Edge 端点无 SLA、可能随时变更；文本 >500 字符跳过 Edge 直接降级；生产无音频缓存（每次实时合成）——**KV/R2 缓存列入 Phase 4.5 候选**。
+
 ---
 
 ## 4. 实施计划（Phase 1–3 已完成，Phase 4 进行中）
@@ -402,8 +435,16 @@ CREATE INDEX idx_email_codes_lookup ON email_codes(email, purpose, created_at);
 - [x] 3.3 多设备冲突实测（并集 / 后写胜出 / 墓碑删除 / 清空复活防护 / 删除传播）
 - [x] 验证：全量 E2E（25 PASS）+ 双设备冲突场景实测 + 远程部署验证
 
-### Phase 4：学习体验增强（下一步）
-- [ ] 4.1 前端接入 `/api/stats`：学习统计仪表盘（学习天数 / 完成率 / 收藏数 / 对话量），登录用户跨设备一致展示
+### Phase 3.5：部署卫生 + TTS 生产实测（v0.5）—— ✅ 已完成（2026-08-01）
+- [x] 3.5.1 collections 删除墓碑 v0.5：`js/sync.js` 墓碑机制（`korean_collections_deleted` 映射 + 自愈重发 DELETE + 剪枝），双设备 tomb 回归 8/8（§3.4）
+- [x] 3.5.2 生产库清理：巡检并删除测试账号/验证码残留，生产回到零用户纯净态
+- [x] 3.5.3 双设备回归接入 CI：`tests/e2e/dual-device-ci.sh`（独立 persist + 端口预清理 + 退出码断言）纳入 deploy.yml verify 门
+- [x] 3.5.4 实验路由清理：删除 `functions/tts-edge/` + `tts-edge-debug/`，`_redirects` + `404.html` 显式 404 收口（§3.8）
+- [x] 3.5.5 TTS 生产实测：Edge 免费回退生效，数据中心未被风控（§3.9）
+- [x] 验证：远程 curl 矩阵全绿 + 生产 `/tts` 200 MP3 + 双设备 CI 三模式 6/6 PASS
+
+### Phase 4：学习体验增强（下一步，v0.5 已铺路）
+- [ ] 4.1 前端接入 `/api/stats`：学习统计仪表盘（学习天数 / 完成率 / 收藏数 / 对话量），登录用户跨设备一致展示（统计弹窗已消费 `/api/stats`，仪表盘化待做）
 - [ ] 4.2 跨设备实时同步：登录后定时轮询 `/api/sync`（?since 增量）+ 标签页可见性触发拉取，冲突提示 UI
 - [ ] 4.3 词句表导出/导入完善 + 复习进度统计（抽认卡次数 / 掌握曲线 / 每日提醒）
 - [ ] 4.4 （可选）OAuth 快捷登录：`users` 表加 `oauth_provider` / `oauth_id` 可空列，GitHub/Google

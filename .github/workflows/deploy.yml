@@ -29,6 +29,17 @@ jobs:
       - name: Run Vue-conflict static audit (strict)
         run: npm run audit:strict
 
+      # 门 1.5：静态资产完整性 —— index.html 引用的本地文件必须存在，js/components 无孤儿文件
+      # 起因：index.html 曾引用从未创建的 StatsPage.js，线上持续 404，而三道门均不检查「引用的文件在不在」
+      - name: Run asset integrity audit (strict)
+        run: npm run audit:assets:strict
+
+      # 门 1.6：设计系统色彩对比度（WCAG AA 4.5:1）
+      # 起因：主色 #c46a29 配白字仅 3.86:1；暗色主题 --primary 亮橙配白字 2.43:1；
+      # --accent 作正文 2.37:1。均属「肉眼看不出、实测不达标」，需机器把关。
+      - name: Run contrast audit (WCAG AA)
+        run: npm run audit:contrast
+
       # 门 2：E2E 回归（run-tests.sh 在 CI 下自动委托 tests/e2e/ci-run.js）
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -44,6 +55,12 @@ jobs:
 
       - name: Run E2E regression
         run: bash tests/e2e/run-tests.sh
+
+      # 门 2.5：响应式断点回归（375/480/600/769 的 hero 栅格 + 导航/汉堡互斥）
+      # 起因：769–1000px 区间导航曾因 min-width:769px 的 !important 横排而溢出。
+      # 该脚本此前长期只是未提交、无人执行的本地文件，等于没有，现纳入 CI。
+      - name: Run responsive breakpoint regression
+        run: node tests/e2e/viewport-480.js
 
       # 门 3：双设备云同步回归（wrangler pages dev 本地 D1 + 真实 API 三模式）
       # 独立 mktemp persist 目录，不触碰本地 .wrangler/state；任一断言失败即 exit 非零拦截发布

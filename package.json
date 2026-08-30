@@ -10,7 +10,11 @@
     "audit": "node scripts/audit-vue-conflicts.js",
     "audit:strict": "node scripts/audit-vue-conflicts.js --fail-on-warning",
     "audit:selftest": "node scripts/audit-vue-conflicts.js --selftest",
-    "test:e2e:ci": "node tests/e2e/ci-run.js"
+    "audit:assets": "node scripts/asset-integrity.js",
+    "audit:assets:strict": "node scripts/asset-integrity.js --strict",
+    "audit:contrast": "node scripts/contrast-audit.js",
+    "test:e2e:ci": "node tests/e2e/ci-run.js",
+    "test:viewport": "node tests/e2e/viewport-480.js"
   },
   "engines": {
     "node": ">=18"

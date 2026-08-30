@@ -95,6 +95,57 @@ async function main() {
       check(`导航→${p}（Vue 路由 + 页面渲染）`, ok);
     }
 
+    // --- T2b: Vue 路径入场动效回归（P0 修复）---
+    // 背景：Vue 分支曾从不给 #mainContent 挂 page-enter，且 switchSkeletonTab 等处把 class
+    // 挂到了 .xxx-page-vue 根节点——CSS 选择器是 `.main.page-enter ...`，两处都导致
+    // 整套入场动画线上从不触发（切页硬切、CSS 成死代码）。这里断言 class 落位 + 动画真在跑。
+    const enterClassOk = await ev(async () => {
+      window.navigate('skeleton');
+      await new Promise((r) => setTimeout(r, 300));
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 350));
+      const main = document.getElementById('mainContent');
+      return !!main && main.classList.contains('page-enter');
+    });
+    check('Vue 切页后 #mainContent 挂载 page-enter', enterClassOk);
+
+    const enterAnimOk = await ev(async () => {
+      const card = document.querySelector('.hero-card');
+      if (!card) return false;
+      const anims = typeof card.getAnimations === 'function' ? card.getAnimations() : [];
+      if (anims.length) return anims.some((a) => a.playState === 'running');
+      return getComputedStyle(card).animationName !== 'none';
+    });
+    check('Vue 切页后 hero 卡片入场动画运行中', enterAnimOk);
+
+    // 骨架页 Tab 切换：曾把 page-enter 挂到 .skeleton-page-vue 根节点，CSS 选择器
+    // `.main.page-enter ...` 匹配不到 → 动画死。这里断言两件事：
+    //   (a) class 只落在 .main 上，组件根节点不应带它
+    //   (b) Tab 重绘后新插入的 .rule-item 确实拿到运行中的入场动画
+    // 只断言 (a) 会假通过——navigate 进页面时已挂过 class，即使 Tab 分支是死的也仍是 true。
+    const tabTargetOk = await ev(async () => {
+      window.navigate('skeleton');
+      await new Promise((r) => setTimeout(r, 400));
+      if (typeof window.switchSkeletonTab === 'function') window.switchSkeletonTab('words');
+      await new Promise((r) => setTimeout(r, 250));
+      if (typeof window.switchSkeletonTab === 'function') window.switchSkeletonTab('rules');
+      await new Promise((r) => setTimeout(r, 250));
+      const main = document.getElementById('mainContent');
+      const comp = document.querySelector('.skeleton-page-vue');
+      return !!main && main.classList.contains('page-enter') &&
+        !(comp && comp.classList.contains('page-enter'));
+    });
+    check('骨架 Tab 切换：page-enter 只挂在 .main 上', tabTargetOk);
+
+    const tabAnimOk = await ev(async () => {
+      const item = document.querySelector('.rule-item');
+      if (!item) return false;
+      const anims = typeof item.getAnimations === 'function' ? item.getAnimations() : [];
+      if (anims.length) return anims.some((a) => a.playState === 'running');
+      return getComputedStyle(item).animationName !== 'none';
+    });
+    check('骨架 Tab 切换后 rule-item 入场动画运行中', tabAnimOk);
+
     // --- T6: 断句训练筛选回归（#vue-root 存活 + 导航恢复） ---
     const vrootOk = await ev(async () => {
       window.navigate('training');

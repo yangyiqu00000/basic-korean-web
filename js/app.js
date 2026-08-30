@@ -479,9 +479,7 @@ function rerenderWordList() {
   var root = document.querySelector("#mainContent .wordlist-page-vue");
   var main = root || document.getElementById("mainContent");
   main.innerHTML = renderWordList();
-  main.classList.remove("page-enter");
-  void main.offsetWidth;
-  main.classList.add("page-enter");
+  retriggerPageEnter();
   initRevealObserver();
 }
 
@@ -829,6 +827,20 @@ function playBtn(text, size) {
 var revealObserver = null;
 var currentPage = "home";
 
+// 重新触发入场动效。
+// ⚠️ 目标元素必须是 .main（#mainContent）本身，不是页面组件根节点：CSS 选择器写作
+// `.main.page-enter > *` / `.main.page-enter .hero-card`，要求 .main 与 .page-enter
+// 落在同一个元素上。历史上 switchSkeletonTab / 词句表重绘 / 抽丝重绘把 class 挂到了
+// `.xxx-page-vue` 根节点，选择器永不匹配，那几处动画是死的——统一走本函数杜绝复发。
+// reduced-motion 由 css/style.css 的全局 @media (prefers-reduced-motion: reduce) 兜底。
+function retriggerPageEnter() {
+  var main = document.getElementById("mainContent");
+  if (!main) return;
+  main.classList.remove("page-enter");
+  void main.offsetWidth; // force reflow，确保动画从头播放
+  main.classList.add("page-enter");
+}
+
 function navigate(page) {
   // 关闭移动端菜单（无论 Vue 是否激活都要执行）
   var nav = document.getElementById('mainNav');
@@ -849,7 +861,18 @@ function navigate(page) {
 
   // 如果 Vue 已激活，委托路由并异步执行页面副作用
   if (window.vueApp && typeof window.vueApp.navigate === 'function') {
+    // 入场动效（P0 修复）：Vue 分支此前直接走 setTimeout 后 return，从不给 #mainContent
+    // 挂 page-enter，导致 css/style.css 里整套 .main.page-enter * 动画在线上从不触发，
+    // 页面切换是硬切。做法：切页前先摘掉 class，等 Vue 完成 DOM 更新（nextTick）后
+    // 强制回流再挂回去，重新触发动画。reduced-motion 由 CSS 全局兜底。
+    var vueMain = document.getElementById("mainContent");
+    if (vueMain) vueMain.classList.remove("page-enter");
+
     window.vueApp.navigate(page);
+
+    if (window.Vue && typeof window.Vue.nextTick === "function") {
+      window.Vue.nextTick(retriggerPageEnter);
+    }
 
     // 等 Vue 渲染完成后再执行页面副作用（动画/滚动/规则跳转/交叉观察）
     setTimeout(function() {
@@ -894,9 +917,7 @@ function navigate(page) {
   setTimeout(function() {
     main.innerHTML = renderPage(page);
     // 重新触发入场动效
-    main.classList.remove("page-enter");
-    void main.offsetWidth; // force reflow
-    main.classList.add("page-enter");
+    retriggerPageEnter();
     // 列表项错落延迟
     var items = main.querySelectorAll(".sentence-card, .stem-item, .day-card, .rule-item, .card");
     items.forEach(function(item, i) {
@@ -1057,9 +1078,7 @@ function switchSkeletonTab(tab) {
   var root = document.querySelector("#mainContent .skeleton-page-vue");
   var main = root || document.getElementById("mainContent");
   main.innerHTML = renderSkeleton();
-  main.classList.remove("page-enter");
-  void main.offsetWidth;
-  main.classList.add("page-enter");
+  retriggerPageEnter();
   initRevealObserver();
 }
 
@@ -1255,9 +1274,7 @@ function setTrainingFilter(group) {
   var root = document.querySelector("#mainContent .training-page-vue");
   var main = root || document.getElementById("mainContent");
   main.innerHTML = renderTraining();
-  main.classList.remove("page-enter");
-  void main.offsetWidth;
-  main.classList.add("page-enter");
+  retriggerPageEnter();
   var items = main.querySelectorAll(".sentence-card");
   items.forEach(function(item, i) {
     item.style.animationDelay = Math.min(i * 0.04, 0.4) + "s";
@@ -2194,9 +2211,7 @@ function refreshChatUI() {
   // 传统模式：直接替换内容
   var main = document.getElementById("mainContent");
   main.innerHTML = renderSceneChat();
-  main.classList.remove("page-enter");
-  void main.offsetWidth;
-  main.classList.add("page-enter");
+  retriggerPageEnter();
   if (hadFocus) {
     var inp = document.getElementById("chatInput");
     if (inp) inp.focus();
@@ -2283,9 +2298,7 @@ function refreshSceneReviewUI() {
   // 传统模式：直接替换内容
   var main = document.getElementById("mainContent");
   main.innerHTML = renderSceneReview();
-  main.classList.remove("page-enter");
-  void main.offsetWidth;
-  main.classList.add("page-enter");
+  retriggerPageEnter();
 }
 
 // 标记/取消重点句
