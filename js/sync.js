@@ -731,10 +731,11 @@ function doRealtimePull() {
 
     if (maxTs > since) setLastSyncAt(maxTs);
     if (changed) {
-      // 集合/场景的合并函数内部已各自调用 refreshCurrentPage，只有 blob 变化需要这里补一次
-      var hasRecords = (Array.isArray(data.collections) && data.collections.length) ||
-        (Array.isArray(data.scenes) && data.scenes.length);
-      if (!hasRecords && typeof refreshCurrentPage === "function") refreshCurrentPage();
+      // Iteration 035：曾因错误注释（宣称 mergeCollections/mergeScenes 内部已刷新——实际没有）
+      // + !hasRecords 条件，恰恰在「有收藏/场景更新」时一次都不刷新（跨设备收藏到达不显示，
+      // 直到用户手动切页）。统一在合并完成后刷新一次（refreshCurrentPage 对 Vue 走 pageTick
+      // 重建，安全；多页时也无害——pageKey 变化仅重渲染当前页）。
+      if (typeof refreshCurrentPage === "function") refreshCurrentPage();
       // 后台标签页不弹 toast：用户看不见，攒着只会在切回来时糊一屏
       if (typeof showToast === "function" && !document.hidden) showToast("☁️ 已同步云端更新");
     }
