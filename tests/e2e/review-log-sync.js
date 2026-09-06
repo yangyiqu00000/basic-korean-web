@@ -112,4 +112,11 @@ async function main() {
   process.exit(FAIL.length ? 1 : 0);
 }
 main().catch((e) => { console.error('❌ 出错：', e.message); process.exit(1); })
-  .finally(() => { if (PAGES_PID) try { process.kill(-PAGES_PID.pid) } catch (e) {} ; fs.rmSync(PERSIST, { recursive: true, force: true }); });
+  .finally(async () => {
+    // Iteration 019 修正：spawn 无进程组，kill(-pid) 杀不到 wrangler（曾留孤儿占 8791）。
+    // 树杀 + lsof 清端口 + 轮询等释放。
+    const sh = (c) => { try { execSync(c, { shell: '/bin/bash', stdio: 'ignore' }); } catch (e) {} };
+    if (PAGES_PID) { sh(`pkill -P ${PAGES_PID.pid} -9 2>/dev/null; kill -9 ${PAGES_PID.pid} 2>/dev/null; true`); }
+    for (let i = 0; i < 10; i++) { sh(`lsof -ti tcp:${PORT} | xargs kill -9 2>/dev/null; true`); await sleep(1000); }
+    fs.rmSync(PERSIST, { recursive: true, force: true });
+  });
