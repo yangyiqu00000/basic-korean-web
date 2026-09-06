@@ -189,6 +189,8 @@ body {
 .nav-item:hover { background: var(--primary-lighter); color: var(--primary-ink); }
 .nav-item.active { background: var(--primary); color: var(--on-primary); }
 .mobile-menu-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text); }
+/* 抽屉遮罩：由 JS 在首次开抽屉时创建并常驻 body。桌面无媒体样式且 display:none，永不可见 */
+.nav-backdrop { display: none; }
 .theme-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px 8px; border-radius: 8px; transition: background 0.2s var(--ease); }
 .theme-toggle:hover { background: var(--primary-lighter); }
 .stats-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px 8px; border-radius: 8px; transition: background 0.2s var(--ease); }
@@ -1251,10 +1253,56 @@ body {
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .nav { display: none; }
-  .nav.show { display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: var(--nav-show-bg); backdrop-filter: blur(16px); padding: 12px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow); }
+  /* 裁掉一切越界元素产生的横向滚动（抽屉 translateX(100%)、装饰元素等）。
+     必须用 clip 而非 hidden：hidden 会创建滚动容器（移动端仍可手势横滑），
+     clip 才真正切断溢出，documentElement.scrollWidth 不再虚增。 */
+  html, body { overflow-x: clip; }
+  /* 移动导航 = 右侧抽屉（Uiverse drawer 模式：滑出 + 遮罩；ESC / 点遮罩 / 导航后自动关闭）。
+     抽屉 fixed 脱离文档流，不再挤压 header；top bar 提到遮罩之上（1001 > 999），
+     抽屉打开时汉堡按钮仍可点击关闭 —— 与 iOS/Material 的标准抽屉层级一致。 */
+  .nav {
+    display: flex;
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(78vw, 300px);
+    flex-direction: column;
+    gap: 4px;
+    padding: 80px 14px 20px;
+    background: var(--card-bg);
+    border-top: none;
+    /* visibility 双阶段过渡：藏起来时必须 visibility:hidden —— 仅靠 translateX(100%)
+       移出屏幕的 fixed 元素仍会扩展 scrollable overflow，在窄屏上产生横向滚动条
+       （自检扫出过 293px 溢出）。关闭时延迟到滑出动画播完再隐藏。 */
+    visibility: hidden;
+    transform: translateX(100%);
+    transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s linear 0.26s;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.14);
+    /* ⚠️ nav 是 .header 的子元素：这个 z-index 只在 header 的 stacking context 内部生效，
+       与遮罩(999)/header(1001) 的比较由 header 整体承担。它必须低于下面的顶栏按钮(2)，
+       否则抽屉会盖住同属 header 的汉堡/主题/统计/登录按钮（踩过：按钮点不到）。 */
+    z-index: 1;
+    overflow-y: auto;
+  }
+  .nav.drawer-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s;
+  }
   .mobile-menu-btn { display: block; }
+  /* ⚠️ backdrop-filter 会把 .header 变成 fixed 后代（抽屉 .nav）的 containing block，
+     抽屉的 top/bottom:0 会相对 64px 高的 header 而非视口 —— 抽屉被压成一条。
+     移动端改用纯色顶栏（毛玻璃在窄屏上视觉差异可忽略），换回标准视口定位。 */
+  .header { z-index: 1001; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  /* 顶栏元素抬到抽屉之上 —— nav 的 z-index 只在 header 的 stacking context 内生效 */
+  .logo, .mobile-menu-btn, .theme-toggle, .stats-toggle, .auth-toggle { position: relative; z-index: 2; }
+  .nav-backdrop { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 999; opacity: 0; transition: opacity 0.25s ease; }
+  .nav-backdrop.show { opacity: 1; }
   .header-inner { padding: 0 16px; }
+  /* 窄屏顶栏瘦身：logo 缩号 + 隐藏版本徽章。375px 下 4 个顶栏按钮 + logo 已到极限，
+     不缩的话 logo 会换行、登录按钮被截断（自检截图实测）。 */
+  .logo-text { font-size: 15px; }
+  .logo-badge { display: none; }
+  .auth-toggle { padding: 5px 9px; }
   .hero h1 { font-size: 28px; }
   .hero-cards { grid-template-columns: 1fr; }
 .hero-cards .hero-card[style*="span 2"] { grid-column: span 1 !important; }
@@ -1331,22 +1379,7 @@ body {
     background: var(--border);
   }
 
-  .header-inner {
-    flex-wrap: wrap;
-  }
-
-  .nav {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    gap: var(--space-xs, 4px);
-    padding: var(--space-md, 16px) 0;
-    border-top: 1px solid var(--border);
-    margin-top: var(--space-sm, 8px);
-  }
-  .nav.show {
-    display: flex;
-  }
+  /* nav 抽屉本体样式统一在上面 max-width:768px 主响应块里定义，这里只补菜单项布局 */
   .nav-item {
     width: 100%;
     text-align: left;
@@ -1470,6 +1503,58 @@ body {
   .wordlist-stat-num { font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .mini-bar { transition: none; } }
+
+/* ---- 拾遗卡片操作分组 ----
+   删除是破坏性操作，从「学习中/掌握」状态按钮行里拆出来，固定在卡片右上角小图标，
+   常态 40% 透明度弱化存在感，hover 才点亮成 error 红 —— 误触率显著下降。
+   状态流转按钮补全为三态（新/学习中/掌握），当前状态高亮主色填充，一眼可见。 */
+.wordlist-card { position: relative; }
+.wl-delete {
+  position: absolute; top: 10px; right: 10px;
+  background: transparent; border: none; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 5px 7px; border-radius: 6px;
+  color: var(--text-light); opacity: 0.4; font-family: inherit;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.wl-delete:hover { opacity: 1; color: var(--error); background: var(--bg); }
+.wl-actions { display: flex; gap: 6px; margin-top: 10px; }
+.wl-status-btn {
+  flex: 1; font-size: 11px; padding: 5px 6px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text-light); cursor: pointer; font-family: inherit;
+  transition: all 0.15s ease;
+}
+.wl-status-btn:hover { border-color: var(--primary); color: var(--primary-ink); }
+.wl-status-btn.active { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+
+/* ---- 复习模式进度条 ----
+   条纹流动动画借鉴 Uiverse soft-termite-38（45deg 斜纹 + background-position 位移动画），
+   表示「正在进行中」；配色/尺寸全部走项目 token。位移 1rem = 一个 background-size 宽度，
+   纹理平铺按 1rem×1rem 周期重复，因此该位移严格无缝。条纹是纯装饰纹理，
+   进度信息由行内百分比 + role=progressbar 的 ARIA 标注承载。 */
+.review-progress { margin-bottom: 14px; }
+.review-progress-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; color: var(--text-light); margin-bottom: 6px;
+}
+.review-progress-head .review-pct { font-weight: 700; color: var(--primary-ink); }
+.review-track {
+  height: 8px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 99px; overflow: hidden;
+}
+.review-fill {
+  height: 100%; background: var(--primary); border-radius: 99px;
+  background-image: linear-gradient(45deg,
+    rgba(255,255,255,0.22) 25%, transparent 0,
+    transparent 50%, rgba(255,255,255,0.22) 0,
+    rgba(255,255,255,0.22) 75%, transparent 0, transparent);
+  background-size: 1rem 1rem;
+  transition: width 0.3s var(--ease, ease);
+  animation: review-flow 0.8s linear infinite;
+}
+@keyframes review-flow { from { background-position: 0 0; } to { background-position: 1rem 0; } }
+@media (prefers-reduced-motion: reduce) { .review-fill { animation: none; } }
+
 
 .wordlist-grid {
   display: grid;

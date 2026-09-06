@@ -604,21 +604,27 @@ function deleteCollect(id) {
 }
 
 function renderWordListCard(c) {
-  var statusLabel = c.status === "mastered" ? "✅ 已掌握" : c.status === "learning" ? "🔄 学习中" : "🆕 新收藏";
   var sourceLabel = SOURCE_LABELS[c.source] || c.source;
+  var curStatus = c.status || "new";
+  // 三态流转按钮：当前状态高亮。旧版只有「学习中/掌握」两个按钮且与删除混排，
+  // 现在删除拆到右上角（.wl-delete），状态三选一独立成行（.wl-actions）。
+  function st(label, status) {
+    var active = curStatus === status;
+    return '<button class="wl-status-btn' + (active ? " active" : "") + '" onclick="setCollectStatus(\'' + c.id + '\',\'' + status + '\')">' + label + '</button>';
+  }
   return '<div class="wordlist-card">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+    '<button class="wl-delete" title="删除" aria-label="删除这条收藏" onclick="deleteCollect(\'' + c.id + '\')">🗑</button>' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-right:28px;">' +
       '<span class="wl-badge ' + (c.type === "word" ? "wl-badge-word" : "wl-badge-sentence") + '">' + (c.type === "word" ? "词" : "句") + '</span>' +
       '<span style="font-size:11px;color:var(--text-light);">' + escapeHtml(sourceLabel) + (c.sourceRef ? " · " + escapeHtml(c.sourceRef) : "") + '</span>' +
     '</div>' +
     '<div class="wl-text">' + escapeHtml(c.text) + '</div>' +
     (c.meaning ? '<div class="wl-mean">' + escapeHtml(c.meaning) + '</div>' : "") +
-    '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">' +
-      '<button class="ai-suggest-btn" style="font-size:11px;padding:2px 8px;" onclick="setCollectStatus(\'' + c.id + '\',\'learning\')">🔄 学习中</button>' +
-      '<button class="ai-suggest-btn" style="font-size:11px;padding:2px 8px;" onclick="setCollectStatus(\'' + c.id + '\',\'mastered\')">✅ 掌握</button>' +
-      '<button class="ai-suggest-btn" style="font-size:11px;padding:2px 8px;color:var(--error);border-color:var(--error);" onclick="deleteCollect(\'' + c.id + '\')">🗑 删除</button>' +
+    '<div class="wl-actions">' +
+      st("🆕 新收藏", "new") +
+      st("🔄 学习中", "learning") +
+      st("✅ 已掌握", "mastered") +
     '</div>' +
-    '<div style="font-size:11px;color:var(--text-light);margin-top:6px;">' + statusLabel + '</div>' +
   '</div>';
 }
 
@@ -652,8 +658,15 @@ function reviewMark(id, status) {
 function renderWordCard(list, idx) {
   if (!list.length) return '<p class="scene-empty">没有可复习的收藏<br><button class="ai-suggest-btn" style="margin-top:8px;" onclick="exitWordListReview()">← 返回列表</button></p>';
   var c = list[idx % list.length];
+  // 场次进度条（条纹流动 = 进行中，借鉴 Uiverse soft-termite-38，配色走项目 token）
+  var pct = list.length > 0 ? Math.round(((idx + 1) / list.length) * 100) : 0;
   return '<div class="flashcard-wrap">' +
-    '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-bottom:8px;">第 ' + (idx + 1) + ' / ' + list.length + ' 条 · ' + (c.type === "word" ? "词" : "句") + '</div>' +
+    '<div class="review-progress">' +
+      '<div class="review-progress-head"><span>第 ' + (idx + 1) + ' / ' + list.length + ' 条 · ' + (c.type === "word" ? "词" : "句") + '</span><span class="review-pct">' + pct + '%</span></div>' +
+      '<div class="review-track" role="progressbar" aria-label="本场复习进度" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100">' +
+        '<div class="review-fill" style="width:' + pct + '%"></div>' +
+      '</div>' +
+    '</div>' +
     '<div class="flashcard" onclick="flipWordCard(this)">' +
       '<div class="flashcard-inner">' +
         '<div class="flashcard-face flashcard-front">' +
@@ -1218,10 +1231,12 @@ function bkConfirmOk() {
   closeBkConfirm();
   if (cb) cb();
 }
-// ESC 关闭确认框
+// ESC 关闭确认框 / 移动端抽屉
 function initBkConfirmKey() {
   document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape" && document.getElementById("bkConfirmOverlay")) closeBkConfirm();
+    if (e.key !== "Escape") return;
+    if (document.getElementById("bkConfirmOverlay")) closeBkConfirm();
+    closeMobileDrawer();
   });
 }
 
@@ -1248,13 +1263,8 @@ function retriggerPageEnter() {
 }
 
 function navigate(page) {
-  // 关闭移动端菜单（无论 Vue 是否激活都要执行）
-  var nav = document.getElementById('mainNav');
-  if (nav && nav.classList.contains('show')) {
-    nav.classList.remove('show');
-    var btn = document.querySelector('.mobile-menu-btn');
-    if (btn) btn.textContent = '☰';
-  }
+  // 关闭移动端抽屉（无论 Vue 是否激活都要执行）
+  closeMobileDrawer();
 
   currentPage = page;
   document.querySelectorAll(".nav-item").forEach(el => {
@@ -1390,8 +1400,35 @@ function initCardGlow() {
   });
 }
 
+// ---- 移动导航抽屉（Uiverse drawer 模式）----
+// 抽屉 + 遮罩由 CSS（max-width:768px 媒体块）负责形态，JS 只管开合与生命周期：
+// 开 → nav 加 drawer-open + 遮罩加 show；关 → 双双移除。桌面端遮罩 display:none 永不可见。
+// 关闭途径共四条：再点汉堡 / 点遮罩 / ESC / navigate() 切页 —— 全部收敛到 closeMobileDrawer。
+function closeMobileDrawer() {
+  var nav = document.getElementById("mainNav");
+  if (nav) nav.classList.remove("drawer-open");
+  var bd = document.getElementById("navBackdrop");
+  if (bd) bd.classList.remove("show");
+  var btn = document.querySelector(".mobile-menu-btn");
+  if (btn) btn.setAttribute("aria-expanded", "false");
+}
 function toggleMobileMenu() {
-  document.getElementById("mainNav").classList.toggle("show");
+  var nav = document.getElementById("mainNav");
+  if (!nav) return;
+  var bd = document.getElementById("navBackdrop");
+  if (!bd) {
+    // 遮罩只创建一次并常驻 body（display:none 基样式保证桌面隐藏）
+    bd = document.createElement("div");
+    bd.className = "nav-backdrop";
+    bd.id = "navBackdrop";
+    bd.onclick = closeMobileDrawer;
+    document.body.appendChild(bd);
+  }
+  var opening = !nav.classList.contains("drawer-open");
+  nav.classList.toggle("drawer-open", opening);
+  bd.classList.toggle("show", opening);
+  var btn = document.querySelector(".mobile-menu-btn");
+  if (btn) btn.setAttribute("aria-expanded", opening ? "true" : "false");
 }
 
 // Render routing
@@ -2795,11 +2832,11 @@ document.addEventListener("DOMContentLoaded", () => {
   navigate("home");
   // 首次访问：显示新手引导
   if (!localStorage.getItem("korean_onboarded")) { setTimeout(showOnboarding, 300); }
-  // 移动端：点击页面其它区域（header 之外）时收起导航下拉
+  // 移动端：点击抽屉与遮罩之外的区域时兜底收起（遮罩自身 onclick 已是主关闭途径，此处幂等）
   document.addEventListener("click", function(e) {
     var nav = document.getElementById("mainNav");
-    if (nav && nav.classList.contains("show") && !(e.target.closest && e.target.closest(".header"))) {
-      nav.classList.remove("show");
+    if (nav && nav.classList.contains("drawer-open") && !(e.target.closest && e.target.closest(".header")) && !(e.target.closest && e.target.closest(".nav"))) {
+      closeMobileDrawer();
     }
   });
   // 全局键盘快捷键 1-8 切换页面（输入框内/带修饰键时不触发，避免误触）

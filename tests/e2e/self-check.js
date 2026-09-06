@@ -200,6 +200,38 @@ async function run() {
         await page.screenshot({ path: path.join(OUT_DIR, `overflow-${p}.png`) });
       }
     }
+    // 2b 抽屉导航交互（mobile only）：开 → 遮罩同步 → aria → 关 → 无横向溢出。
+    // 守住三个历史坑：translateX(100%) 越界引发横向滚动、backdrop-filter 劫持 fixed
+    // containing block、nav 在 header stacking context 内盖住兄弟按钮。
+    const drawer = await page.evaluate(async () => {
+      const nav = document.getElementById('mainNav');
+      const btn = document.querySelector('.mobile-menu-btn');
+      const beforeOpen = nav.classList.contains('drawer-open');
+      window.toggleMobileMenu();
+      await new Promise((r) => setTimeout(r, 400));
+      const opened = nav.classList.contains('drawer-open');
+      const bd = document.getElementById('navBackdrop');
+      const backdropShown = !!(bd && bd.classList.contains('show'));
+      const ariaOpen = btn.getAttribute('aria-expanded') === 'true';
+      // 抽屉打开时顶栏按钮必须仍可点（nav 不得盖住 header 的兄弟元素）
+      const br = btn.getBoundingClientRect();
+      const topClickable = document.elementFromPoint(br.x + br.width / 2, br.y + br.height / 2) === btn;
+      window.toggleMobileMenu();
+      await new Promise((r) => setTimeout(r, 400));
+      const closed = !nav.classList.contains('drawer-open');
+      const noHScroll = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return { beforeOpen, opened, backdropShown, ariaOpen, topClickable, closed, noHScroll };
+    });
+    if (drawer.beforeOpen) addFinding('error', '抽屉', '初始状态抽屉不应打开');
+    if (!drawer.opened) addFinding('error', '抽屉', 'toggleMobileMenu 未打开抽屉');
+    if (!drawer.backdropShown) addFinding('error', '抽屉', '遮罩未同步显示');
+    if (!drawer.ariaOpen) addFinding('error', '无障碍', '汉堡按钮 aria-expanded 未更新');
+    if (!drawer.topClickable) addFinding('error', '抽屉', '抽屉打开后顶栏按钮被盖住不可点（z-index 层级错误）');
+    if (!drawer.closed) addFinding('error', '抽屉', '抽屉关不掉');
+    if (!drawer.noHScroll) addFinding('error', '响应式', '抽屉关闭后仍存在横向溢出');
+    if (drawer.opened && drawer.backdropShown && drawer.ariaOpen && drawer.topClickable && drawer.closed && drawer.noHScroll) {
+      note('抽屉导航：开合 / 遮罩 / aria / 顶栏可点 / 无溢出 全部正常');
+    }
     await page.setViewportSize(VIEWPORTS[0]);
 
     // ---------- 3. 交互流程 ----------

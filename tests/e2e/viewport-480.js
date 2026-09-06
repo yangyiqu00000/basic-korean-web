@@ -89,12 +89,16 @@ let serverProc = null;
       return {
         heroCols: hero ? getComputedStyle(hero).gridTemplateColumns : "(hero 未找到)",
         navDisplay: nav ? getComputedStyle(nav).display : "(nav 未找到)",
+        navVisibility: nav ? getComputedStyle(nav).visibility : "(nav 未找到)",
         menuBtnDisplay: menuBtn ? getComputedStyle(menuBtn).display : "(menuBtn 未找到)",
         title: document.title
       };
     });
     const heroCols = cols(data.heroCols);
-    const navHidden = data.navDisplay === "none";
+    // 移动导航已是右侧抽屉范式（display 恒为 flex），「关闭态」不变量改为
+    // visibility:hidden + translateX(100%)（后者由 self-check 的无横向溢出断言覆盖），
+    // 比旧下拉菜单时代的 display:none 更强：元素不可见且不可交互。
+    const navHidden = data.navDisplay === "none" || data.navVisibility === "hidden";
     const menuShown = data.menuBtnDisplay !== "none";
     const pass =
       heroCols === vp.expectHero &&
@@ -103,7 +107,7 @@ let serverProc = null;
     results.push({
       vp: vp.name,
       heroCols: data.heroCols + " → " + heroCols,
-      navDisplay: data.navDisplay,
+      navDisplay: data.navDisplay + "/" + data.navVisibility,
       menuBtn: data.menuBtnDisplay,
       heroOK: heroCols === vp.expectHero ? "✓" : "✗ (期望 " + vp.expectHero + ")",
       navHidden: navHidden === vp.expectNavHidden ? "✓" : "✗",
