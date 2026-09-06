@@ -434,6 +434,40 @@ async function run() {
     if (!kbd.zeroOpensStats) addFinding('error', '快捷键', '按 0 未打开统计仪表盘（title 宣称与实际行为不符）');
     if (kbd.opened && kbd.hasStatsRow && kbd.escClosed && kbd.zeroOpensStats) note('快捷键面板：? 呼出 / Esc 关闭 / 0 开统计 全部正常');
 
+    // 3d* 复习模式键盘（Iteration 011）：→ 下一张 / ← 上一张 / 空格翻面，仅复习态生效
+    const reviewKbd = await page.evaluate(async () => {
+      const prev = localStorage.getItem('korean_collections');
+      localStorage.setItem('korean_collections', JSON.stringify([
+        { id: 'kb1', type: 'word', text: '가', meaning: '甲', source: 'manual', status: 'new', ts: Date.now() },
+        { id: 'kb2', type: 'word', text: '나', meaning: '乙', source: 'manual', status: 'new', ts: Date.now() }
+      ]));
+      window.navigate('wordlist');
+      await new Promise((r) => setTimeout(r, 300));
+      window.startWordListReview();
+      await new Promise((r) => setTimeout(r, 300));
+      const idx0 = window.wordListReviewIdx;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 120));
+      const idx1 = window.wordListReviewIdx;
+      const clsBefore = document.querySelector('.flashcard').className;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 120));
+      const clsAfter = document.querySelector('.flashcard').className;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 120));
+      const idx2 = window.wordListReviewIdx;
+      window.exitWordListReview();
+      if (prev === null) localStorage.removeItem('korean_collections');
+      else localStorage.setItem('korean_collections', prev);
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 200));
+      return { nextOk: idx1 === idx0 + 1, flipOk: clsAfter.includes('flipped') && !clsBefore.includes('flipped'), backOk: idx2 === idx0 };
+    });
+    if (!reviewKbd.nextOk) addFinding('error', '复习键盘', '→ 未切到下一张');
+    if (!reviewKbd.flipOk) addFinding('error', '复习键盘', '空格未翻面');
+    if (!reviewKbd.backOk) addFinding('error', '复习键盘', '← 未切回上一张');
+    if (reviewKbd.nextOk && reviewKbd.flipOk && reviewKbd.backOk) note('复习键盘：→ / 空格 / ← 全部正常');
+
     // 3e 主题切换（亮暗两套 token 都要能落地）
     const theme = await page.evaluate(async () => {
       const t0 = document.documentElement.getAttribute('data-theme');

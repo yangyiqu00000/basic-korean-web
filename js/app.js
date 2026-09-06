@@ -2858,6 +2858,7 @@ function exportSceneTxt() {
 var SHORTCUT_ROWS = [
   ["1 – 8", "切换页面：归藏 / 筑基 / 抽丝 / 剥茧 / 砥砺 / 临境 / 润物 / 拾遗"],
   ["0", "学习统计仪表盘"],
+  ["空格 / ← →", "拾遗复习中：翻面 / 切卡"],
   ["?", "打开 / 关闭本面板"],
   ["Esc", "关闭弹层与移动端抽屉"]
 ];
@@ -2913,6 +2914,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "?") { e.preventDefault(); toggleShortcutsHelp(); return; }
     // 0 = 统计仪表盘：index.html 的 title 一直宣称「按 0」但从未绑定过（Iteration 008 修复的存量 bug）
     if (e.key === "0") { e.preventDefault(); openStats(); return; }
+    // 抽认卡复习态键盘操作：空格翻面 / ←→ 切卡（Iteration 011）。
+    // 仅 wordListReviewMode 时接管，数字导航等既有行为不受影响。
+    if (wordListReviewMode) {
+      if (e.key === " ") {
+        var card = document.querySelector(".flashcard");
+        if (card) { e.preventDefault(); flipWordCard(card); }
+        return;
+      }
+      if (e.key === "ArrowRight") { e.preventDefault(); nextWordCard(); return; }
+      if (e.key === "ArrowLeft") { e.preventDefault(); prevWordCard(); return; }
+    }
     var page = KEY_PAGE_MAP[e.key];
     if (page) { e.preventDefault(); navigate(page); }
   });
