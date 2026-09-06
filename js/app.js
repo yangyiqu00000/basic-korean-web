@@ -1369,7 +1369,10 @@ function navigate(page) {
       if (pendingRule !== null && page === "skeleton") {
         var idx = pendingRule - 1;
         setTimeout(function() {
-          var ruleHeader = document.querySelector(".rule-header");
+          // Iteration 034：曾 querySelector(".rule-header") 永远命中第一条——
+          // 从 AI 结果点「规则③」实测定位到规则①（7 条全部失准）。
+          // 改用渲染侧 data-rule 锚点（idx+1 = 可见编号①—⑦）精确定位。
+          var ruleHeader = document.querySelector('.rule-header[data-rule="' + pendingRule + '"]');
           if (ruleHeader) {
             ruleHeader.scrollIntoView({ behavior: "smooth", block: "center" });
           }
@@ -1672,7 +1675,7 @@ function renderSkeletonRules() {
 
     return `
       <div class="rule-item">
-        <button class="rule-header" onclick="toggleRule(${idx})">
+        <button class="rule-header" data-rule="${idx + 1}" onclick="toggleRule(${idx})">
           <span class="num">${rule.icon}</span>
           <span style="font-weight:600;">${rule.title}</span>
           <span style="font-size:13px;color:var(--text-light);margin-left:8px;">${rule.summary}</span>

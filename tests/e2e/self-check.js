@@ -671,6 +671,31 @@ async function run() {
       if (sched.after === sched.before) addFinding('error', '润物表', '勾选后进度文本未刷新（' + sched.before + ' → ' + sched.after + '）');
       if (sched.restored !== sched.before) addFinding('error', '润物表', '取消勾选后进度未复原（' + sched.restored + ' ≠ ' + sched.before + '）');
       if (sched.after !== sched.before && sched.restored === sched.before) note('润物表：勾选进度即时刷新 / 取消复原 正常');
+
+    // 3d********* 规则跳转精确锚点（Iteration 034）：jumpToRule(n) 必须定位到第 n 条——
+    // 曾永远命中第一条（querySelector(".rule-header")）。口径：目标锚点可见于视口
+    // （block:center 对末条规则受页面高度限制不可达中心，可见即为正确）。
+    const jump = await page.evaluate(async () => {
+      const results = [];
+      for (const n of [1, 4, 7]) {
+        window.jumpToRule(n);
+        await new Promise((r) => setTimeout(r, 900));
+        const h = document.querySelector('.rule-header[data-rule="' + n + '"]');
+        if (!h) { results.push({ want: n, got: 'no-anchor' }); continue; }
+        const r = h.getBoundingClientRect();
+        const visible = r.top >= 0 && r.bottom <= window.innerHeight + 1;
+        results.push({ want: n, visible });
+      }
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 300));
+      return results;
+    });
+    const bad = jump.filter((r) => !r.visible);
+    if (jump.length !== 3 || bad.length) {
+      addFinding('error', '规则跳转', 'jumpToRule 定位失准：' + JSON.stringify(jump));
+    } else {
+      note('规则跳转：①/④/⑦ 全部精确锚定正常');
+    }
     }
     }
 
