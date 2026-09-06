@@ -693,7 +693,7 @@ function renderWordCard(list, idx) {
         '<div class="review-fill" style="width:' + pct + '%"></div>' +
       '</div>' +
     '</div>' +
-    '<div class="flashcard" onclick="flipWordCard(this)">' +
+    '<div class="flashcard" role="button" tabindex="0" aria-label="抽认卡，点击或按空格翻面" onclick="flipWordCard(this)" onkeydown="if(event.key===\'Enter\'){ event.preventDefault(); flipWordCard(this); }">' +
       '<div class="flashcard-inner">' +
         '<div class="flashcard-face flashcard-front">' +
           '<div style="font-size:24px;font-weight:500;font-family:\'Noto Sans KR\',sans-serif;padding:20px;text-align:center;word-break:break-all;">' + escapeHtml(c.text) + playBtn(c.text, "small") + '</div>' +

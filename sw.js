@@ -12,9 +12,9 @@
 //      彻底消除「版本戳忘了改」这一整类事故。CDN 与浏览器 HTTP 缓存已足够快。
 // 由 index.html 注册。
 var CACHE_VERSION = "bk-v2";
-var CACHE_NAME = CACHE_VERSION + "-v20260830u";
+var CACHE_NAME = CACHE_VERSION + "-v20260830v";
 // 离线兜底页（Iteration 031）：install 时预缓存，导航离线时兜底
-var OFFLINE_URL = "/offline.html?v=20260830u";
+var OFFLINE_URL = "/offline.html?v=20260830v";
 
 self.addEventListener("install", function (event) {
   // 预缓存离线兜底页（Iteration 031）：不等待旧页面关闭立即生效，
