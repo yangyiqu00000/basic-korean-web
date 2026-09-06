@@ -53,6 +53,7 @@
 - **敬语规范**：AI 始终用 `-요` 体（命令用 `-세요`），prompt 中已锁定。
 - **持久化：LocalStorage + Cloudflare D1 双层。** 本地键：学习进度 `korean_progress`、断句训练"已掌握" `korean_training_done`、AI 练句历史 `korean_ai_history`、自定义情景 `korean_custom_scenes`、情景对话历史 `korean_scene_history`、收藏本 `korean_collections`。
   - 纯本地、不同步的键：上次同步时间戳 `korean_sync_last_at`（每台设备各自的拉起点）。拾遗复习日志 `korean_wordlist_review_log` 已于 2026-09-06 起接入云同步（blob key `wordlist_review_log`，set 型按 id+time 并集，见「已知坑点」）。
+  - **新增 localStorage 键必须登记进 `ALL_STORAGE_KEYS`（js/app.js 顶部单一事实源）**：exportAllData / clearData("ALL") 都从它引用；自检有文本级一致性断言（两函数须同源 + 须覆盖全部 SYNC_BLOB_MAP 同步键）。历史上两轮各漏一次同一键（023 清空侧 / 025 导出侧）。
   - 后端是 **Cloudflare D1**（`basic-korean-db`），经 `functions/api/*` 提供注册/登录/同步/统计；前端同步层在 `js/sync.js`（方案 C：整包同步 + 智能合并 + 删除墓碑）。
   - 情景对话的"场景"由用户自定义存于 localStorage 并同步上云，**不是**数据文件。
   - 完整后端设计与 Phase 状态见 `docs/design/v2-upgrade-plan.md`。
@@ -75,3 +76,6 @@
 - AI 未配置 `ai_config.json` 时，其余功能正常，仅 `/ai`、`/ai/chat` 不可用（前端应据此禁用相关 UI）。
 - `generate_audio.py` 不再改写 `app.js` 源码（历史上它会把播放逻辑改成读本地 `audio_map.json`，有副作用）；现仅生成音频与 `audio_map.json` 作为可选离线缓存，播放仍走 TTS 服务器。
 - **同步层静默错误**：`js/sync.js` 中的 `apiFetch` 调用在失败时仅 `console.warn` 而非弹 Toast，避免频繁打断用户。调试同步问题时请打开浏览器 DevTools Console 查看 `[sync]` 前缀日志。
+- **Vue 组件根缺失时的重绘兜底是雷区**（021/022 事故）：`rerenderXxx`/`switchXxxTab` 类局部重绘必须先查 `.xxx-page-vue` 组件根，**root 为 null（组件未挂载竞态窗）时严禁兜底写 `#mainContent`** —— 会连 `#vue-root`（Vue 挂载点）一起抹掉，Vue 状态活着但 DOM 渲染永久失效（换页"成功"却不动）。正解：root 缺失走 `refreshCurrentPage()`（pageTick 重建）。新增局部重绘函数时照抄 021/022 的模式。
+- **移动端视口单位**：聊天/主区高度一律 `100vh` + `100dvh` 回退链（dvh 写后），viewport meta 带 `interactive-widget=resizes-content`——iOS Safari 的 100vh 键盘弹起不收缩，输入框会被键盘推出可视区。自检有 dvh/meta/视口内三断言。
+- **回归脚本的 pages dev 进程清理**：spawn 默认无进程组，`process.kill(-pid)` 杀不到任何东西（曾留孤儿进程占端口致后续 bind 死循环）；环境变量注入 worker 必须经 `.dev.vars` 文件（shell 环境变量 wrangler pages dev 不透传）。清理模式照抄 `tests/e2e/tts-cache-regression.js` 的 killPagesDev。
