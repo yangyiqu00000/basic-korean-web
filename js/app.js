@@ -327,7 +327,14 @@ function importAllData(input) {
       bkConfirm("确定导入备份？此操作会覆盖当前所有学习数据。", function() {
         try {
           var count = 0;
+          var skipped = [];
+          // Iteration 029：键白名单收紧——曾按 Object.keys 回放任意键（恶意/手改备份可注入
+          // 任意 localStorage 键、塞爆配额）。合法域 = ALL_STORAGE_KEYS（学习数据全集）
+          // + PLAIN_STORAGE_KEYS（主题/语音等明文偏好，本就是 ALL_STORAGE_KEYS 子集）。
+          // 域外键跳过并显式计数（静默会掩盖导出端 bug——025 教训：清单漏键靠导出侧发现）。
+          var allowed = ALL_STORAGE_KEYS.concat(PLAIN_STORAGE_KEYS);
           Object.keys(data).forEach(function(k) {
+            if (allowed.indexOf(k) === -1) { skipped.push(k); return; }
             if (typeof syncPut === "function" && typeof SYNC_BLOB_MAP === "object" && SYNC_BLOB_MAP[k]) {
               syncPut(k, data[k]); // 导入的同步 key 走 syncPut（本地 + 推送云端）
             } else {
@@ -335,6 +342,7 @@ function importAllData(input) {
             }
             count++;
           });
+          if (skipped.length) showToast("⚠️ 已跳过 " + skipped.length + " 个非学习数据键（" + skipped.slice(0, 3).join("、") + (skipped.length > 3 ? " 等" : "") + "）");
           showToast("✅ 已导入 " + count + " 项数据，刷新页面后生效");
           closeStats();
           setTimeout(function() { location.reload(); }, 1000);

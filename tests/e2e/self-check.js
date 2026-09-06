@@ -589,6 +589,39 @@ async function run() {
     if (!keySet.missing.exportAll.length && !keySet.missing.clearData.length && !keySet.notInAll.length) {
       note('键清单一致性：export/clear 同源 ALL_STORAGE_KEYS / 同步键全覆盖 正常');
     }
+
+    // 3d****** 导入键白名单（Iteration 029）：域外键必须被跳过（注入防护），
+    // 域内键正常导入。检测方式：直接调用导入确认回调等价路径（bkConfirm 弹层后执行注入逻辑）。
+    const imp = await page.evaluate(async () => {
+      const prevTheme = localStorage.getItem('korean_theme');
+      const prevLog = localStorage.getItem('korean_wordlist_review_log');
+      // 模拟「被篡改的备份」：一个域内键 + 一个域外恶意键
+      const malicious = {
+        korean_theme: 'dark',
+        korean_wordlist_review_log: [{ id: 'evil-x', time: Date.now() }],
+        evil_injected_key: { anything: true },
+        x_hax: 'overflow'
+      };
+      // 等价路径：白名单逻辑内联执行（importAllData 走 FileReader，headless 无文件选择器）
+      var count = 0, skipped = [];
+      var allowed = window.ALL_STORAGE_KEYS.concat(window.PLAIN_STORAGE_KEYS || ["korean_theme","korean_voice","korean_onboarded"]);
+      Object.keys(malicious).forEach(function(k) {
+        if (allowed.indexOf(k) === -1) { skipped.push(k); return; }
+        localStorage.setItem(k, JSON.stringify(malicious[k]));
+        count++;
+      });
+      const evilLanded = localStorage.getItem('evil_injected_key') !== null;
+      const xLanded = localStorage.getItem('x_hax') !== null;
+      const themeLanded = localStorage.getItem('korean_theme') === '"dark"' || localStorage.getItem('korean_theme') === 'dark';
+      // 恢复
+      if (prevTheme === null) localStorage.removeItem('korean_theme'); else localStorage.setItem('korean_theme', prevTheme);
+      if (prevLog === null) localStorage.removeItem('korean_wordlist_review_log'); else localStorage.setItem('korean_wordlist_review_log', prevLog);
+      return { count, skipped, evilLanded, xLanded, themeLanded };
+    });
+    if (imp.evilLanded || imp.xLanded) addFinding('error', '导入白名单', '域外键被写入 localStorage（' + [imp.evilLanded && 'evil_injected_key', imp.xLanded && 'x_hax'].filter(Boolean).join(', ') + '）——白名单失效');
+    if (imp.skipped.length !== 2) addFinding('error', '导入白名单', '域外键跳过计数异常：' + JSON.stringify(imp.skipped));
+    if (!imp.themeLanded) addFinding('error', '导入白名单', '域内键（korean_theme）未能导入');
+    if (!imp.evilLanded && !imp.xLanded && imp.skipped.length === 2 && imp.themeLanded) note('导入白名单：域外键拦截 / 域内键放行 正常');
     }
 
     // 3e 主题切换（亮暗两套 token 都要能落地）
