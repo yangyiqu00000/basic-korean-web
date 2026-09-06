@@ -294,7 +294,9 @@ function clearData(key, name) {
 
 // 导出全部学习数据为 JSON 备份文件
 function exportAllData() {
-  var keys = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_custom_scenes","korean_collections","korean_dismissed_tips","korean_theme","korean_voice","korean_onboarded"];
+  // ⚠️ 键清单与 clearData(ALL) / 导入逻辑三处散落——改键必须三处同步（Iteration 023/025 两轮教训）。
+  // 025 补 korean_wordlist_review_log：完整备份此前导不出复习历史（014 起已是同步资产）。
+  var keys = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_custom_scenes","korean_collections","korean_dismissed_tips","korean_theme","korean_voice","korean_onboarded","korean_wordlist_review_log"];
   var data = {};
   keys.forEach(function(k) {
     var v = localStorage.getItem(k);
