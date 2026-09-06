@@ -682,6 +682,10 @@ function setLastSyncAt(ts) {
 
 function startRealtimeSync() {
   if (!isLoggedIn()) return;
+  // Node/种子脚本环境守卫：sync.js 被 tests/e2e/seed-device-a.js 在 Node 下加载做登录
+  // 种子注入，setInterval/document 不存在会抛 ReferenceError（双设备回归实测）。
+  // 浏览器环境恒有这两者，不影响线上。
+  if (typeof setInterval === "undefined" || typeof document === "undefined") return;
   stopRealtimeSync(); // 防止重复启动
   doRealtimePull();
   realtimeSyncTimer = setInterval(doRealtimePull, REALTIME_PULL_INTERVAL_MS);

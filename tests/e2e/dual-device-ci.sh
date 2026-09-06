@@ -42,7 +42,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "== 双设备云同步回归（$BASE，独立 D1 状态）=="
+echo "== 双设备云同步回归（${BASE}，独立 D1 状态）=="
 
 # 0) 预清理：确保端口空闲（防止旧实例残留 → 新实例 bind 失败、请求误连旧实例返回 405）
 kill_port
@@ -74,7 +74,7 @@ for _ in $(seq 1 90); do
   # 必须同时满足：① 本进程存活（bind 失败则 wrangler 退出，kill -0 失败）
   #               ② /api/status 返回 ok:true（D1 绑定 + PBKDF2 双探针，schema 已生效）
   # 二者兼得才证明响应方是「我们自己带 schema 的实例」，杜绝误连本机孤儿旧实例（405）
-  if kill -0 "$PAGES_PID" 2>/dev/null && curl -sf "$BASE/api/status" 2>/dev/null | grep -q '"ok": true'; then
+  if kill -0 "$PAGES_PID" 2>/dev/null && curl -sf "${BASE}/api/status" 2>/dev/null | grep -q '"ok": true'; then
     READY=1; break
   fi
   sleep 1
@@ -88,7 +88,7 @@ else
 fi
 
 # 4) register（本地 dev 验证码自动回显，无需 Resend；以退出码为准）
-if node tests/e2e/dual-device-sync.js register "$BASE" > /tmp/dual-reg.log 2>&1; then
+if node tests/e2e/dual-device-sync.js register "${BASE}" > /tmp/dual-reg.log 2>&1; then
   pass "register：带码注册成功"
 else
   fail "register 失败"
@@ -100,7 +100,7 @@ PASSW="$(grep '^ACCOUNT' /tmp/dual-reg.log | awk '{print $3}')"
 if [ -z "$ACCT" ]; then fail "register 未输出 ACCOUNT"; exit 1; fi
 
 # 5) 播种设备 A（conflict 模式依赖设备 A 已有 1-0 / h1 / 가）
-if node tests/e2e/seed-device-a.js "$BASE" "$ACCT" "$PASSW" > /tmp/dual-seed.log 2>&1 && grep -q "SEED_OK" /tmp/dual-seed.log; then
+if node tests/e2e/seed-device-a.js "${BASE}" "$ACCT" "$PASSW" > /tmp/dual-seed.log 2>&1 && grep -q "SEED_OK" /tmp/dual-seed.log; then
   pass "seed：设备 A 播种完成"
 else
   fail "seed 失败"
@@ -109,7 +109,7 @@ else
 fi
 
 # 6) conflict 模式（设备 B 拉取→并集→后写胜出→墓碑→收藏去重；退出码权威）
-if node tests/e2e/dual-device-sync.js conflict "$ACCT" "$PASSW" "$BASE" > /tmp/dual-conflict.log 2>&1; then
+if node tests/e2e/dual-device-sync.js conflict "$ACCT" "$PASSW" "${BASE}" > /tmp/dual-conflict.log 2>&1; then
   pass "conflict：全场景 PASS"
 else
   fail "conflict 存在失败断言"
@@ -117,7 +117,7 @@ else
 fi
 
 # 7) clear 模式（清空墓碑 + 删除传播；退出码权威）
-if node tests/e2e/dual-device-sync.js clear "$ACCT" "$PASSW" "$BASE" > /tmp/dual-clear.log 2>&1; then
+if node tests/e2e/dual-device-sync.js clear "$ACCT" "$PASSW" "${BASE}" > /tmp/dual-clear.log 2>&1; then
   pass "clear：全场景 PASS"
 else
   fail "clear 存在失败断言"
