@@ -261,6 +261,7 @@ async function run() {
       const bars = Array.from(document.querySelectorAll('.stat-bar'));
       const res = {
         cards: document.querySelectorAll('.stat-card').length,
+        hasReviewCard: [...document.querySelectorAll('.stat-card')].some((c) => c.innerText.includes('累计复习')),
         bars: bars.length,
         rows: document.querySelectorAll('.stat-progress-row').length,
         // 进度条宽度必须是整数百分比且落在 0-100
@@ -277,13 +278,14 @@ async function run() {
     if (stats.unavailable) {
       addFinding('error', '统计弹窗', 'openStats/closeStats 不存在（部署的是旧版代码）');
     } else {
-      if (stats.cards !== 4) addFinding('error', '统计弹窗', `指标卡数量 ${stats.cards}，应为 4`);
+      if (stats.cards !== 5) addFinding('error', '统计弹窗', `指标卡数量 ${stats.cards}，应为 5`);
+      if (!stats.hasReviewCard) addFinding('error', '统计弹窗', '缺少「累计复习」卡（复习维度统计）');
       if (stats.bars !== 2) addFinding('error', '统计弹窗', `进度条数量 ${stats.bars}，应为 2`);
       if (stats.rows !== 2) addFinding('error', '统计弹窗', `进度行数量 ${stats.rows}，应为 2`);
       if (stats.badWidth.length) addFinding('error', '统计弹窗', `进度条宽度异常：${JSON.stringify(stats.badWidth)}`);
       if (stats.missingAria) addFinding('error', '无障碍', `${stats.missingAria} 条进度条缺 aria-valuenow`);
       if (!stats.ttsSelect) addFinding('error', '统计弹窗', 'TTS 语音下拉缺失');
-      if (stats.cards === 4 && stats.bars === 2 && !stats.badWidth.length && !stats.missingAria) {
+      if (stats.cards === 5 && stats.hasReviewCard && stats.bars === 2 && !stats.badWidth.length && !stats.missingAria) {
         note('统计弹窗：4 卡 + 2 进度条 + ARIA 正常');
       }
     }

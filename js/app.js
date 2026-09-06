@@ -78,6 +78,7 @@ function openStats() {
       set("statScene", (d.scenes ? d.scenes.history : 0) + " 场");
       set("statDays", d.learning_days + " 天");
       set("statMsgs", d.messages + " 条");
+      set("statReviews", (typeof d.reviews === "number" ? d.reviews : 0) + " 次");
       // 云端徽标 + 收藏数
       var badge = document.getElementById("statCloudBadge");
       var cloudRow = document.getElementById("statCloudRow");
@@ -193,6 +194,7 @@ function renderStatsContent() {
         statCard("🆕", weekCols, "条", "本周新收藏") +
         statCard("📝", trainingDoneCount + " / " + totalSentences, "", "抽丝训练", "statTrainingCard") +
         statCard("🗓️", scheduleDone + " / " + scheduleTotal, "", "润物表", "statScheduleCard") +
+        statCard("🔁", getWordListReviewStats().total, "次", "累计复习", "statReviews") +
       '</div>' +
       '<div class="stats-progress">' +
         statBar("抽丝训练完成度", trainingDoneCount, totalSentences, "statTrainingBar") +

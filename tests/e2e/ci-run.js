@@ -152,11 +152,11 @@ async function main() {
     const statsOpenOk = await ev(async () => {
       window.openStats();
       await new Promise((r) => setTimeout(r, 400));
-      return document.querySelectorAll('.stat-card').length === 4 &&
+      return document.querySelectorAll('.stat-card').length === 5 &&
         document.querySelectorAll('.stat-bar').length === 2 &&
         document.querySelectorAll('.stat-progress-row').length === 2;
     });
-    check('统计弹窗打开（4 卡片 + 2 进度条）', statsOpenOk);
+    check('统计弹窗打开（5 卡片 + 2 进度条）', statsOpenOk);
 
     const statsBarsOk = await ev(async () => {
       const bar = document.querySelector('.stat-bar');

@@ -19,11 +19,12 @@ export async function onRequestGet(context) {
   const db = env.basic_korean_db;
   const uid = user.userId;
 
-  const [userRow, trainingRow, progressRow, aiRow, colRes, scenesRes, msgRes] = await Promise.all([
+  const [userRow, trainingRow, progressRow, aiRow, reviewLogRow, colRes, scenesRes, msgRes] = await Promise.all([
     db.prepare("SELECT created_at FROM users WHERE id = ?").bind(uid).first(),
     db.prepare("SELECT data_json FROM user_blobs WHERE user_id = ? AND key = 'training_done'").bind(uid).first(),
     db.prepare("SELECT data_json FROM user_blobs WHERE user_id = ? AND key = 'progress'").bind(uid).first(),
     db.prepare("SELECT data_json FROM user_blobs WHERE user_id = ? AND key = 'ai_history'").bind(uid).first(),
+    db.prepare("SELECT data_json FROM user_blobs WHERE user_id = ? AND key = 'wordlist_review_log'").bind(uid).first(),
     db.prepare("SELECT type, COUNT(*) AS c FROM collections WHERE user_id = ? GROUP BY type").bind(uid).all(),
     db.prepare("SELECT kind, COUNT(*) AS c FROM scenes WHERE user_id = ? GROUP BY kind").bind(uid).all(),
     db.prepare("SELECT COUNT(*) AS c FROM scene_messages WHERE user_id = ?").bind(uid).first()
@@ -51,6 +52,13 @@ export async function onRequestGet(context) {
     aiHistory = Array.isArray(aiParsed.data) ? aiParsed.data.length : (Array.isArray(aiParsed) ? aiParsed.length : 0);
   } catch (e) {}
 
+  // 复习日志条数（set 型 blob，与本地 90 天窗口不同：云端保全量，前端只展示不裁剪）
+  let reviews = 0;
+  try {
+    const revParsed = JSON.parse((reviewLogRow && reviewLogRow.data_json) || "{}");
+    reviews = Array.isArray(revParsed.data) ? revParsed.data.length : 0;
+  } catch (e) {}
+
   const colCounts = { total: 0, words: 0, sentences: 0 };
   colRes.results.forEach(r => {
     colCounts.total += r.c;
@@ -67,6 +75,7 @@ export async function onRequestGet(context) {
     training_done: trainingDone,
     progress_done: progressDone,
     ai_history: aiHistory,
+    reviews,
     collections: colCounts,
     scenes: { total: sceneCounts.custom + sceneCounts.history, ...sceneCounts },
     messages: msgRes ? msgRes.c : 0,
