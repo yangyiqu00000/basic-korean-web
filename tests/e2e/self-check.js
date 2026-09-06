@@ -492,6 +492,35 @@ async function run() {
     if (trap.opened && !trap.restored) addFinding('error', '焦点陷阱', 'Esc 关闭后焦点未归还打开者');
     if (trap.opened && trap.inside && trap.stillInside && trap.restored) note('焦点陷阱：移入 / Tab 循环 / Esc 归还 全部正常');
 
+    // 3d*** 临境聊天虚拟键盘适配（Iteration 021）：375px 下输入框须在视口内，
+    // viewport meta 带 interactive-widget=resizes-content（Android 键盘收缩布局），
+    // 聊天高度走 dvh（iOS Safari 的 100vh 键盘弹起不收缩——输入框会被键盘推出可视区）。
+    const vkbd = await page.evaluate(async () => {
+      window.navigate('scene');
+      await new Promise((r) => setTimeout(r, 400));
+      const sBtn = document.querySelector('.scene-card, [onclick*="startSceneChat"]');
+      const diag = { page: window.currentPage, cards: document.querySelectorAll('.scene-card').length };
+      if (sBtn) { sBtn.click(); await new Promise((r) => setTimeout(r, 500)); }
+      const input = document.getElementById('chatInput');
+      if (!input) return { noChat: true, diag, afterClick: window.currentPage };
+      const r = input.getBoundingClientRect();
+      return {
+        noChat: false,
+        inputInViewport: r.bottom <= window.innerHeight + 1,
+        metaInteractive: document.querySelector('meta[name=viewport]').content.includes('interactive-widget=resizes-content'),
+        dvhSupported: CSS.supports('max-height', '100dvh')
+      };
+    });
+    if (vkbd.noChat) {
+      // 静默跳过是反模式：进不了聊天必须显式报告，否则本断言形同虚设
+      addFinding('error', '临境聊天', '未能进入场景聊天（Vue 路由失步嫌疑：' + JSON.stringify(vkbd.diag || {}) + '）');
+    } else {
+      if (!vkbd.inputInViewport) addFinding('error', '临境聊天', '375px 下输入框被挤出视口（键盘遮挡风险）');
+      if (!vkbd.metaInteractive) addFinding('error', '临境聊天', 'viewport meta 缺 interactive-widget=resizes-content（Android 键盘不收缩布局）');
+      if (!vkbd.dvhSupported) addFinding('error', '临境聊天', 'dvh 视口单位不被当前浏览器支持，键盘适配回退失效');
+      if (vkbd.inputInViewport && vkbd.metaInteractive && vkbd.dvhSupported) note('临境聊天：输入框在视口内 / interactive-widget / dvh 适配正常');
+    }
+
     // 3e 主题切换（亮暗两套 token 都要能落地）
     const theme = await page.evaluate(async () => {
       const t0 = document.documentElement.getAttribute('data-theme');

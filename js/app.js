@@ -570,11 +570,18 @@ function renderWordList() {
 function rerenderWordList() {
   // Vue 模式下只重绘拾遗页组件自己的根节点（.wordlist-page-vue），绝不能覆盖 #mainContent
   // —— 那会连同 #vue-root（Vue 挂载点）一起被删除，导致导航全部失效。
+  // ⚠️ 竞态修复（Iteration 021）：组件尚未挂载时（快速连续 navigate / 进出复习模式的瞬间）
+  // root 为 null，旧兜底直接写 #mainContent 会把 #vue-root 一并抹掉 —— Vue 状态还在但
+  // DOM 渲染永久失效（自检实测 vuePage=scene 而页面残留拾遗 HTML，导航"成功"却换页不动）。
+  // root 缺失时改走 refreshCurrentPage()：Vue 模式递增 pageTick 让组件重建。
   var root = document.querySelector("#mainContent .wordlist-page-vue");
-  var main = root || document.getElementById("mainContent");
-  main.innerHTML = renderWordList();
-  retriggerPageEnter();
-  initRevealObserver();
+  if (root) {
+    root.innerHTML = renderWordList();
+    retriggerPageEnter();
+    initRevealObserver();
+    return;
+  }
+  refreshCurrentPage();
 }
 
 function switchWordListTab(tab) { wordListTab = tab; wordListReviewMode = false; wordListReviewIdx = 0; rerenderWordList(); }
