@@ -1297,6 +1297,12 @@ body {
   .logo, .mobile-menu-btn, .theme-toggle, .stats-toggle, .auth-toggle { position: relative; z-index: 2; }
   .nav-backdrop { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 999; opacity: 0; transition: opacity 0.25s ease; }
   .nav-backdrop.show { opacity: 1; }
+  /* 抽屉打开时冻结背景滚动（body 滚动锁）。类由 JS 同时挂 html+body。
+     ⚠️ 单纯 overflow:hidden/clip 都锁不死：hidden 盒仍是可编程滚动容器（scrollTo 照滚），
+     且根元素的 clip 传播到视口时会降级为 hidden（自检实测滚到 149px）。
+     这里把高度收敛到一屏使 scrollable overflow 归零 —— 无处可滚才是真锁。
+     解锁时由 JS（setDrawerScrollLock）恢复原滚动位置。 */
+  html.drawer-lock, body.drawer-lock { overflow: hidden; height: 100%; }
   .header-inner { padding: 0 16px; }
   /* 窄屏顶栏瘦身：logo 缩号 + 隐藏版本徽章。375px 下 4 个顶栏按钮 + logo 已到极限，
      不缩的话 logo 会换行、登录按钮被截断（自检截图实测）。 */

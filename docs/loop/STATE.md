@@ -1,11 +1,11 @@
 # LOOP STATE（跨上下文续接的唯一权威现场，每轮收尾必须更新）
 
-- 当前轮号：000（进行中）
-- 队列指针：A0（WIP 收口）→ 之后依次 A1 → A2 → A3 → A4 → A5 → A6 → B1 → B2 → B3 → B4 → B5 → B6（C 区默认跳过）
-- 上一 commit：c779545（feat: 浏览器自检扫描器 + 修复 deploy-prod.sh…）
-- 工作区待收口 WIP：css/style.css / index.html / js/app.js / sw.js / tests/e2e/self-check.js（移动抽屉 + 拾遗三态 + 复习进度条，?v=20260830c）
-- 已完成轮次：无
+- 当前轮号：001（进行中，队列候选 A1）
+- 队列指针：~~A0~~（000 完成）→ **A1 抽屉打开时 body 滚动锁定** → 之后依次 A2 → A3 → A4 → A5 → A6 → B1 → B2 → B3 → B4 → B5 → B6（C 区默认跳过）
+- 上一 commit：e25dd43（feat: 移动端导航抽屉化 + 拾遗三态流转与复习进度条）；d124cdc（chore: loop 框架文档）
+- 已完成轮次：000（PASS，视口门随抽屉范式更新为 visibility 契约）
 - 标杆对照进度：0/10
+- 版本戳当前值：`?v=20260830c`（下轮改 js/css 须 bump 至 20260830d）
 - 遗留事项：
-  - E2E 与视口门尚未对当前 WIP 跑过（Iteration 000 的验收内容）
+  - 本文件与 iterations/000.md 的收尾更新随 Iteration 001 的 commit 一并入库（避免为回填 hash 单独开 commit）
 - 终止条件回显：队列耗尽 ｜ 满 4 小时 ｜ 连续 2 轮无可验证改进

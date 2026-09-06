@@ -1402,7 +1402,8 @@ function initCardGlow() {
 
 // ---- 移动导航抽屉（Uiverse drawer 模式）----
 // 抽屉 + 遮罩由 CSS（max-width:768px 媒体块）负责形态，JS 只管开合与生命周期：
-// 开 → nav 加 drawer-open + 遮罩加 show；关 → 双双移除。桌面端遮罩 display:none 永不可见。
+// 开 → nav 加 drawer-open + 遮罩加 show + html/body 加 drawer-lock 冻结背景滚动；
+// 关 → 全部移除。桌面端遮罩 display:none 永不可见。
 // 关闭途径共四条：再点汉堡 / 点遮罩 / ESC / navigate() 切页 —— 全部收敛到 closeMobileDrawer。
 function closeMobileDrawer() {
   var nav = document.getElementById("mainNav");
@@ -1411,6 +1412,22 @@ function closeMobileDrawer() {
   if (bd) bd.classList.remove("show");
   var btn = document.querySelector(".mobile-menu-btn");
   if (btn) btn.setAttribute("aria-expanded", "false");
+  setDrawerScrollLock(false);
+}
+var DrawerLock = { y: null };
+function setDrawerScrollLock(locked) {
+  // 类挂 html+body 双保险，配合 CSS（html.drawer-lock 高度收敛一屏 + overflow:hidden）
+  // 使 scrollable overflow 归零 —— 无处可滚才是真锁（单靠 overflow 锁不死，见 CSS 注释）。
+  // 锁定时记录滚动位置，解锁时还原，避免用户从页面中部关抽屉后被弹回顶部。
+  document.documentElement.classList.toggle("drawer-lock", locked);
+  document.body.classList.toggle("drawer-lock", locked);
+  if (locked) {
+    DrawerLock.y = window.scrollY;
+  } else if (DrawerLock.y !== null) {
+    var y = DrawerLock.y;
+    DrawerLock.y = null;
+    window.scrollTo(0, y);
+  }
 }
 function toggleMobileMenu() {
   var nav = document.getElementById("mainNav");
@@ -1427,6 +1444,7 @@ function toggleMobileMenu() {
   var opening = !nav.classList.contains("drawer-open");
   nav.classList.toggle("drawer-open", opening);
   bd.classList.toggle("show", opening);
+  setDrawerScrollLock(opening);
   var btn = document.querySelector(".mobile-menu-btn");
   if (btn) btn.setAttribute("aria-expanded", opening ? "true" : "false");
 }
