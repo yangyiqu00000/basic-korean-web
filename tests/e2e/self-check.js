@@ -470,6 +470,26 @@ async function run() {
     if (!reviewKbd.hasSpeak) addFinding('error', '复习键盘', '抽认卡正面缺少发音按钮');
     if (reviewKbd.nextOk && reviewKbd.flipOk && reviewKbd.backOk && reviewKbd.hasSpeak) note('复习键盘：→ / 空格 / ← / 发音按钮 全部正常');
 
+    // 3d** 弹窗焦点陷阱（Iteration 013）：面板打开后 Tab 循环不逃逸，Esc 关闭后焦点归还打开者
+    const trap = { opened: false, inside: false, stillInside: false, restored: false };
+    try {
+      await page.locator('.stats-toggle').focus();
+      await page.keyboard.press('?');
+      await page.waitForTimeout(250);
+      trap.opened = await page.evaluate(() => !!document.getElementById('shortcutsOverlay'));
+      trap.inside = await page.evaluate(() => { const ov = document.getElementById('shortcutsOverlay'); return !!ov && ov.contains(document.activeElement); });
+      for (let i = 0; i < 5; i++) await page.keyboard.press('Tab');
+      trap.stillInside = await page.evaluate(() => { const ov = document.getElementById('shortcutsOverlay'); return !!ov && ov.contains(document.activeElement); });
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(250);
+      trap.restored = await page.evaluate(() => !document.getElementById('shortcutsOverlay') && !!document.activeElement && document.activeElement.classList.contains('stats-toggle'));
+    } catch (err) { /* 页面态异常按断言失败处理 */ }
+    if (!trap.opened) addFinding('error', '焦点陷阱', '快捷键面板未能打开');
+    if (trap.opened && !trap.inside) addFinding('error', '焦点陷阱', '面板打开后焦点未移入弹窗');
+    if (trap.opened && !trap.stillInside) addFinding('error', '焦点陷阱', 'Tab 循环逃逸到背景内容');
+    if (trap.opened && !trap.restored) addFinding('error', '焦点陷阱', 'Esc 关闭后焦点未归还打开者');
+    if (trap.opened && trap.inside && trap.stillInside && trap.restored) note('焦点陷阱：移入 / Tab 循环 / Esc 归还 全部正常');
+
     // 3e 主题切换（亮暗两套 token 都要能落地）
     const theme = await page.evaluate(async () => {
       const t0 = document.documentElement.getAttribute('data-theme');

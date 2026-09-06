@@ -60,6 +60,7 @@ function openStats() {
   overlay.onclick = function(e) { if (e.target === overlay) closeStats(); };
   overlay.innerHTML = renderStatsContent();
   document.body.appendChild(overlay);
+  focusModal(overlay); // 焦点移入弹窗 + 记住打开者（关闭时归还）
   // Phase 3：已登录 → 用服务端统计（跨设备聚合）替换本地数据
   if (typeof isLoggedIn === "function" && isLoggedIn() && typeof apiFetch === "function") {
     apiFetch("/api/stats").then(function(d) {
@@ -88,6 +89,7 @@ function openStats() {
 function closeStats() {
   var el = document.getElementById("statsOverlay");
   if (el) el.remove();
+  restoreModalFocus();
 }
 function showOnboarding() {
   var overlay = document.createElement("div");
@@ -1218,9 +1220,8 @@ function bkConfirm(message, onOk) {
     '</div>';
   document.body.appendChild(overlay);
   window._bkConfirmOnOk = onOk || function() {};
-  // 默认聚焦「取消」：破坏性操作防误触（Enter 不会误确认）
-  var cancelBtn = overlay.querySelector(".bk-confirm-actions .ai-suggest-btn");
-  if (cancelBtn) cancelBtn.focus();
+  // 默认聚焦「取消」：破坏性操作防误触（Enter 不会误确认）。focusModal 同时记住打开者
+  focusModal(overlay, ".bk-confirm-actions .ai-suggest-btn");
   return overlay;
 }
 function closeBkConfirm() {
@@ -1228,20 +1229,45 @@ function closeBkConfirm() {
   if (el) el.remove();
   bkConfirmShown = false;
   window._bkConfirmOnOk = null;
+  restoreModalFocus();
 }
 function bkConfirmOk() {
   var cb = window._bkConfirmOnOk;
   closeBkConfirm();
   if (cb) cb();
 }
-// ESC 关闭确认框 / 移动端抽屉 / 快捷键面板
+// ESC 关闭确认框 / 移动端抽屉 / 快捷键面板；Tab 在打开的弹窗内循环（焦点陷阱）
 function initBkConfirmKey() {
   document.addEventListener("keydown", function(e) {
-    if (e.key !== "Escape") return;
+    if (e.key !== "Escape") {
+      // 焦点陷阱：Tab/Shift+Tab 在弹窗内循环，不逃逸到背景内容（Iteration 013）
+      if (e.key !== "Tab") return;
+      var ov = document.getElementById("shortcutsOverlay") || document.getElementById("statsOverlay") || document.getElementById("bkConfirmOverlay");
+      if (!ov) return;
+      var els = ov.querySelectorAll('button:not([disabled]), select:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+      if (!els.length) return;
+      var cur = document.activeElement;
+      if (e.shiftKey) {
+        if (cur === els[0] || !ov.contains(cur)) { e.preventDefault(); els[els.length - 1].focus(); }
+      } else if (cur === els[els.length - 1] || !ov.contains(cur)) { e.preventDefault(); els[0].focus(); }
+      return;
+    }
     if (document.getElementById("bkConfirmOverlay")) closeBkConfirm();
     if (document.getElementById("shortcutsOverlay")) toggleShortcutsHelp();
     closeMobileDrawer();
   });
+}
+
+// ---- 弹窗焦点管理（Iteration 013）：打开时移入焦点并记住打开者，关闭时归还 ----
+var _modalReturnFocus = null;
+function focusModal(overlay, preferredSelector) {
+  _modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  var target = (preferredSelector && overlay.querySelector(preferredSelector)) || overlay.querySelector("button:not([disabled])");
+  if (target) target.focus();
+}
+function restoreModalFocus() {
+  if (_modalReturnFocus && document.body.contains(_modalReturnFocus)) _modalReturnFocus.focus();
+  _modalReturnFocus = null;
 }
 
 function playBtn(text, size) {
@@ -2864,7 +2890,7 @@ var SHORTCUT_ROWS = [
 ];
 function toggleShortcutsHelp() {
   var old = document.getElementById("shortcutsOverlay");
-  if (old) { old.remove(); return; }
+  if (old) { old.remove(); restoreModalFocus(); return; }
   var overlay = document.createElement("div");
   overlay.className = "stats-overlay";
   overlay.id = "shortcutsOverlay";
@@ -2877,6 +2903,7 @@ function toggleShortcutsHelp() {
     }).join("") +
   '</div>';
   document.body.appendChild(overlay);
+  focusModal(overlay);
 }
 
 // Initialize
