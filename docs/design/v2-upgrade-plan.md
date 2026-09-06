@@ -466,7 +466,7 @@ CREATE INDEX idx_email_codes_lookup ON email_codes(email, purpose, created_at);
   - **记账口径**：**只在 `reviewMark()`（明确点了「学习中 / 已掌握」）记一次**，`nextWordCard()` 翻页不记 —— 「翻过」不等于「复习过」，否则连点下一张就能把统计刷满；
   - **导出**：JSON（含 `reviewLog` 完整包）/ CSV（BOM 开头，否则 Excel 打开韩文乱码）；
   - **导入**：JSON 与 CSV 双格式，按 **同 type + 同 text** 合并，且**只有导入数据比本地新才覆盖**（旧备份不该把本地最新的掌握状态打回去）；新增条目按上限推云端（后端是逐条 POST）；
-  - **复习日志只存本地**（`korean_wordlist_review_log`，保留 90 天）：它是派生数据，跨设备同步要动 D1 表结构 + 迁移，收益不抵成本；要搬运用 JSON 导出即可。
+  - **复习日志已接入云同步**（2026-09-06，blob key `wordlist_review_log`，set 型按 id+time 并集，本地保留 90 天修剪）：原「需动 D1 表结构」的判断已过时——`user_blobs` 是通用键值表，闸门实为两端白名单（`SYNC_BLOB_MAP` + `BLOB_KEYS`）；set 语义专为 append-only 流水设计，arr 型按 id 折叠会吞掉同词条多日记录。回归：`tests/e2e/review-log-sync.js`。
 
 - ~~4.4 （可选）OAuth 快捷登录~~ —— **已砍掉（2026-08-30 决策）**：当前是邮箱+密码+验证码已跑通的自用/小众学习工具，OAuth 收益低于维护成本（需维护 provider 回调、state 校验、账号合并与解绑流程）。若将来用户规模上来再单独立项，届时需给 `users` 表加 `oauth_provider` / `oauth_id` 可空列。
 
