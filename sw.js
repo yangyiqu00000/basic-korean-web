@@ -13,8 +13,13 @@
 // 由 index.html 注册。
 var CACHE_VERSION = "bk-v2";
 var CACHE_NAME = CACHE_VERSION + "-v20260830u";
+// 离线兜底页（Iteration 031）：install 时预缓存，导航离线时兜底
+var OFFLINE_URL = "/offline.html?v=20260830u";
 
 self.addEventListener("install", function (event) {
+  // 预缓存离线兜底页（Iteration 031）：不等待旧页面关闭立即生效，
+  // 否则用户升级后首次离线可能拿不到 offline.html
+  event.waitUntil(caches.open(CACHE_NAME).then(function (cache) { cache.add(OFFLINE_URL); }));
   self.skipWaiting(); // 新版本立即激活，不等旧页面关闭
 });
 
@@ -45,6 +50,22 @@ self.addEventListener("fetch", function (event) {
   if (path.indexOf("/api/") === 0 || path.indexOf("/ai") === 0 || path.indexOf("/tts") === 0) return;
   // 只缓存带版本戳的静态资源
   if (!url.search || url.search.indexOf("v=") === -1) return;
+
+  // 离线导航兜底（Iteration 031）：HTML 永不主动缓存（在线永远最新），离线时
+  // 导航请求若放任 Response.error() 用户会看到浏览器原生错误页（恐龙）。
+  // 兜底顺序：先试已缓存的同 URL（此前离线包可能带过），没有则给 offline.html。
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req).catch(function () {
+        return caches.match(req).then(function (hit) {
+          return hit || caches.match(OFFLINE_URL).then(function (off) {
+            return off || Response.error();
+          });
+        });
+      })
+    );
+    return;
+  }
 
   // 网络优先：在线永远取最新内容并顺带刷新缓存；仅当网络失败（离线）时才用缓存兜底。
   event.respondWith(

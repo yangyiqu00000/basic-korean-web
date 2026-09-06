@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <title>离线模式 — Basic Korean 🇰🇷</title>
+    <style>
+      /* 设计系统 token 摘要（与 css/style.css :root 同源——此页不引主 CSS：离线时主 CSS 可能未缓存） */
+      :root {
+        --bg: #f6f6f5; --card-bg: #fbfbfa; --text: #1f1b17; --text-light: #6d635a;
+        --border: #e4ddd4; --primary: #af5e25; --on-primary: #ffffff; --primary-ink: #a0501c;
+        --primary-lighter: #fff3e7; --radius: 20px; --radius-sm: 12px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1a1714; --card-bg: #221d17; --text: #ece5dc; --text-light: #b3a89c;
+          --border: #3d342a; --primary: #e8924f; --on-primary: #1a1714; --primary-ink: #f0a468;
+          --primary-lighter: #2e2419;
+        }
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        background: var(--bg); color: var(--text);
+        font-family: "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        min-height: 100vh; min-height: 100dvh;
+        display: flex; align-items: center; justify-content: center; padding: 24px;
+      }
+      .card {
+        background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+        max-width: 420px; width: 100%; padding: 32px 28px; text-align: center;
+      }
+      .icon { font-size: 44px; margin-bottom: 12px; }
+      h1 { font-size: 20px; margin-bottom: 10px; }
+      p { font-size: 14px; line-height: 1.75; color: var(--text-light); }
+      .tip {
+        margin-top: 14px; background: var(--primary-lighter); border-radius: var(--radius-sm);
+        padding: 12px 14px; font-size: 13px; color: var(--primary-ink); text-align: left;
+      }
+      .tip strong { display: block; margin-bottom: 4px; font-size: 12px; }
+      button {
+        margin-top: 18px; background: var(--primary); color: var(--on-primary);
+        border: none; border-radius: var(--radius-sm); padding: 10px 28px;
+        font-size: 14px; font-family: inherit; cursor: pointer;
+      }
+      button:hover { filter: brightness(1.06); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">📡</div>
+        <h1>当前处于离线状态</h1>
+        <p>页面需要联网加载。已缓存的内容（此前浏览过的页面包）在离线时仍可使用。</p>
+        <div class="tip">
+            <strong>离线时可用</strong>
+            已访问过的页面（筑基 / 抽丝 / 剥茧 / 润物等内容页）；复习拾遗中已缓存的卡片。<br>
+            <strong>需要联网</strong>
+            AI 练句与情景对话、语音合成、云端同步。
+        </div>
+        <button onclick="location.reload()">🔄 重试连接</button>
+    </div>
+</body>
+</html>
