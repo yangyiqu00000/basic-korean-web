@@ -9,7 +9,7 @@ const enc = new TextEncoder();
 const PBKDF2_ITERATIONS = 100000;
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000; // 30 天
 // 方案 C 同步的 blob key（Phase 3 起：custom_scenes / scene_history 迁出 blob，改走记录级 scenes / scene_messages 表）
-export const BLOB_KEYS = ["progress", "training_done", "ai_history", "dismissed_tips"];
+export const BLOB_KEYS = ["progress", "training_done", "ai_history", "dismissed_tips", "wordlist_review_log"]; // wordlist_review_log：拾遗复习日志（Iteration 014，append-only，客户端按 id+time 并集）
 // 遗留 blob key（Phase 2 曾以整包同步）：拉取时迁移到记录级表后删除，实现墓碑兜底迁移
 export const LEGACY_SCENE_BLOB_KEYS = ["custom_scenes", "scene_history"];
 

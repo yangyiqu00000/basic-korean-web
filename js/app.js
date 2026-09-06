@@ -696,9 +696,9 @@ function renderWordCard(list, idx) {
 // ============================================
 // 拾遗 · 复习进度统计 + 导出导入（Phase 4.3）
 // ============================================
-// ⚠️ 复习日志刻意只存本地、不进 SYNC_BLOB_MAP：它是「复习行为流水」这类派生数据，
-// 不是核心学习资产。要跨设备同步得先给 D1 的 collections 侧加表 + 写迁移，收益配不上成本；
-// 真要搬运用下面的 JSON 导出/导入即可（导出的包里带 reviewLog）。
+// Iteration 014 起复习日志已接入云同步（blob key wordlist_review_log，set 型按 id+time 并集，
+// 见 js/sync.js）——它是 append-only 流水，无墓碑语义，过期仍走 90 天本地修剪；
+// 导出/导入保留（导出的包里带 reviewLog，跨账号迁移用）。
 var WORDLIST_REVIEW_LOG_KEY = "korean_wordlist_review_log";
 var WORDLIST_LOG_KEEP_DAYS = 90;
 // 单次导入最多往云端推多少条（后端是逐条 POST，防止一次导入打爆请求队列）
@@ -714,7 +714,10 @@ function recordWordListReview(id) {
   var cutoff = Date.now() - WORDLIST_LOG_KEEP_DAYS * 86400000;
   var log = getWordListReviewLog().filter(function(e) { return e && e.time >= cutoff; });
   log.push({ id: id, time: Date.now() });
-  localStorage.setItem(WORDLIST_REVIEW_LOG_KEY, JSON.stringify(log));
+  // Iteration 014：复习日志接入云同步（blob key wordlist_review_log，set 型按 id+time 并集）。
+  // syncPut 写本地 + 登录时触脏调度推送；未登录时它只写本地，行为与旧版一致。
+  if (typeof syncPut === "function") syncPut(WORDLIST_REVIEW_LOG_KEY, log);
+  else localStorage.setItem(WORDLIST_REVIEW_LOG_KEY, JSON.stringify(log));
 }
 // 本地日期键（用本地时区而非 UTC：学习行为按用户所在日历天算才符合直觉）
 function dayKeyOf(ts) {
@@ -1000,7 +1003,11 @@ function importWordListFromFile(input) {
         curLog.push({ id: x.id, time: Number(x.time) || Date.now() });
         logAdded++;
       });
-      if (logAdded) localStorage.setItem(WORDLIST_REVIEW_LOG_KEY, JSON.stringify(curLog));
+      // 与 sync 的 set 型合并同键（id@time），导入后触脏上云（Iteration 014）
+      if (logAdded) {
+        if (typeof syncPut === "function") syncPut(WORDLIST_REVIEW_LOG_KEY, curLog);
+        else localStorage.setItem(WORDLIST_REVIEW_LOG_KEY, JSON.stringify(curLog));
+      }
     }
 
     // 已登录 → 把新增条目推上云端（服务端按 type+text 幂等，重复推无害）

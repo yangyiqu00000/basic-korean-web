@@ -18,12 +18,14 @@ var SYNC_BLOB_MAP = {
   "korean_progress": "progress",
   "korean_training_done": "training_done",
   "korean_ai_history": "ai_history",
-  "korean_dismissed_tips": "dismissed_tips"
+  "korean_dismissed_tips": "dismissed_tips",
+  "korean_wordlist_review_log": "wordlist_review_log"  // Iteration 014：复习日志跨设备（append-only）
 };
 // 合并类型：map = 布尔映射取并集（减墓碑）；arr = 数组按 id 合并（updated_at 后写胜出，墓碑时间晚于条目则删）
+// set = 仅追加集合按 id+time 并集（复习日志：同一词条可多日重复，arr 的按 id 折叠会吞掉历史），无墓碑（过期走 90 天本地修剪）
 var SYNC_TYPES = {
   progress: "map", training_done: "map", dismissed_tips: "map",
-  ai_history: "arr"
+  ai_history: "arr", wordlist_review_log: "set"
 };
 
 // ============================================================
@@ -225,6 +227,21 @@ function mergeArr(localArr, remoteArr, deleted) {
   }).filter(Boolean);
 }
 
+// set 类型（复习日志）：仅追加集合按 id+time 并集，无墓碑——同一词条可多日重复出现，
+// arr 的按 id 合并会把多日复习折叠成一条（Iteration 014）；过期不在此处理，走 90 天本地修剪。
+function mergeSet(localArr, remoteArr) {
+  var seen = {};
+  var out = [];
+  (localArr || []).concat(remoteArr || []).forEach(function(e2) {
+    if (!e2 || !e2.id || !e2.time) return;
+    var k = e2.id + "@" + e2.time;
+    if (seen[k]) return;
+    seen[k] = 1;
+    out.push(e2);
+  });
+  return out;
+}
+
 // 合并单个 blob（云端 → 本地），返回是否变化
 function mergeBlobFromServer(bk, remote) {
   var lk = localKeyOf(bk);
@@ -258,6 +275,10 @@ function mergeBlobFromServer(bk, remote) {
       merged = mergeMap(localRaw, remoteData, del);
       m[bk] = { deleted: del, clearedAt: Math.max(st.clearedAt || 0, remoteClearedAt || 0), updatedAt: Math.max(st.updatedAt || 0, remoteTs), lastPushed: 0 };
     }
+  } else if (type === "set") {
+    // 追加式集合：并集合并，无墓碑/清空语义；updatedAt 仅用于脏标记比较
+    merged = mergeSet(localRaw || [], remoteData || []);
+    m[bk] = { deleted: {}, clearedAt: 0, updatedAt: Math.max(st.updatedAt || 0, remoteTs), lastPushed: 0 };
   } else {
     var delArr = Object.assign({}, st.deleted || {}, remoteDeleted);
     merged = mergeArr(localRaw || [], remoteData || [], delArr);
