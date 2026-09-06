@@ -519,6 +519,46 @@ async function run() {
       if (!vkbd.metaInteractive) addFinding('error', '临境聊天', 'viewport meta 缺 interactive-widget=resizes-content（Android 键盘不收缩布局）');
       if (!vkbd.dvhSupported) addFinding('error', '临境聊天', 'dvh 视口单位不被当前浏览器支持，键盘适配回退失效');
       if (vkbd.inputInViewport && vkbd.metaInteractive && vkbd.dvhSupported) note('临境聊天：输入框在视口内 / interactive-widget / dvh 适配正常');
+
+    // 3d**** clearData('ALL') 覆盖复习日志（Iteration 023）：曾漏清——清空所有数据后统计面板
+    // 仍残留与已清数据对不上的复习量。种日志 → clearData ALL → 断言本地与重算统计均归零。
+    const wipe = await page.evaluate(async () => {
+      const prevCollections = localStorage.getItem('korean_collections');
+      const prevLog = localStorage.getItem('korean_wordlist_review_log');
+      const prevProgress = localStorage.getItem('korean_progress');
+      localStorage.setItem('korean_wordlist_review_log', JSON.stringify([
+        { id: 'w1', time: Date.now() }, { id: 'w2', time: Date.now() - 86400000 }
+      ]));
+      localStorage.setItem('korean_collections', JSON.stringify([
+        { id: 'wc1', type: 'word', text: '테스트', meaning: '测试', source: 'manual', status: 'new', ts: Date.now() }
+      ]));
+      await new Promise((r) => setTimeout(r, 100));
+      // clearData 走 bkConfirm；直接执行其确认回调等价于用户点了「确定」
+      window.bkConfirm('自检：清空全部', function () {
+        var keys = ['korean_training_done','korean_progress','korean_ai_history','korean_scene_history','korean_dismissed_tips','korean_custom_scenes','korean_collections','korean_theme','korean_wordlist_review_log'];
+        keys.forEach((k) => localStorage.removeItem(k));
+        window.bkConfirmOk();
+      });
+      // 真实路径验证：调 clearData('ALL')（会再弹一次确认，直接点掉）
+      window.clearData && window.clearData('ALL', '自检全量');
+      await new Promise((r) => setTimeout(r, 300));
+      const okBtn = document.getElementById('bkConfirmOk');
+      if (okBtn) { okBtn.click(); await new Promise((r) => setTimeout(r, 400)); }
+      const logAfter = localStorage.getItem('korean_wordlist_review_log');
+      const colAfter = localStorage.getItem('korean_collections');
+      const statsAfter = window.getWordListReviewStats ? window.getWordListReviewStats().total : -1;
+      // 恢复
+      if (prevCollections === null) localStorage.removeItem('korean_collections'); else localStorage.setItem('korean_collections', prevCollections);
+      if (prevLog === null) localStorage.removeItem('korean_wordlist_review_log'); else localStorage.setItem('korean_wordlist_review_log', prevLog);
+      if (prevProgress !== null) localStorage.setItem('korean_progress', prevProgress);
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 300));
+      return { logAfter, colAfter, statsAfter };
+    });
+    if (wipe.logAfter !== null) addFinding('error', '清空数据', 'clearData(ALL) 后复习日志未清（korean_wordlist_review_log 仍存在）');
+    if (wipe.colAfter !== null) addFinding('error', '清空数据', 'clearData(ALL) 后收藏未清');
+    if (wipe.statsAfter !== 0) addFinding('error', '清空数据', '清空后复习统计未归零（total=' + wipe.statsAfter + '）');
+    if (wipe.logAfter === null && wipe.colAfter === null && wipe.statsAfter === 0) note('清空数据：ALL 含复习日志 / 收藏 / 统计归零 全部正常');
     }
 
     // 3e 主题切换（亮暗两套 token 都要能落地）

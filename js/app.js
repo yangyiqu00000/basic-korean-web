@@ -264,7 +264,7 @@ function calcWeekCollections() {
 // 清空指定 localStorage 数据（带确认）
 function clearData(key, name) {
   bkConfirm('确定将「' + name + '」清空？此操作不可恢复。', function() {
-    var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme"] : [key];
+    var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme","korean_wordlist_review_log"] : [key]; // Iteration 023：补复习日志（曾漏清——清空后统计面板残留与已清数据对不上的复习量）
     // Phase 2：拾遗（收藏本）是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
     var colSnapshot = (typeof syncCollectDelete === "function" && (key === "ALL" || key === "korean_collections")) ? getCollections() : [];
     // Phase 3：场景记录级，重置前快照本地有 id 的条目（我的场景 + 对话记录镜像），清空后逐条删云端
