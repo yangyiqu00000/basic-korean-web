@@ -77,7 +77,9 @@ function attachCollectors(page, collector) {
     collector.consoleErrors.push(t.slice(0, 300));
   });
   page.on('pageerror', (err) => {
-    collector.pageErrors.push(String(err && err.message || err).slice(0, 300));
+    // 记录消息 + 首两行堆栈：只看 message 经常定位不到元凶（如 null.forEach）
+    const stack = (err && err.stack || '').split('\n').slice(1, 3).join(' ← ').trim();
+    collector.pageErrors.push((String(err && err.message || err) + (stack ? '  @ ' + stack : '')).slice(0, 300));
   });
   page.on('requestfailed', (req) => {
     const u = req.url();
@@ -394,8 +396,12 @@ async function run() {
       window.navigate('home');
       await new Promise((r) => setTimeout(r, 400));
       const hiddenAfterReviewed = !document.querySelector('.home-review-nudge');
-      localStorage.setItem('korean_collections', prevCollections);
-      localStorage.setItem('korean_wordlist_review_log', prevLog);
+      // 恢复原值：null 必须 removeItem 而非 setItem(key, null)——后者存入字符串 "null"，
+      // 会毒化 getCollections/safeParse 链（历史坑：null.forEach 崩统计渲染）
+      if (prevCollections === null) localStorage.removeItem('korean_collections');
+      else localStorage.setItem('korean_collections', prevCollections);
+      if (prevLog === null) localStorage.removeItem('korean_wordlist_review_log');
+      else localStorage.setItem('korean_wordlist_review_log', prevLog);
       window.navigate('home');
       await new Promise((r) => setTimeout(r, 300));
       return { shown, shownText, reviewEntered, hiddenAfterReviewed };
@@ -404,6 +410,29 @@ async function run() {
     if (nudge.shown && !nudge.reviewEntered) addFinding('error', '首页提醒', '提醒条按钮未进入拾遗复习模式');
     if (nudge.shown && !nudge.hiddenAfterReviewed) addFinding('error', '首页提醒', '今日已复习后提醒条仍显示');
     if (nudge.shown && nudge.reviewEntered && nudge.hiddenAfterReviewed) note('首页复习提醒：出现 / 进入复习 / 已复习消失 全部正常');
+
+    // 3d++ 快捷键面板（B6）：? 呼出 → 面板出现且含「0=统计」行；Esc 关闭。0 键须真的能开统计（存量 bug：tooltip 宣称按 0 但从未绑定）。
+    const kbd = await page.evaluate(async () => {
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 300));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 200));
+      const opened = !!document.getElementById('shortcutsOverlay');
+      const hasStatsRow = opened && document.getElementById('shortcutsOverlay').innerText.includes('学习统计仪表盘');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 200));
+      const escClosed = !document.getElementById('shortcutsOverlay');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '0', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 300));
+      const zeroOpensStats = !!document.getElementById('statsOverlay');
+      if (zeroOpensStats) window.closeStats();
+      return { opened, hasStatsRow, escClosed, zeroOpensStats };
+    });
+    if (!kbd.opened) addFinding('error', '快捷键', '? 未呼出快捷键面板');
+    if (kbd.opened && !kbd.hasStatsRow) addFinding('error', '快捷键', '面板缺少统计快捷键行');
+    if (kbd.opened && !kbd.escClosed) addFinding('error', '快捷键', 'Esc 未关闭快捷键面板');
+    if (!kbd.zeroOpensStats) addFinding('error', '快捷键', '按 0 未打开统计仪表盘（title 宣称与实际行为不符）');
+    if (kbd.opened && kbd.hasStatsRow && kbd.escClosed && kbd.zeroOpensStats) note('快捷键面板：? 呼出 / Esc 关闭 / 0 开统计 全部正常');
 
     // 3e 主题切换（亮暗两套 token 都要能落地）
     const theme = await page.evaluate(async () => {

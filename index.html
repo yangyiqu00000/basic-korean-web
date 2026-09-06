@@ -8,15 +8,15 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Basic Korean 🇰🇷 - 韩语最小可行系统</title>
-	    <link rel="stylesheet" href="css/style.css?v=20260830e">
+	    <link rel="stylesheet" href="css/style.css?v=20260830g">
     <!-- 预加载关键资源 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="css/style.css?v=20260830e" as="style">
+    <link rel="preload" href="css/style.css?v=20260830g" as="style">
     <!-- 字体精简（P1-8）：去 300/500/800 冗余字重，仅保留正文所需 -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Vue 3 本地托管（P0-1）：不再依赖 unpkg CDN，提升大陆访问稳定性 -->
-    <script src="js/vendor/vue.global.prod.js?v=20260830e"></script>
+    <script src="js/vendor/vue.global.prod.js?v=20260830g"></script>
     <!-- Service Worker：版本化安全缓存（P2-2）——只缓存带 ?v= 的静态资源，HTML/API/TTS 永不缓存 -->
     <script>
     if ('serviceWorker' in navigator) {
@@ -65,22 +65,22 @@
     </div>
 
     <!-- 数据层（P1-7 合并：6 文件 → 2 文件，保持依赖顺序；重跑 scripts/rebuild-data.sh 重新生成） -->
-    <script src="js/data_core.js?v=20260830e"></script>
-    <script src="js/data_ext.js?v=20260830e"></script>
-    <script src="js/app.js?v=20260830e"></script>
+    <script src="js/data_core.js?v=20260830g"></script>
+    <script src="js/data_ext.js?v=20260830g"></script>
+    <script src="js/app.js?v=20260830g"></script>
     <!-- Phase 2 云同步层（依赖 safeParse/escapeHtml 等全局函数，须在 app.js 之后） -->
-    <script src="js/sync.js?v=20260830e"></script>
+    <script src="js/sync.js?v=20260830g"></script>
     <!-- Vue 页面组件（容器 + 委托原始渲染） -->
-    <script src="js/components/HomePage.js?v=20260830e"></script>
-    <script src="js/components/SkeletonPage.js?v=20260830e"></script>
-    <script src="js/components/TrainingPage.js?v=20260830e"></script>
-    <script src="js/components/StemsPage.js?v=20260830e"></script>
-    <script src="js/components/AiPage.js?v=20260830e"></script>
-    <script src="js/components/ScenePage.js?v=20260830e"></script>
-    <script src="js/components/SchedulePage.js?v=20260830e"></script>
-    <script src="js/components/WordListPage.js?v=20260830e"></script>
+    <script src="js/components/HomePage.js?v=20260830g"></script>
+    <script src="js/components/SkeletonPage.js?v=20260830g"></script>
+    <script src="js/components/TrainingPage.js?v=20260830g"></script>
+    <script src="js/components/StemsPage.js?v=20260830g"></script>
+    <script src="js/components/AiPage.js?v=20260830g"></script>
+    <script src="js/components/ScenePage.js?v=20260830g"></script>
+    <script src="js/components/SchedulePage.js?v=20260830g"></script>
+    <script src="js/components/WordListPage.js?v=20260830g"></script>
     <!-- Vue 3：注册组件 + 接管路由 -->
-    <script src="js/vue-app.js?v=20260830e"></script>
+    <script src="js/vue-app.js?v=20260830g"></script>
     <script>
       // 性能标记
       window.addEventListener('load', function() {

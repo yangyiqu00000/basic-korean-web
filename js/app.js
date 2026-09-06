@@ -435,7 +435,10 @@ function renderColorLegend() {
 var COLLECTIONS_KEY = "korean_collections";
 
 function getCollections() {
-  return safeParse(localStorage.getItem(COLLECTIONS_KEY), []);
+  // Array 防御：localStorage 里被写入 "null"/"{}" 等脏值时不得炸掉统计/拾遗渲染
+  // （calcLocalStreak→renderStatsContent 曾因 "null" 整链崩溃，Iteration 008）
+  var list = safeParse(localStorage.getItem(COLLECTIONS_KEY), []);
+  return Array.isArray(list) ? list : [];
 }
 function saveCollections(list) {
   localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(list));
@@ -1231,11 +1234,12 @@ function bkConfirmOk() {
   closeBkConfirm();
   if (cb) cb();
 }
-// ESC 关闭确认框 / 移动端抽屉
+// ESC 关闭确认框 / 移动端抽屉 / 快捷键面板
 function initBkConfirmKey() {
   document.addEventListener("keydown", function(e) {
     if (e.key !== "Escape") return;
     if (document.getElementById("bkConfirmOverlay")) closeBkConfirm();
+    if (document.getElementById("shortcutsOverlay")) toggleShortcutsHelp();
     closeMobileDrawer();
   });
 }
@@ -2847,6 +2851,33 @@ function exportSceneTxt() {
   showToast("已导出对话记录");
 }
 
+// ---- 快捷键帮助面板（B6）：数字键导航只写在 hover title 里，无发现入口 ----
+// 顶栏按标杆约束不得加第 5 个按钮（375px 已到极限），故用 ? 键呼出。
+// 样式全部复用统计弹窗三件套（stats-overlay/stats-modal/stats-row），零新增 CSS。
+// 注意必须是全局函数：弹层关闭走内联 onclick，只解析 window 上的名字。
+var SHORTCUT_ROWS = [
+  ["1 – 8", "切换页面：归藏 / 筑基 / 抽丝 / 剥茧 / 砥砺 / 临境 / 润物 / 拾遗"],
+  ["0", "学习统计仪表盘"],
+  ["?", "打开 / 关闭本面板"],
+  ["Esc", "关闭弹层与移动端抽屉"]
+];
+function toggleShortcutsHelp() {
+  var old = document.getElementById("shortcutsOverlay");
+  if (old) { old.remove(); return; }
+  var overlay = document.createElement("div");
+  overlay.className = "stats-overlay";
+  overlay.id = "shortcutsOverlay";
+  overlay.onclick = function(e) { if (e.target === overlay) toggleShortcutsHelp(); };
+  overlay.innerHTML = '<div class="stats-modal">' +
+    '<button class="stats-close" onclick="toggleShortcutsHelp()" aria-label="关闭快捷键面板">✕</button>' +
+    '<h2>⌨️ 快捷键</h2>' +
+    SHORTCUT_ROWS.map(function(r) {
+      return '<div class="stats-row"><span>' + r[1] + '</span><span class="stat-value">' + r[0] + '</span></div>';
+    }).join("") +
+  '</div>';
+  document.body.appendChild(overlay);
+}
+
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
   // 全局未捕获错误处理（防止空白页，显示友好提示）
@@ -2879,6 +2910,9 @@ document.addEventListener("DOMContentLoaded", () => {
     var t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "?") { e.preventDefault(); toggleShortcutsHelp(); return; }
+    // 0 = 统计仪表盘：index.html 的 title 一直宣称「按 0」但从未绑定过（Iteration 008 修复的存量 bug）
+    if (e.key === "0") { e.preventDefault(); openStats(); return; }
     var page = KEY_PAGE_MAP[e.key];
     if (page) { e.preventDefault(); navigate(page); }
   });
