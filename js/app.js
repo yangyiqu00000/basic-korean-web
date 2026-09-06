@@ -1467,11 +1467,27 @@ function renderPage(page) {
 
 
 // === HOME PAGE ===
+// ---- 首页复习提醒（Phase 4.3 候选落地：每日复习是拾遗的核心循环，首页每天第一屏应给出引导）----
+// 出现条件：有非掌握收藏 且 今日尚未复习（getWordListReviewStats().todayDone，
+// 与拾遗页统计面板同一口径）。全部掌握或今日已复习 → 不打扰。
+function homeReviewNudge() {
+  var pending = getCollections().filter(function(c) { return c.status !== "mastered"; }).length;
+  if (!pending || getWordListReviewStats().todayDone) return "";
+  return '<div class="home-review-nudge">' +
+    '<span class="home-review-txt">🏷️ 拾遗复习：今日还有 <strong>' + pending + '</strong> 条待复习</span>' +
+    '<button class="ai-suggest-btn" onclick="startHomeReview()">🎴 开始复习</button>' +
+  '</div>';
+}
+function startHomeReview() {
+  navigate("wordlist");
+  startWordListReview();
+}
 function renderHome() {
   return `
     <section class="hero">
       <h1>🇰🇷 Basic Korean</h1>
       <p>用"最小可行系统"启动韩语学习。<br>先建立骨架，再添加血肉，两周内拥有完整的韩语地图。</p>
+      ${homeReviewNudge()}
       <div class="hero-cards">
         <div class="hero-card" onclick="navigate('skeleton')">
           <div class="icon">🏗️</div>

@@ -369,6 +369,42 @@ async function run() {
       if (review.after === review.before + 1 && review.todayDone) note('拾遗：复习记账 + 今日状态正常');
     }
 
+    // 3d+ 首页复习提醒（B1）：有待复习且今日未复习 → 出现；点击 → 进入拾遗复习模式；
+    // 今日已复习 → 消失。守三个口径：pending 非掌握数、todayDone 与拾遗页统计同源、进入走单一代码路径。
+    const nudge = await page.evaluate(async () => {
+      const prevCollections = localStorage.getItem('korean_collections');
+      const prevLog = localStorage.getItem('korean_wordlist_review_log');
+      localStorage.setItem('korean_collections', JSON.stringify([
+        { id: 'nudge-1', type: 'word', text: '셀프체크', meaning: '自检', source: 'skeleton', status: 'new', ts: Date.now() },
+        { id: 'nudge-2', type: 'word', text: '이미품음', meaning: '已掌握占位', source: 'skeleton', status: 'mastered', ts: Date.now() }
+      ]));
+      localStorage.removeItem('korean_wordlist_review_log');
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 400));
+      const shown = !!document.querySelector('.home-review-nudge');
+      const shownText = shown ? document.querySelector('.home-review-nudge').innerText.replace(/\n/g, ' ') : '';
+      const btn = document.querySelector('.home-review-nudge button');
+      let reviewEntered = false;
+      if (btn) {
+        btn.click();
+        await new Promise((r) => setTimeout(r, 500));
+        reviewEntered = window.currentPage === 'wordlist' && window.wordListReviewMode === true;
+      }
+      localStorage.setItem('korean_wordlist_review_log', JSON.stringify([{ id: 'nudge-1', time: Date.now() }]));
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 400));
+      const hiddenAfterReviewed = !document.querySelector('.home-review-nudge');
+      localStorage.setItem('korean_collections', prevCollections);
+      localStorage.setItem('korean_wordlist_review_log', prevLog);
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 300));
+      return { shown, shownText, reviewEntered, hiddenAfterReviewed };
+    });
+    if (!nudge.shown) addFinding('error', '首页提醒', '有待复习且今日未复习时首页提醒条未出现');
+    if (nudge.shown && !nudge.reviewEntered) addFinding('error', '首页提醒', '提醒条按钮未进入拾遗复习模式');
+    if (nudge.shown && !nudge.hiddenAfterReviewed) addFinding('error', '首页提醒', '今日已复习后提醒条仍显示');
+    if (nudge.shown && nudge.reviewEntered && nudge.hiddenAfterReviewed) note('首页复习提醒：出现 / 进入复习 / 已复习消失 全部正常');
+
     // 3e 主题切换（亮暗两套 token 都要能落地）
     const theme = await page.evaluate(async () => {
       const t0 = document.documentElement.getAttribute('data-theme');

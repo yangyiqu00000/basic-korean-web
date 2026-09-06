@@ -467,6 +467,18 @@ body {
 .stats-row-highlight { background: var(--primary-lighter); border-radius: 10px; padding: 12px 14px; margin: 4px -6px; border-bottom: none; }
 .stats-row-highlight .stat-value { font-size: 18px; color: var(--primary-ink); }
 
+/* ---- 首页复习提醒（B1）：有非掌握收藏且今日未复习时展示 ----
+   纯引导组件：浅主色底 + --primary-ink 文字（token 三分，勿改用 --accent）。
+   口径与拾遗页「今日尚未复习」一致（getWordListReviewStats().todayDone）。 */
+.home-review-nudge {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  max-width: 640px; margin: 0 auto 18px; padding: 12px 16px;
+  background: var(--primary-lighter); border: 1px solid var(--primary-light);
+  border-radius: var(--radius-sm); font-size: 14px; color: var(--primary-ink);
+}
+.home-review-nudge strong { color: inherit; }
+@media (max-width: 600px) { .home-review-nudge { flex-direction: column; gap: 8px; text-align: center; } }
+
 /* ---- 学习统计仪表盘（Phase 4.1）---- */
 /* 核心指标四宫格：两列，窄屏自动塌成一列 */
 .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }

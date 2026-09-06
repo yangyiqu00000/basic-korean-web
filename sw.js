@@ -12,7 +12,7 @@
 //      彻底消除「版本戳忘了改」这一整类事故。CDN 与浏览器 HTTP 缓存已足够快。
 // 由 index.html 注册。
 var CACHE_VERSION = "bk-v2";
-var CACHE_NAME = CACHE_VERSION + "-v20260830d";
+var CACHE_NAME = CACHE_VERSION + "-v20260830e";
 
 self.addEventListener("install", function (event) {
   self.skipWaiting(); // 新版本立即激活，不等旧页面关闭
