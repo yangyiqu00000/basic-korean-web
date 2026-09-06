@@ -446,6 +446,7 @@ async function run() {
       window.startWordListReview();
       await new Promise((r) => setTimeout(r, 300));
       const idx0 = window.wordListReviewIdx;
+      const hasSpeak = !!document.querySelector('.flashcard .korean-speak-btn');
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
       await new Promise((r) => setTimeout(r, 120));
       const idx1 = window.wordListReviewIdx;
@@ -461,12 +462,13 @@ async function run() {
       else localStorage.setItem('korean_collections', prev);
       window.navigate('home');
       await new Promise((r) => setTimeout(r, 200));
-      return { nextOk: idx1 === idx0 + 1, flipOk: clsAfter.includes('flipped') && !clsBefore.includes('flipped'), backOk: idx2 === idx0 };
+      return { nextOk: idx1 === idx0 + 1, flipOk: clsAfter.includes('flipped') && !clsBefore.includes('flipped'), backOk: idx2 === idx0, hasSpeak };
     });
     if (!reviewKbd.nextOk) addFinding('error', '复习键盘', '→ 未切到下一张');
     if (!reviewKbd.flipOk) addFinding('error', '复习键盘', '空格未翻面');
     if (!reviewKbd.backOk) addFinding('error', '复习键盘', '← 未切回上一张');
-    if (reviewKbd.nextOk && reviewKbd.flipOk && reviewKbd.backOk) note('复习键盘：→ / 空格 / ← 全部正常');
+    if (!reviewKbd.hasSpeak) addFinding('error', '复习键盘', '抽认卡正面缺少发音按钮');
+    if (reviewKbd.nextOk && reviewKbd.flipOk && reviewKbd.backOk && reviewKbd.hasSpeak) note('复习键盘：→ / 空格 / ← / 发音按钮 全部正常');
 
     // 3e 主题切换（亮暗两套 token 都要能落地）
     const theme = await page.evaluate(async () => {

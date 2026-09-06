@@ -673,7 +673,7 @@ function renderWordCard(list, idx) {
     '<div class="flashcard" onclick="flipWordCard(this)">' +
       '<div class="flashcard-inner">' +
         '<div class="flashcard-face flashcard-front">' +
-          '<div style="font-size:24px;font-weight:500;font-family:\'Noto Sans KR\',sans-serif;padding:20px;text-align:center;word-break:break-all;">' + escapeHtml(c.text) + '</div>' +
+          '<div style="font-size:24px;font-weight:500;font-family:\'Noto Sans KR\',sans-serif;padding:20px;text-align:center;word-break:break-all;">' + escapeHtml(c.text) + playBtn(c.text, "small") + '</div>' +
           '<div style="position:absolute;bottom:10px;width:100%;text-align:center;font-size:11px;color:var(--text-light);">👆 点击翻面看含义</div>' +
         '</div>' +
         '<div class="flashcard-face flashcard-back">' +
