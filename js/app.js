@@ -2025,7 +2025,7 @@ function renderSchedule() {
     </div>
     <div class="tip-banner"><strong>⚡ 核心原则</strong><br>① 20 分钟到就停——超时容易产生厌倦<br>② 不追求完美——Day 7 能断句 30% 就算成功<br>③ 重复比新学重要——前 7 天反复练 30 句 > 学 100 句但不熟<br>④ 声音很重要——所有句子至少读出声 1 遍</div>
     <div style="margin-bottom:16px;padding:14px;background:var(--primary-lighter);border-radius:var(--radius-sm);font-size:14px;">
-      <strong>📊 学习进度</strong> ${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)
+      <strong>📊 学习进度</strong> <span id="scheduleProgressText">${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)</span>
       <div style="margin-top:8px;height:8px;background:var(--card-bg);border-radius:4px;overflow:hidden;">
         <div style="height:100%;width:${doneCount / totalCount * 100}%;background:var(--primary);transition:width 0.3s;"></div>
       </div>
@@ -2048,8 +2048,11 @@ function toggleCheck(el) {
     let totalCount = SCHEDULE.reduce((sum, d) => sum + d.tasks.length, 0);
     let progressBar = schedulePage.querySelector("div[style*='height:100%']");
     if (progressBar) progressBar.style.width = (doneCount / totalCount * 100) + "%";
-    let progressText = schedulePage.querySelector("strong");
-    if (progressText) progressText.nextSibling.textContent = ` ${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)`;
+    // Iteration 033：进度文本自 toggleCheck 诞生起从未更新过——旧选择器 querySelector("strong")
+    // 命中的是 tip-banner 里的「⚡ 核心原则」，nextSibling 是 <br>，textContent 赋值静默无效。
+    // 改为稳定 id 锚点（renderSchedule 输出 #scheduleProgressText）。
+    let progressText = schedulePage.querySelector("#scheduleProgressText");
+    if (progressText) progressText.textContent = ` ${doneCount} / ${totalCount} (${Math.round(doneCount / totalCount * 100)}%)`;
   }
 }
 

@@ -646,6 +646,32 @@ async function run() {
       if (!helpEntry.opened) addFinding('error', '快捷键入口', '点击链接未打开快捷键面板');
       if (helpEntry.visible && helpEntry.opened) note('快捷键入口：首页链接可见 / 点击打开面板 正常');
     }
+
+    // 3d******** 润物表勾选进度即时刷新（Iteration 033）：勾选后文本计数必须变。
+    // 旧选择器 querySelector("strong") 命中的是 tip-banner 的「⚡ 核心原则」——文本自
+    // toggleCheck 诞生起从未刷新过（进度条正常反而掩盖了它）。
+    const sched = await page.evaluate(async () => {
+      const prev = localStorage.getItem('korean_progress');
+      localStorage.removeItem('korean_progress');
+      window.navigate('schedule'); await new Promise((r) => setTimeout(r, 400));
+      const readPct = () => (document.body.innerText.match(/\d+ \/ \d+ \(\d+%\)/) || [null])[0];
+      const before = readPct();
+      const first = document.querySelector('.task .check');
+      if (!first) return { noTask: true };
+      first.click(); await new Promise((r) => setTimeout(r, 200));
+      const after = readPct();
+      first.click(); await new Promise((r) => setTimeout(r, 200));
+      const restored = readPct();
+      if (prev === null) localStorage.removeItem('korean_progress'); else localStorage.setItem('korean_progress', prev);
+      window.navigate('home'); await new Promise((r) => setTimeout(r, 200));
+      return { before, after, restored };
+    });
+    if (sched.noTask) addFinding('error', '润物表', '没有可勾选的任务项（数据异常）');
+    else {
+      if (sched.after === sched.before) addFinding('error', '润物表', '勾选后进度文本未刷新（' + sched.before + ' → ' + sched.after + '）');
+      if (sched.restored !== sched.before) addFinding('error', '润物表', '取消勾选后进度未复原（' + sched.restored + ' ≠ ' + sched.before + '）');
+      if (sched.after !== sched.before && sched.restored === sched.before) note('润物表：勾选进度即时刷新 / 取消复原 正常');
+    }
     }
 
     // 3e 主题切换（亮暗两套 token 都要能落地）
