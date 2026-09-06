@@ -19,6 +19,10 @@ function safeParse(json, fallback) {
 }
 // localStorage 中明文存储（非 JSON）的键，导出/导入时原样读写，避免 JSON.parse('dark') 抛错
 var PLAIN_STORAGE_KEYS = ["korean_theme","korean_voice","korean_onboarded"];
+// 全量学习数据键（Iteration 026 根治轮）：exportAllData / clearData(ALL) 必须引用同一来源——
+// 两轮教训（023 清空侧、025 导出侧各漏一次 korean_wordlist_review_log）证明散落清单必失同步。
+// 注意：korean_theme 在清空清单内但导出也含（用户偏好随备份走）；korean_sync_* 元数据键不在此列（每设备各自维护）。
+var ALL_STORAGE_KEYS = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme","korean_voice","korean_onboarded","korean_wordlist_review_log"];
 
 // 主题初始化与切换（暗色/亮色，localStorage 持久化，首次跟随系统偏好）
 var THEME_KEY = "korean_theme";
@@ -264,7 +268,7 @@ function calcWeekCollections() {
 // 清空指定 localStorage 数据（带确认）
 function clearData(key, name) {
   bkConfirm('确定将「' + name + '」清空？此操作不可恢复。', function() {
-    var keys = key === "ALL" ? ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_dismissed_tips","korean_custom_scenes","korean_collections","korean_theme","korean_wordlist_review_log"] : [key]; // Iteration 023：补复习日志（曾漏清——清空后统计面板残留与已清数据对不上的复习量）
+    var keys = key === "ALL" ? ALL_STORAGE_KEYS : [key]; // Iteration 026：单一事实源（023 曾漏清复习日志）
     // Phase 2：拾遗（收藏本）是记录级（不在 blob），重置前先快照收藏列表，清空后逐条删除云端收藏（否则下次拉取会复活）
     var colSnapshot = (typeof syncCollectDelete === "function" && (key === "ALL" || key === "korean_collections")) ? getCollections() : [];
     // Phase 3：场景记录级，重置前快照本地有 id 的条目（我的场景 + 对话记录镜像），清空后逐条删云端
@@ -294,9 +298,7 @@ function clearData(key, name) {
 
 // 导出全部学习数据为 JSON 备份文件
 function exportAllData() {
-  // ⚠️ 键清单与 clearData(ALL) / 导入逻辑三处散落——改键必须三处同步（Iteration 023/025 两轮教训）。
-  // 025 补 korean_wordlist_review_log：完整备份此前导不出复习历史（014 起已是同步资产）。
-  var keys = ["korean_training_done","korean_progress","korean_ai_history","korean_scene_history","korean_custom_scenes","korean_collections","korean_dismissed_tips","korean_theme","korean_voice","korean_onboarded","korean_wordlist_review_log"];
+  var keys = ALL_STORAGE_KEYS; // Iteration 026：单一事实源（曾与 clearData 各漏一次键，教训见 ALL_STORAGE_KEYS 注释）
   var data = {};
   keys.forEach(function(k) {
     var v = localStorage.getItem(k);

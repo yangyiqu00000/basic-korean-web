@@ -559,6 +559,36 @@ async function run() {
     if (wipe.colAfter !== null) addFinding('error', '清空数据', 'clearData(ALL) 后收藏未清');
     if (wipe.statsAfter !== 0) addFinding('error', '清空数据', '清空后复习统计未归零（total=' + wipe.statsAfter + '）');
     if (wipe.logAfter === null && wipe.colAfter === null && wipe.statsAfter === 0) note('清空数据：ALL 含复习日志 / 收藏 / 统计归零 全部正常');
+
+    // 3d***** 键清单一致性（Iteration 026）：exportAllData 与 clearData(ALL) 必须引用同一
+    // ALL_STORAGE_KEYS（单一事实源），且包含全部同步键——两轮漏键事故（023 清空侧 / 025 导出侧）
+    // 的根治断言。检测方式：函数源码文本级检查（引用 + 关键键存在）。
+    const keySet = await page.evaluate(() => {
+      const src = {
+        exportAll: String(window.exportAllData),
+        clearData: String(window.clearData)
+      };
+      const mustHave = ['korean_wordlist_review_log', 'korean_collections', 'ALL_STORAGE_KEYS'];
+      const missing = { exportAll: [], clearData: [] };
+      mustHave.forEach((k) => {
+        if (!src.exportAll.includes(k) && !src.exportAll.includes('ALL_STORAGE_KEYS')) missing.exportAll.push(k);
+        if (!src.clearData.includes(k) && !src.clearData.includes('ALL_STORAGE_KEYS')) missing.clearData.push(k);
+      });
+      // ALL_STORAGE_KEYS 本身必须含全部同步映射键
+      const syncKeys = Object.keys(window.SYNC_BLOB_MAP || {});
+      const allKeysArr = window.ALL_STORAGE_KEYS || [];
+      const notInAll = syncKeys.filter((k) => allKeysArr.indexOf(k) === -1);
+      return { missing, syncKeys, notInAll };
+    });
+    if (keySet.missing.exportAll.length || keySet.missing.clearData.length) {
+      addFinding('error', '键清单', 'export/clear 键清单不一致，缺失：' + JSON.stringify(keySet.missing));
+    }
+    if (keySet.notInAll.length) {
+      addFinding('error', '键清单', 'ALL_STORAGE_KEYS 漏同步键：' + keySet.notInAll.join(', '));
+    }
+    if (!keySet.missing.exportAll.length && !keySet.missing.clearData.length && !keySet.notInAll.length) {
+      note('键清单一致性：export/clear 同源 ALL_STORAGE_KEYS / 同步键全覆盖 正常');
+    }
     }
 
     // 3e 主题切换（亮暗两套 token 都要能落地）
