@@ -622,6 +622,30 @@ async function run() {
     if (imp.skipped.length !== 2) addFinding('error', '导入白名单', '域外键跳过计数异常：' + JSON.stringify(imp.skipped));
     if (!imp.themeLanded) addFinding('error', '导入白名单', '域内键（korean_theme）未能导入');
     if (!imp.evilLanded && !imp.xLanded && imp.skipped.length === 2 && imp.themeLanded) note('导入白名单：域外键拦截 / 域内键放行 正常');
+
+    // 3d******* 快捷键面板 UI 入口（Iteration 030）：移动端无实体键盘 ? 键不可达，
+    // 首页底部「查看全部快捷键」链接是唯一可达入口。断言：链接存在且点击能开面板（移动视口下）。
+    const helpEntry = await page.evaluate(async () => {
+      window.navigate('home');
+      await new Promise((r) => setTimeout(r, 400));
+      const link = [...document.querySelectorAll('#mainContent a')].find((a) => a.innerText.includes('查看全部快捷键'));
+      if (!link) return { hasLink: false };
+      const r = link.getBoundingClientRect();
+      // 口径修正：链接在页脚（折叠线下方）属正常——滚动可达即可，断言只查
+      // 有实体（width>0）+ 点击行为。首屏可见性不是本断言的诉求。
+      const visible = r.width > 0 && r.height > 0;
+      link.click();
+      await new Promise((r2) => setTimeout(r2, 250));
+      const opened = !!document.getElementById('shortcutsOverlay');
+      if (opened) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await new Promise((r2) => setTimeout(r2, 150)); }
+      return { hasLink: true, visible, opened };
+    });
+    if (!helpEntry.hasLink) addFinding('error', '快捷键入口', '首页缺少「查看全部快捷键」链接（移动端 ? 键不可达）');
+    else {
+      if (!helpEntry.visible) addFinding('error', '快捷键入口', '链接不可见/被挤出视口');
+      if (!helpEntry.opened) addFinding('error', '快捷键入口', '点击链接未打开快捷键面板');
+      if (helpEntry.visible && helpEntry.opened) note('快捷键入口：首页链接可见 / 点击打开面板 正常');
+    }
     }
 
     // 3e 主题切换（亮暗两套 token 都要能落地）

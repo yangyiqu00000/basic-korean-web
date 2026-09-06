@@ -1586,7 +1586,7 @@ function renderHome() {
 	    </section>
 	    <div style="text-align:center;margin-top:20px;color:var(--text-light);font-size:13px;">
 	      <p>💡 建议顺序：筑基 → 抽丝 → 剥茧 → 砥砺 → 临境 → 润物 → 拾遗</p>
-      <p style="margin-top:6px;">⌨️ 快捷键：数字键 1-8 快速切换页面（输入框内不触发）</p>
+      <p style="margin-top:6px;">⌨️ 快捷键：数字键 1-8 快速切换页面（输入框内不触发）· <a href="javascript:void(0)" onclick="toggleShortcutsHelp()" style="color:var(--primary-ink);text-decoration:underline;">查看全部快捷键</a></p>
     </div>
   `;
 }
