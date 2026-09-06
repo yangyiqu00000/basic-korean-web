@@ -1597,10 +1597,12 @@ function renderSkeleton() {
 
 function switchSkeletonTab(tab) {
   skeletonTab = tab;
-  // Vue 模式下只重绘骨架页组件自己的根节点（.skeleton-page-vue），绝不能覆盖 #mainContent
+  // Vue 模式下只重绘骨架页组件自己的根节点（.skeleton-page-vue），绝不能覆盖 #mainContent。
+  // ⚠️ root 为 null（组件尚未挂载的竞态窗）时严禁兜底写 #mainContent——会连 #vue-root 一起
+  // 抹掉（Iteration 021 在 rerenderWordList 实测的事故），改走 refreshCurrentPage() 重建。
   var root = document.querySelector("#mainContent .skeleton-page-vue");
-  var main = root || document.getElementById("mainContent");
-  main.innerHTML = renderSkeleton();
+  if (!root) { refreshCurrentPage(); return; }
+  root.innerHTML = renderSkeleton();
   retriggerPageEnter();
   initRevealObserver();
 }
@@ -1794,11 +1796,13 @@ function setTrainingFilter(group) {
   });
   // Vue 模式下只重绘训练页组件自己的根节点（.training-page-vue），
   // 绝不能覆盖 #mainContent —— 那会连同 #vue-root（Vue 挂载点）一起被删除，导致导航全部失效。
+  // ⚠️ root 为 null（组件尚未挂载的竞态窗）时严禁兜底写 #mainContent（Iteration 021 同款事故），
+  // 改走 refreshCurrentPage() 重建。
   var root = document.querySelector("#mainContent .training-page-vue");
-  var main = root || document.getElementById("mainContent");
-  main.innerHTML = renderTraining();
+  if (!root) { refreshCurrentPage(); return; }
+  root.innerHTML = renderTraining();
   retriggerPageEnter();
-  var items = main.querySelectorAll(".sentence-card");
+  var items = root.querySelectorAll(".sentence-card");
   items.forEach(function(item, i) {
     item.style.animationDelay = Math.min(i * 0.04, 0.4) + "s";
   });
