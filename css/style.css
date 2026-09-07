@@ -349,6 +349,7 @@ body {
   border-radius: var(--radius-sm);
   padding: 20px;
   margin-bottom: 16px;
+  position: relative; /* Iteration 041：右上角收藏钮的定位上下文 */
   cursor: pointer;
   transition: all 0.2s var(--ease);
 }
@@ -368,6 +369,17 @@ body {
 .sentence-card .breakdown-item .mean { color: var(--text-light); font-size: 12px; display: block; }
 .sentence-card .sentence-num { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
 .sentence-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+/* Iteration 041：训练卡收藏★从行内挪到卡片右上角——行内位置悬在句号与编号之间视觉割裂
+   （生产实测 x=614 卡片中央）。仅作用于 .sentence-top 内的收藏钮（筑基表格/词干页/AI 行内的
+   collect-btn 保持行内不动）。右侧留白让位给绝对定位的★。 */
+.sentence-top .collect-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  margin-left: 0;
+  z-index: 1;
+}
+.sentence-top .master-btn { margin-right: 40px; /* 给右上角★ 让位，避免两钮重叠 */ }
 .master-btn { background: var(--bg); border: 1px solid var(--border); color: var(--text-light); border-radius: 99px; padding: 4px 10px; font-size: 12px; cursor: pointer; flex-shrink: 0; transition: all 0.2s var(--ease); }
 .master-btn:hover { border-color: var(--primary); color: var(--primary-ink); }
 .master-btn.mastered { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
